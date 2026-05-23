@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>海报速读行动卡</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="workspace" aria-label="海报分析工作区">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">视觉搜索赛道 Demo</p>
+            <h1>海报速读行动卡</h1>
+          </div>
+          <div class="status-pill" id="modeStatus">缓存样例模式</div>
+        </header>
+
+        <div class="layout">
+          <section class="input-panel" aria-label="海报输入">
+            <div class="panel-heading">
+              <div>
+                <p class="section-kicker">输入</p>
+                <h2>选择一张海报</h2>
+              </div>
+              <button class="icon-button" id="resetButton" type="button" title="重置演示">
+                <span aria-hidden="true">↻</span>
+                <span class="sr-only">重置演示</span>
+              </button>
+            </div>
+
+            <div class="upload-zone" id="uploadZone">
+              <input id="posterUpload" type="file" accept="image/*" />
+              <div class="upload-copy">
+                <span class="upload-icon" aria-hidden="true">+</span>
+                <strong>上传现场海报</strong>
+                <span>当前版本会用缓存分析结构模拟模型输出</span>
+              </div>
+              <img id="uploadPreview" alt="上传的海报预览" />
+            </div>
+
+            <div class="sample-grid" id="sampleGrid" aria-label="预置海报样例"></div>
+
+            <div class="persona-panel">
+              <div>
+                <p class="section-kicker">身份</p>
+                <h2>选择你的关注点</h2>
+              </div>
+              <div class="persona-list" id="personaList" role="listbox" aria-label="身份标签"></div>
+            </div>
+          </section>
+
+          <section class="result-panel" aria-label="AI 分析结果">
+            <div class="analysis-header">
+              <div>
+                <p class="section-kicker">AI 行动卡</p>
+                <h2 id="resultTitle">活动信息分析中</h2>
+              </div>
+              <div class="score-ring" aria-label="推荐指数">
+                <span id="scoreValue">--</span>
+                <small>推荐</small>
+              </div>
+            </div>
+
+            <div class="summary-strip" id="summaryStrip"></div>
+
+            <div class="content-grid">
+              <section class="result-section">
+                <h3>为什么适合你</h3>
+                <p id="fitReason"></p>
+              </section>
+
+              <section class="result-section">
+                <h3>到场前准备</h3>
+                <ul id="prepList"></ul>
+              </section>
+
+              <section class="result-section wide">
+                <h3>活动亮点</h3>
+                <div class="tag-list" id="highlightList"></div>
+              </section>
+            </div>
+
+            <div class="actions-panel">
+              <div class="action-card">
+                <div class="action-card-header">
+                  <h3>日程提醒</h3>
+                  <button class="small-button" data-copy-target="calendarText" type="button">复制</button>
+                </div>
+                <p id="calendarText"></p>
+              </div>
+
+              <div class="action-card">
+                <div class="action-card-header">
+                  <h3>转发文案</h3>
+                  <button class="small-button" data-copy-target="shareText" type="button">复制</button>
+                </div>
+                <p id="shareText"></p>
+              </div>
+            </div>
+
+            <section class="share-preview" aria-label="分享卡预览">
+              <div>
+                <p class="section-kicker">分享卡</p>
+                <h3 id="shareCardTitle"></h3>
+              </div>
+              <p id="shareCardBody"></p>
+              <div class="share-card-footer">
+                <span id="shareCardMeta"></span>
+                <span>海报速读行动卡</span>
+              </div>
+            </section>
+          </section>
+        </div>
+      </section>
+    </main>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <script src="./app.js"></script>
+  </body>
+</html>
+
