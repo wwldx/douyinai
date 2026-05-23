@@ -210,6 +210,8 @@ let activeSample = samples[0];
 let confirmedItems = new Set(activeSample.vision.items.map((item) => item.name));
 let uploadedImageDataUrl = "";
 let activeProvider = "mock";
+let inventorySource = "缓存样例";
+let lastVisionError = "";
 
 const elements = {
   modeStatus: document.querySelector("#modeStatus"),
@@ -383,15 +385,19 @@ function renderContext() {
 
 function renderInventory() {
   const confirmedCount = getConfirmedInventory().length;
-  elements.inventoryCount.textContent = `${confirmedCount}/${activeSample.vision.items.length} 已确认`;
+  elements.inventoryCount.textContent = `${inventorySource} · ${confirmedCount}/${activeSample.vision.items.length} 已确认`;
 
   if (!activeSample.vision.items.length) {
     elements.inventoryList.innerHTML = `
-      <div class="inventory-empty">等待视觉识别结果。也可以直接选择下方缓存样例演示完整流程。</div>
+      <div class="inventory-empty">${
+        lastVisionError
+          ? `识别失败：${lastVisionError}。当前未使用缓存结果，请检查服务、模型配置或切换到开发页查看原始返回。`
+          : "等待视觉识别结果。也可以直接选择下方缓存样例演示完整流程。"
+      }</div>
     `;
     elements.uncertainBox.innerHTML = `
       <strong>不确定项与安全边界</strong>
-      <ul><li>上传图片后，视觉识别 Agent 会在这里列出遮挡、保鲜盒和新鲜度风险。</li></ul>
+      <ul><li>${lastVisionError ? "识别失败时不展示缓存食材，避免误判链路结果。" : "上传图片后，视觉识别 Agent 会在这里列出遮挡、保鲜盒和新鲜度风险。"}</li></ul>
     `;
     return;
   }
@@ -473,7 +479,7 @@ function renderAnalysis() {
   elements.shoppingReason.textContent = `${plan.shoppingUpgrade.reason} 预计 ${plan.shoppingUpgrade.estimatedCost}。`;
   elements.fallbackText.textContent = `${plan.fallback.condition}：${plan.fallback.suggestion}`;
   elements.safetyText.innerHTML = plan.baseMeal.safetyTips.map((tip) => `<li>${tip}</li>`).join("");
-  elements.pitchText.textContent = `AI 不是只识别冰箱里有什么，而是把视觉库存、用户厨艺、时间和精力一起纳入决策，给出今晚最现实的一顿饭：${plan.baseMeal.name}。当前规划来源：${activeProvider === "openai" ? "模型生成" : "缓存兜底"}。`;
+  elements.pitchText.textContent = `AI 不是只识别冰箱里有什么，而是把视觉库存、用户厨艺、时间和精力一起纳入决策，给出今晚最现实的一顿饭：${plan.baseMeal.name}。当前规划来源：${activeProvider === "mock" ? "缓存兜底" : "模型生成"}。`;
   elements.commerceTitle.textContent = `${plan.commerceSuggestion.title}：${plan.commerceSuggestion.item}`;
   elements.commerceBody.textContent = plan.commerceSuggestion.reason;
 
@@ -555,6 +561,8 @@ async function runVisionAgent() {
     setBusy(true, "视觉识别中");
     const data = await postJson("/api/analyze-fridge", { imageDataUrl: uploadedImageDataUrl });
     activeProvider = data.provider || "openai";
+    inventorySource = `模型识别 · ${data.model || "model"}`;
+    lastVisionError = "";
     activeSample = makeUploadSample(data.vision, fallbackUpload.plan);
     resetConfirmedItems(activeSample);
     renderInventory();
@@ -562,13 +570,14 @@ async function runVisionAgent() {
     elements.modeStatus.textContent = `视觉识别完成：${data.model || "模型"}`;
     showToast("视觉识别完成，请确认库存");
   } catch (error) {
-    activeProvider = "mock";
-    activeSample = makeUploadSample(fallbackUpload.vision, fallbackUpload.plan);
+    lastVisionError = error.message || "识别失败";
+    inventorySource = "识别失败";
+    activeSample = makeUploadSample({ items: [], uncertainItems: [], warnings: [] }, fallbackUpload.plan);
     resetConfirmedItems(activeSample);
     renderInventory();
     renderAnalysis();
-    elements.modeStatus.textContent = "识别失败，已回退缓存";
-    showToast(error.message || "识别失败，已回退缓存");
+    elements.modeStatus.textContent = "识别失败，未使用缓存";
+    showToast(lastVisionError);
   } finally {
     setBusy(false);
   }
@@ -618,6 +627,8 @@ elements.fridgeUpload.addEventListener("change", async (event) => {
   elements.uploadPreview.style.display = "block";
   uploadedImageDataUrl = await fileToDataUrl(file);
   activeProvider = "mock";
+  inventorySource = "待识别";
+  lastVisionError = "";
   activeSample = makeUploadSample({ items: [], uncertainItems: [], warnings: [] }, fallbackUpload.plan);
   resetConfirmedItems(activeSample);
   elements.modeStatus.textContent = "已上传，待识别";
@@ -627,6 +638,8 @@ elements.fridgeUpload.addEventListener("change", async (event) => {
 elements.resetButton.addEventListener("click", () => {
   activeSample = samples[0];
   activeProvider = "mock";
+  inventorySource = "缓存样例";
+  lastVisionError = "";
   uploadedImageDataUrl = "";
   resetConfirmedItems(activeSample);
   elements.fridgeUpload.value = "";

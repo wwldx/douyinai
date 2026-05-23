@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>冰箱晚餐 Agent 开发检验台</title>
+    <link rel="stylesheet" href="./styles.css" />
+    <link rel="stylesheet" href="./dev.css" />
+  </head>
+  <body>
+    <main class="dev-shell">
+      <header class="dev-topbar">
+        <div>
+          <p class="eyebrow">开发检验台</p>
+          <h1>冰箱晚餐 Agent 链路检查</h1>
+        </div>
+        <nav class="dev-nav" aria-label="页面切换">
+          <a href="./">展示界面</a>
+          <span id="healthBadge">检查服务中</span>
+        </nav>
+      </header>
+
+      <section class="dev-grid" aria-label="调试流程">
+        <section class="dev-panel">
+          <div class="panel-heading">
+            <div>
+              <p class="section-kicker">Step 1</p>
+              <h2>上传原图</h2>
+            </div>
+          </div>
+          <div class="upload-zone dev-upload">
+            <input id="fridgeUpload" type="file" accept="image/*" />
+            <div class="upload-copy">
+              <span class="upload-icon" aria-hidden="true">+</span>
+              <strong>选择冰箱图片</strong>
+              <span>建议使用本地“冰箱图片库”的图片测试</span>
+            </div>
+            <img id="uploadPreview" alt="上传的冰箱照片预览" />
+          </div>
+          <div class="agent-actions">
+            <button class="primary-button" id="analyzeButton" type="button" disabled>调用视觉识别</button>
+            <button class="primary-button secondary" id="planButton" type="button" disabled>调用晚餐规划</button>
+          </div>
+          <div class="dev-status" id="statusText">等待上传图片。</div>
+        </section>
+
+        <section class="dev-panel">
+          <p class="section-kicker">Step 2</p>
+          <h2>归一化库存与人工确认</h2>
+          <div class="dev-meta" id="visionMeta">暂无模型结果</div>
+          <div class="inventory-list" id="inventoryList">
+            <div class="inventory-empty">识别完成后，食材会出现在这里。勾选结果会作为晚餐规划输入。</div>
+          </div>
+          <div class="uncertain-box" id="uncertainBox">
+            <strong>不确定项与安全边界</strong>
+            <ul><li>暂无。</li></ul>
+          </div>
+        </section>
+
+        <section class="dev-panel wide">
+          <div class="dev-section-heading">
+            <div>
+              <p class="section-kicker">Step 3</p>
+              <h2>视觉识别原始返回</h2>
+            </div>
+            <button class="small-button" data-copy-target="visionRaw" type="button">复制 JSON</button>
+          </div>
+          <pre class="json-view" id="visionRaw">暂无。</pre>
+        </section>
+
+        <section class="dev-panel wide">
+          <div class="dev-section-heading">
+            <div>
+              <p class="section-kicker">Step 4</p>
+              <h2>晚餐规划输入与原始返回</h2>
+            </div>
+            <button class="small-button" data-copy-target="planRaw" type="button">复制 JSON</button>
+          </div>
+          <pre class="json-view" id="planRaw">暂无。</pre>
+        </section>
+      </section>
+    </main>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <script src="./dev.js"></script>
+  </body>
+</html>

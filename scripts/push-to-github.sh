@@ -24,6 +24,13 @@ fi
 
 echo "暂存改动..."
 git add -A
+git add -f .env.example
+
+if git diff --cached --name-only | grep -E '(^|/)\.env($|\.|local$)' | grep -vE '(^|/)\.env\.example$' >/dev/null; then
+  echo "检测到本地环境密钥文件被暂存，已中止。请检查 .env/.env.*。"
+  git restore --staged .env .env.* 2>/dev/null || true
+  exit 1
+fi
 
 if git diff --cached --quiet; then
   echo "没有新的提交内容，直接推送当前分支。"

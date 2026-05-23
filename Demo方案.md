@@ -71,6 +71,7 @@ Demo 要强调 AI 不是“识别冰箱里有什么”，而是完成一个决�
 - 零依赖 Node 服务：`demo/server.mjs`。
 - 两个轻量 Agent 端点：`/api/analyze-fridge` 和 `/api/plan-dinner`。
 - OpenAI Responses API + JSON schema 结构化输出。
+- Right Code 中转站使用 `rightcode_responses_stream` provider，发送 `stream:true` 并解析 SSE 中的 `response.output_text.delta`。
 - 静态样例作为模型失败兜底。
 - 勾选库存后实时重算可执行分数、缺料补买和兜底文案。
 
@@ -84,7 +85,7 @@ Agent 分层：
   -> 返回 decision / baseMeal / stretchMeal / shoppingUpgrade / fallback / safetyTips
 ```
 
-默认模型通过 `OPENAI_MODEL` 配置，未设置时使用 `gpt-4.1-mini`。后续如改接 Claude、豆包视觉或 Agents SDK，只需要替换服务端 provider，前端 JSON 合约不变。
+默认模型通过 `OPENAI_MODEL` 配置，未设置时使用 `gpt-4.1-mini`。Right Code 当前建议 `OPENAI_MODEL=gpt-5.5` 且 `MODEL_PROVIDER=rightcode_responses_stream`。后续如改接 Claude、豆包视觉或 Agents SDK，只需要替换服务端 provider，前端 JSON 合约不变。
 
 ## 8. 现场讲解要点
 
