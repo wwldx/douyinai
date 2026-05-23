@@ -33,15 +33,25 @@
             <div class="upload-copy">
               <span class="upload-icon" aria-hidden="true">+</span>
               <strong>选择冰箱图片</strong>
-              <span>建议使用本地“冰箱图片库”的图片测试</span>
+              <span>建议使用 assets/fridge-images 的图片测试</span>
             </div>
             <img id="uploadPreview" alt="上传的冰箱照片预览" />
           </div>
           <div class="agent-actions">
             <button class="primary-button" id="analyzeButton" type="button" disabled>调用视觉识别</button>
             <button class="primary-button secondary" id="planButton" type="button" disabled>调用晚餐规划</button>
+            <button class="primary-button tertiary" id="cacheVisionButton" type="button" disabled>加载上次识别</button>
           </div>
           <div class="dev-status" id="statusText">等待上传图片。</div>
+          <div class="dev-profile">
+            <p class="section-kicker">用户画像 MVP</p>
+            <label class="user-select-row">
+              <span>演示用户</span>
+              <select id="userSelect"></select>
+            </label>
+            <div class="trait-list" id="profileTraits"></div>
+            <div class="feedback-actions" id="feedbackActions"></div>
+          </div>
         </section>
 
         <section class="dev-panel">
@@ -82,6 +92,7 @@
     </main>
 
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <script src="./profile-store.js"></script>
     <script src="./dev.js"></script>
   </body>
 </html>

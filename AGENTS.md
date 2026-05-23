@@ -17,15 +17,22 @@
 当前 demo 已实现：
 
 - `demo/index.html`：冰箱晚餐 Agent 单页界面。
-- `demo/app.js`：前端交互、缓存样例、库存确认、晚餐方案渲染。
+- `demo/app.js`：前端交互、缓存样例、库存确认、等待状态、上次识别缓存、晚餐方案渲染。
 - `demo/dev.html`：开发检验台，用于人工核对每一步链路结果。
-- `demo/dev.js`：开发检验台交互，展示视觉识别原始 JSON、归一化库存、人工确认库存、晚餐规划输入与输出。
+- `demo/dev.js`：开发检验台交互，展示视觉识别原始 JSON、归一化库存、人工确认库存、晚餐规划输入与输出，并支持加载上次成功识别结果。
 - `demo/dev.css`：开发检验台样式。
 - `demo/styles.css`：页面视觉和响应式布局。
 - `demo/server.mjs`：本地 Node 服务，提供两个轻量 Agent API。
-- `测试演示操作手册.md`：本地启动、页面入口、测试流程、常见问题和 GitHub 上传步骤。
+- `demo/agent/`：轻量 Agent 模块，包含视觉识别 Agent、晚餐规划 Agent、模型客户端和 JSON Schema。
+- `demo/profile-store.js`：用户画像 MVP，优先通过本地服务写入用户文件夹，显式偏好、反馈事件和推断 traits 都按用户隔离。
+- `data/demo-users/`：可提交的演示用户种子，包括新手赶时间、深夜写代码、健身轻食。
+- `data/local-users/`：本机运行时用户记忆和每个用户的冰箱识别缓存，已在 `.gitignore` 中排除。
+- `assets/fridge-images/`：演示冰箱图片。
+- `docs/demo/测试演示操作手册.md`：本地启动、页面入口、测试流程、常见问题和 GitHub 上传步骤。
 - `/api/analyze-fridge`：视觉识别 Agent，输入冰箱图片 data URL，输出结构化库存 JSON。
 - `/api/plan-dinner`：晚餐规划 Agent，输入确认后的库存和用户上下文，输出结构化晚餐方案 JSON。
+- 服务端本地用户文件夹：当前主路径使用 `data/local-users/<userId>/profile.json` 和 `vision-cache.json` 保存用户画像、反馈事件和每个用户的上次冰箱识别缓存。
+- 浏览器本地缓存：这里指浏览器站点存储 `localStorage`，不是项目目录里的长期文件；它仅保留当前选中用户，并在本地服务不可用时兜底，不作为主存储；缓存不保存 API Key。
 - `.env.local`：本地 API Key 和模型配置，仅本机使用，不提交。
 - `.env.example`：给队友参考的配置模板，可以提交。
 - `scripts/push-to-github.sh`：一键检查、提交、推送脚本。
@@ -121,6 +128,13 @@ PORT=4174 npm run dev
 
 展示界面可以保留缓存样例作为现场兜底，但不能在模型识别失败时把缓存食材伪装成模型结果。识别失败时必须明确提示“未使用缓存结果”，方便判断真实链路是否正常。
 
+等待体验要求：
+
+- 视觉识别和晚餐规划等待期间必须显示已用秒数。
+- 等待状态要提示当前阶段，例如发送图片、等待视觉模型、模型仍在识别。
+- 超过 45 秒的视觉识别要提示可继续等待或加载上次识别结果。
+- 成功识别后自动缓存本次结构化结果，展示页和开发检验台都应能一键加载。
+
 ## 4. GitHub 上传规则
 
 推荐使用脚本：
@@ -177,6 +191,14 @@ npm run push -- "提交信息"
 - 比赛 demo 更需要稳定、可解释、容易兜底。
 - 两个端点已经能清楚表达 Agent 分工。
 - 后续如果需要迁移到 OpenAI Agents SDK、LangGraph、Dify 或其他 provider，只需替换服务端 provider，前端 JSON 合约尽量保持不变。
+
+当前架构决策：
+
+- 继续使用原生 Node.js + 两个 Agent 函数 + 结构化 JSON 合约。
+- 暂不为了“看起来像 Agent 框架”而引入 LangChain/LangGraph/Dify。
+- 当出现多轮追问、工具调用、状态回滚、分支流程和复杂记忆写入时，再评估 LangGraph 或 OpenAI Agents SDK。
+- 已实现第一版 `profileStore`、反馈事件、画像 traits 和规划 Agent 输入；后续重点是优化 traits 规则和“本次参考依据”的展示质量。
+- 用户画像和冰箱识别缓存必须按用户隔离，优先写入 `data/local-users/<userId>/`；不要只依赖浏览器 `localStorage`。
 
 模型输出要求：
 
@@ -259,13 +281,14 @@ npm run push -- "提交信息"
 
 优先级较高：
 
-- 准备真实冰箱样例图，测试 `/api/analyze-fridge` 的识别稳定性。
-- 如果 rightcode 中转对 Responses API 的 `json_schema`、`input_image` 或 `store:false` 兼容性有差异，按错误信息适配 `demo/server.mjs`。
+- 等待体验已加入阶段提示和计时，后续继续优化超时文案和现场录屏兜底。
+- 最近一次视觉识别结果已加入按用户隔离的本地文件缓存，后续可增加“固定演示样例缓存”和清除缓存按钮。
+- 准备真实冰箱样例图，继续测试 `/api/analyze-fridge` 的识别稳定性。
 - 准备备用录屏，防止现场网络或模型接口不稳定。
-- 增加推荐反馈按钮：`想吃`、`太麻烦`、`不够抗饿`、`不想洗锅`、`换清淡点`、`今天就想外卖`。
-- 新增 `profileStore`，先用 localStorage 保存显式偏好、事件、特征和推断标签。
-- 新增画像分析函数，生成 `lateNightMealPattern`、`onePotPreference`、`quickMealPreference` 等可解释标签。
-- 将画像 traits 传入 `/api/plan-dinner`，让晚餐规划 Agent 结合长期偏好生成方案。
+- 推荐反馈按钮已加入：`想吃`、`太麻烦`、`不够抗饿`、`不想洗锅`、`换清淡点`、`今天就想外卖`。
+- 第一版 `profileStore` 已加入，优先用 `data/local-users/<userId>/profile.json` 保存显式偏好、事件和推断标签。
+- 第一版画像分析函数已加入，生成 `lateNightWarmMealPattern`、`onePotPreference`、`quickMealPreference` 等可解释标签。
+- 画像 traits 已传入 `/api/plan-dinner`，让晚餐规划 Agent 结合长期偏好生成方案。
 - 页面增加“本次推荐参考了什么”区域，例如深夜时段、新手厨艺、不爱洗锅、最近外卖偏多。
 
 优先级中等：
@@ -293,17 +316,17 @@ npm run push -- "提交信息"
 更新优先级：
 
 1. 先更新 `AGENTS.md`，记录长期约束和决策。
-2. 若影响项目总览，同步更新 `项目工作台.md`。
-3. 若影响演示流程，同步更新 `Demo方案.md`。
-4. 若影响比赛提交，同步更新 `作品说明文档.md`、`路演讲稿.md`、`海报文案.md`。
-5. 原始长对话可以保存为独立记录，例如 `对话记录-用户画像.md`；`AGENTS.md` 只保存提炼后的结论。
+2. 若影响项目总览，同步更新 `docs/strategy/项目工作台.md`。
+3. 若影响演示流程，同步更新 `docs/demo/Demo方案.md`。
+4. 若影响比赛提交，同步更新 `docs/submission/作品说明文档.md`、`docs/submission/路演讲稿.md`、`docs/submission/海报文案.md`。
+5. 原始长对话可以保存为独立记录，例如 `docs/archive/对话记录-用户画像.md`；`AGENTS.md` 只保存提炼后的结论。
 
 ## 11. 给后续 Agent 的工作要求
 
 在本仓库工作时：
 
 - 先读 `AGENTS.md`。
-- 再读与任务直接相关的文档，例如 `Demo方案.md`、`赛道2_冰箱晚餐Agent/MVP规划与执行清单.md`、`对话记录-用户画像.md`。
+- 再读与任务直接相关的文档，例如 `docs/demo/Demo方案.md`、`docs/fridge-agent/MVP规划与执行清单.md`、`docs/archive/对话记录-用户画像.md`。
 - 不要把历史备选方案误当成当前主线。
 - 不要提交 `.env.local` 或任何密钥。
 - 修改模型请求 schema 时，必须同步前端、文档和兜底逻辑。

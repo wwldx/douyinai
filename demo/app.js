@@ -1,20 +1,4 @@
-const userContext = {
-  user: {
-    name: "小林",
-    cookingLevel: "新手",
-    preferences: ["少油", "微辣", "不爱洗太多锅"],
-    avoid: ["香菜", "复杂刀工", "油炸"],
-    recentMeals: ["黄焖鸡外卖", "麻辣烫", "便利店饭团"],
-    goal: "今晚想吃热的，但不要太麻烦",
-  },
-  context: {
-    time: "21:10",
-    availableCookingTime: "25 分钟",
-    energyLevel: "低",
-    nextSchedule: "22:00 继续改项目文档",
-    weather: "小雨",
-  },
-};
+let userContext = window.FridgeProfile.buildUserContext();
 
 const samples = [
   {
@@ -212,6 +196,8 @@ let uploadedImageDataUrl = "";
 let activeProvider = "mock";
 let inventorySource = "缓存样例";
 let lastVisionError = "";
+let isBusy = false;
+let operationTimer = 0;
 
 const MAX_IMAGE_EDGE = 1600;
 const COMPRESS_IMAGE_BYTES = 2 * 1024 * 1024;
@@ -224,8 +210,12 @@ const elements = {
   uploadPreview: document.querySelector("#uploadPreview"),
   analyzeButton: document.querySelector("#analyzeButton"),
   planButton: document.querySelector("#planButton"),
+  cacheVisionButton: document.querySelector("#cacheVisionButton"),
   resetButton: document.querySelector("#resetButton"),
   contextGrid: document.querySelector("#contextGrid"),
+  userSelect: document.querySelector("#userSelect"),
+  profileTraits: document.querySelector("#profileTraits"),
+  feedbackActions: document.querySelector("#feedbackActions"),
   inventoryCount: document.querySelector("#inventoryCount"),
   inventoryList: document.querySelector("#inventoryList"),
   uncertainBox: document.querySelector("#uncertainBox"),
@@ -233,6 +223,7 @@ const elements = {
   scoreValue: document.querySelector("#scoreValue"),
   decisionSummary: document.querySelector("#decisionSummary"),
   summaryStrip: document.querySelector("#summaryStrip"),
+  profileNotes: document.querySelector("#profileNotes"),
   baseTime: document.querySelector("#baseTime"),
   baseMealName: document.querySelector("#baseMealName"),
   baseWhy: document.querySelector("#baseWhy"),
@@ -249,10 +240,94 @@ const elements = {
   toast: document.querySelector("#toast"),
 };
 
-function setBusy(isBusy, message) {
-  elements.analyzeButton.disabled = isBusy || !uploadedImageDataUrl;
-  elements.planButton.disabled = isBusy;
+function setBusy(busy, message) {
+  window.clearInterval(operationTimer);
+  operationTimer = 0;
+  isBusy = busy;
+  window.requestAnimationFrame(() => {
+    elements.modeStatus.classList.toggle("busy", busy);
+  });
+  elements.analyzeButton.disabled = busy || !uploadedImageDataUrl;
+  elements.planButton.disabled = busy;
+  updateCacheButton(busy);
   if (message) elements.modeStatus.textContent = message;
+}
+
+function operationHint(kind, seconds) {
+  if (kind === "vision") {
+    if (seconds < 3) return "发送图片";
+    if (seconds < 18) return "等待视觉模型";
+    if (seconds < 45) return "模型仍在识别";
+    return "耗时较长，可稍等或使用上次识别";
+  }
+
+  if (seconds < 3) return "发送确认库存";
+  if (seconds < 16) return "等待晚餐规划";
+  if (seconds < 35) return "模型仍在规划";
+  return "耗时较长，请稍等";
+}
+
+function startOperationStatus(kind, label) {
+  const startedAt = Date.now();
+  window.clearInterval(operationTimer);
+  const tick = () => {
+    const seconds = Math.floor((Date.now() - startedAt) / 1000);
+    elements.modeStatus.textContent = `${label} · ${seconds}s · ${operationHint(kind, seconds)}`;
+  };
+  tick();
+  operationTimer = window.setInterval(tick, 1000);
+  elements.modeStatus.classList.add("busy");
+  return startedAt;
+}
+
+function finishOperationStatus(message) {
+  window.clearInterval(operationTimer);
+  operationTimer = 0;
+  elements.modeStatus.classList.remove("busy");
+  elements.modeStatus.textContent = message;
+}
+
+function readCachedVision() {
+  return window.FridgeProfile.readVisionCache();
+}
+
+function saveCachedVision(data) {
+  if (!data?.vision?.items?.length) return;
+  const payload = {
+    provider: data.provider || "model",
+    model: data.model || "model",
+    vision: normalizeVision(data.vision),
+    cachedAt: new Date().toISOString(),
+  };
+  window.FridgeProfile.saveVisionCache(payload);
+  updateCacheButton(isBusy);
+}
+
+function formatCacheTime(value) {
+  if (!value) return "未知时间";
+  return new Date(value).toLocaleString("zh-CN", {
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function updateCacheButton(forceBusy = isBusy) {
+  if (!elements.cacheVisionButton) return;
+  const cached = readCachedVision();
+  elements.cacheVisionButton.disabled = forceBusy || !cached;
+  elements.cacheVisionButton.textContent = cached ? "加载上次识别" : "暂无识别缓存";
+}
+
+function applyVisionResult(data, sourceLabel) {
+  activeProvider = data.provider || "openai";
+  inventorySource = sourceLabel;
+  lastVisionError = "";
+  activeSample = makeUploadSample(data.vision, fallbackUpload.plan);
+  resetConfirmedItems(activeSample);
+  renderInventory();
+  renderAnalysis();
 }
 
 function resetConfirmedItems(sample) {
@@ -275,12 +350,19 @@ function normalizePlan(plan) {
   return {
     ...samples[0].plan,
     ...plan,
+    personalizationNotes: Array.isArray(plan?.personalizationNotes)
+      ? plan.personalizationNotes
+      : ["参考了当前时间、精力和厨艺水平。", "结合了显式偏好和人工确认后的库存。"],
     baseMeal: { ...samples[0].plan.baseMeal, ...plan?.baseMeal },
     stretchMeal: { ...samples[0].plan.stretchMeal, ...plan?.stretchMeal },
     shoppingUpgrade: { ...samples[0].plan.shoppingUpgrade, ...plan?.shoppingUpgrade },
     fallback: { ...samples[0].plan.fallback, ...plan?.fallback },
     commerceSuggestion: { ...samples[0].plan.commerceSuggestion, ...plan?.commerceSuggestion },
   };
+}
+
+function refreshUserContext() {
+  userContext = window.FridgeProfile.buildUserContext();
 }
 
 function makeUploadSample(vision = fallbackUpload.vision, plan = fallbackUpload.plan) {
@@ -301,7 +383,7 @@ function makeUploadSample(vision = fallbackUpload.vision, plan = fallbackUpload.
 }
 
 function getAdjustedPlan() {
-  const plan = activeSample.plan;
+  const plan = normalizePlan(activeSample.plan);
   const inventoryNames = new Set(getConfirmedInventory().map((item) => item.name));
   const missingRequired = plan.baseMeal.requiredItems.filter((item) => !inventoryNames.has(item));
 
@@ -366,6 +448,7 @@ function renderSamples() {
 }
 
 function renderContext() {
+  refreshUserContext();
   const fields = [
     ["厨艺", userContext.user.cookingLevel],
     ["可用时间", userContext.context.availableCookingTime],
@@ -385,6 +468,36 @@ function renderContext() {
       `,
     )
     .join("");
+}
+
+function renderProfile() {
+  refreshUserContext();
+  const users = window.FridgeProfile.getUsers();
+  elements.userSelect.innerHTML = users
+    .map((user) => `<option value="${user.id}" ${user.id === window.FridgeProfile.getSelectedUserId() ? "selected" : ""}>${user.name} · ${user.label}</option>`)
+    .join("");
+
+  const traits = userContext.profile?.traits || [];
+  elements.profileTraits.innerHTML = traits.length
+    ? traits.map((trait) => `<span title="${trait.evidence.join(" / ")}">${trait.label} · ${(trait.confidence * 100).toFixed(0)}%</span>`).join("")
+    : "<span>暂无推断标签</span>";
+
+  elements.feedbackActions.innerHTML = window.FridgeProfile.FEEDBACK_OPTIONS.map(
+    (option) => `<button type="button" data-feedback-label="${option.label}">${option.label}</button>`,
+  ).join("");
+
+  document.querySelectorAll("[data-feedback-label]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      await window.FridgeProfile.recordFeedback(button.dataset.feedbackLabel, {
+        source: "demo",
+        mealName: activeSample.plan.baseMeal.name,
+      });
+      refreshUserContext();
+      renderContext();
+      renderProfile();
+      showToast(`已记录反馈：${button.dataset.feedbackLabel}`);
+    });
+  });
 }
 
 function renderInventory() {
@@ -473,6 +586,7 @@ function renderAnalysis() {
   elements.decisionTitle.textContent = plan.baseMeal.name;
   elements.scoreValue.textContent = plan.score;
   elements.decisionSummary.textContent = plan.summary;
+  elements.profileNotes.innerHTML = plan.personalizationNotes.map((note) => `<li>${note}</li>`).join("");
   elements.baseTime.textContent = plan.baseMeal.timeCost;
   elements.baseMealName.textContent = plan.baseMeal.name;
   elements.baseWhy.textContent = `${plan.baseMeal.why} 核心材料：${required}。`;
@@ -493,6 +607,7 @@ function renderAnalysis() {
 function render() {
   renderSamples();
   renderContext();
+  renderProfile();
   renderInventory();
   renderAnalysis();
   elements.analyzeButton.disabled = !uploadedImageDataUrl;
@@ -611,17 +726,14 @@ async function runVisionAgent() {
   }
 
   try {
-    setBusy(true, "视觉识别中");
+    setBusy(true);
+    const startedAt = startOperationStatus("vision", "视觉识别中");
     const data = await postJson("/api/analyze-fridge", { imageDataUrl: uploadedImageDataUrl });
-    activeProvider = data.provider || "openai";
-    inventorySource = `模型识别 · ${data.model || "model"}`;
-    lastVisionError = "";
-    activeSample = makeUploadSample(data.vision, fallbackUpload.plan);
-    resetConfirmedItems(activeSample);
-    renderInventory();
-    renderAnalysis();
-    elements.modeStatus.textContent = `视觉识别完成：${data.model || "模型"}`;
-    showToast("视觉识别完成，请确认库存");
+    const seconds = Math.max(1, Math.round((Date.now() - startedAt) / 1000));
+    applyVisionResult(data, `模型识别 · ${data.model || "model"}`);
+    saveCachedVision(data);
+    finishOperationStatus(`视觉识别完成：${data.model || "模型"} · ${seconds}s`);
+    showToast(`视觉识别完成，用时 ${seconds}s`);
   } catch (error) {
     lastVisionError = error.message || "识别失败";
     inventorySource = "识别失败";
@@ -629,7 +741,7 @@ async function runVisionAgent() {
     resetConfirmedItems(activeSample);
     renderInventory();
     renderAnalysis();
-    elements.modeStatus.textContent = "识别失败，未使用缓存";
+    finishOperationStatus("识别失败，未使用缓存");
     showToast(lastVisionError);
   } finally {
     setBusy(false);
@@ -642,26 +754,41 @@ async function runDinnerPlanner() {
     showToast("请先确认至少一个食材");
     return;
   }
+  refreshUserContext();
 
   try {
-    setBusy(true, "晚餐规划中");
+    setBusy(true);
+    const startedAt = startOperationStatus("plan", "晚餐规划中");
     const data = await postJson("/api/plan-dinner", { inventory, userContext });
+    const seconds = Math.max(1, Math.round((Date.now() - startedAt) / 1000));
     activeProvider = data.provider || "openai";
     activeSample = {
       ...activeSample,
       plan: normalizePlan(data.plan),
     };
     renderAnalysis();
-    elements.modeStatus.textContent = `晚餐规划完成：${data.model || "模型"}`;
-    showToast("晚餐方案已生成");
+    finishOperationStatus(`晚餐规划完成：${data.model || "模型"} · ${seconds}s`);
+    showToast(`晚餐方案已生成，用时 ${seconds}s`);
   } catch (error) {
     activeProvider = "mock";
     renderAnalysis();
-    elements.modeStatus.textContent = "规划失败，保留缓存方案";
+    finishOperationStatus("规划失败，保留缓存方案");
     showToast(error.message || "规划失败，保留缓存方案");
   } finally {
     setBusy(false);
   }
+}
+
+function loadCachedVision() {
+  const cached = readCachedVision();
+  if (!cached) {
+    showToast("暂无上次识别结果");
+    return;
+  }
+
+  applyVisionResult(cached, `上次模型结果 · ${cached.model || "model"}`);
+  finishOperationStatus(`已加载上次识别：${formatCacheTime(cached.cachedAt)}`);
+  showToast("已加载上次识别结果");
 }
 
 document.querySelectorAll("[data-copy-target]").forEach((button) => {
@@ -670,6 +797,14 @@ document.querySelectorAll("[data-copy-target]").forEach((button) => {
 
 elements.analyzeButton.addEventListener("click", runVisionAgent);
 elements.planButton.addEventListener("click", runDinnerPlanner);
+elements.cacheVisionButton.addEventListener("click", loadCachedVision);
+elements.userSelect.addEventListener("change", async () => {
+  await window.FridgeProfile.selectUser(elements.userSelect.value);
+  refreshUserContext();
+  render();
+  updateCacheButton(false);
+  showToast(`已切换用户：${elements.userSelect.options[elements.userSelect.selectedIndex].textContent}`);
+});
 
 elements.fridgeUpload.addEventListener("change", async (event) => {
   const [file] = event.target.files;
@@ -710,4 +845,11 @@ elements.resetButton.addEventListener("click", () => {
   render();
 });
 
-render();
+async function initializeApp() {
+  await window.FridgeProfile.init();
+  refreshUserContext();
+  render();
+  updateCacheButton(false);
+}
+
+initializeApp();

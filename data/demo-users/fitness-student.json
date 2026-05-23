@@ -1,0 +1,43 @@
+{
+  "id": "fitness-student",
+  "name": "小周",
+  "label": "健身轻食",
+  "description": "希望蛋白质够、少油，能接受简单备餐。",
+  "userContext": {
+    "user": {
+      "name": "小周",
+      "cookingLevel": "普通",
+      "preferences": ["高蛋白", "少油", "清淡"],
+      "avoid": ["高糖饮料", "油炸", "夜宵太撑"],
+      "recentMeals": ["鸡胸沙拉", "牛肉饭", "酸奶燕麦"],
+      "goal": "想吃清爽一点，但蛋白质要够"
+    },
+    "context": {
+      "time": "19:30",
+      "availableCookingTime": "35 分钟",
+      "energyLevel": "中",
+      "nextSchedule": "20:30 健身后复盘",
+      "weather": "晴"
+    }
+  },
+  "profile": {
+    "explicitPreferences": {
+      "cookingLevel": "普通",
+      "taste": ["高蛋白", "少油", "清淡"],
+      "avoid": ["高糖饮料", "油炸", "夜宵太撑"],
+      "tools": ["炒锅", "电饭煲", "空气炸锅"],
+      "cleaningTolerance": "中",
+      "timeBudget": "35 分钟"
+    },
+    "events": [
+      {
+        "type": "lighter_taste",
+        "label": "换清淡点",
+        "createdAt": "2026-05-23T19:10:00+08:00",
+        "source": "seed"
+      }
+    ],
+    "traits": [],
+    "updatedAt": "2026-05-23T00:00:00+08:00"
+  }
+}

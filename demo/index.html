@@ -43,6 +43,7 @@
             <div class="agent-actions" aria-label="Agent 操作">
               <button class="primary-button" id="analyzeButton" type="button" disabled>识别冰箱</button>
               <button class="primary-button secondary" id="planButton" type="button">生成晚餐方案</button>
+              <button class="primary-button tertiary" id="cacheVisionButton" type="button" disabled>加载上次识别</button>
             </div>
 
             <div class="sample-grid" id="sampleGrid" aria-label="预置冰箱样例"></div>
@@ -53,6 +54,19 @@
                 <h2>今晚状态</h2>
               </div>
               <div class="context-grid" id="contextGrid"></div>
+            </section>
+
+            <section class="profile-card" aria-label="用户画像 MVP">
+              <div>
+                <p class="section-kicker">用户画像 MVP</p>
+                <h2>偏好与反馈</h2>
+              </div>
+              <label class="user-select-row">
+                <span>演示用户</span>
+                <select id="userSelect"></select>
+              </label>
+              <div class="trait-list" id="profileTraits"></div>
+              <div class="feedback-actions" id="feedbackActions"></div>
             </section>
 
             <section class="inventory-panel" aria-label="识别库存确认">
@@ -85,6 +99,11 @@
             <div class="summary-strip" id="summaryStrip"></div>
 
             <div class="content-grid">
+              <section class="result-section">
+                <h3>本次参考依据</h3>
+                <ul id="profileNotes"></ul>
+              </section>
+
               <section class="result-section primary">
                 <div class="section-title-row">
                   <h3>保底方案</h3>
@@ -148,6 +167,7 @@
     </main>
 
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <script src="./profile-store.js"></script>
     <script src="./app.js"></script>
   </body>
 </html>

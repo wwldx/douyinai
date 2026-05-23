@@ -1,0 +1,49 @@
+{
+  "id": "night-coder",
+  "name": "阿岚",
+  "label": "深夜写代码",
+  "description": "经常晚上学习或写代码，偏好热食、抗饿、少清洗。",
+  "userContext": {
+    "user": {
+      "name": "阿岚",
+      "cookingLevel": "新手",
+      "preferences": ["热食", "少洗锅", "抗饿"],
+      "avoid": ["重油", "太辣", "复杂刀工"],
+      "recentMeals": ["便利店饭团", "泡面", "奶茶"],
+      "goal": "想吃点热的，最好撑到睡前"
+    },
+    "context": {
+      "time": "23:20",
+      "availableCookingTime": "15 分钟",
+      "energyLevel": "很低",
+      "nextSchedule": "明早 8:00 有课",
+      "weather": "阴"
+    }
+  },
+  "profile": {
+    "explicitPreferences": {
+      "cookingLevel": "新手",
+      "taste": ["热食", "少洗锅", "抗饿"],
+      "avoid": ["重油", "太辣", "复杂刀工"],
+      "tools": ["电热锅", "微波炉"],
+      "cleaningTolerance": "很低",
+      "timeBudget": "15 分钟"
+    },
+    "events": [
+      {
+        "type": "low_cleanup",
+        "label": "不想洗锅",
+        "createdAt": "2026-05-23T23:00:00+08:00",
+        "source": "seed"
+      },
+      {
+        "type": "not_filling",
+        "label": "不够抗饿",
+        "createdAt": "2026-05-23T23:05:00+08:00",
+        "source": "seed"
+      }
+    ],
+    "traits": [],
+    "updatedAt": "2026-05-23T00:00:00+08:00"
+  }
+}

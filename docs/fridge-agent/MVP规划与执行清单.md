@@ -4,6 +4,33 @@
 项目：冰箱晚餐 Agent  
 目标：做出一个现场可演示的视觉搜索 AI Agent 原型
 
+## 0. 当前进度快照
+
+截至 2026-05-23，当前已经跑通：
+
+- 本地 Node.js 服务：`demo/server.mjs`
+- 展示页：`http://localhost:4174/`
+- 开发检验台：`http://localhost:4174/dev.html`
+- 视觉识别 Agent：`POST /api/analyze-fridge`
+- 晚餐规划 Agent：`POST /api/plan-dinner`
+- Right Code 中转配置：`rightcode_responses_stream + gpt-5.5`
+- 大图本地压缩：上传前压缩到适合模型识别的尺寸
+- 等待体验：视觉识别和晚餐规划显示已用秒数与阶段提示
+- 现场兜底：最近一次成功视觉识别结果保存到 `data/local-users/<userId>/vision-cache.json`
+- 多用户本地记忆：`data/demo-users/` 提供演示用户种子，`data/local-users/<userId>/` 保存本机运行时画像和冰箱识别缓存
+- 用户画像 MVP：`demo/profile-store.js` 保存显式偏好、反馈事件和推断 traits
+- 晚餐规划个性化：`/api/plan-dinner` 请求已携带 `userContext.profile`
+- 开发验链路：展示原始 JSON、归一化库存、人工确认库存和规划输入输出
+
+当前保存规划的位置：
+
+- `AGENTS.md`：长期协作规范、架构决策、用户画像原则和未来队列
+- `docs/fridge-agent/MVP规划与执行清单.md`：MVP 进度、执行清单和阶段计划
+- `docs/demo/测试演示操作手册.md`：启动、测试、演示、报错排查和 GitHub 上传步骤
+- `docs/archive/对话记录-用户画像.md`：用户保存的长讨论原文，供追溯使用
+
+后续每次讨论出新的长期规划，必须同步更新 `AGENTS.md` 和本文件，避免规划只留在聊天上下文中。
+
 ## 1. 产品目标
 
 让用户拍一张冰箱照片后，在 30 秒内得到一个现实可执行的晚餐方案。
@@ -318,10 +345,134 @@ DinnerPlannerProvider
 
 ## 15. 下一步
 
-优先推进：
+历史早期规划：
 
 1. 找或拍 3 张清晰冰箱样例图。
 2. 选定 2 个模拟用户画像：新手赶时间、普通用户想练菜。
 3. 做静态 Web Demo。
 4. 再接入 GPT / Claude 视觉模型。
 
+当前最新优先级：
+
+1. 强化晚餐规划 Agent，让它更像“决策”，而不是普通菜谱生成。
+2. 优化用户画像 MVP：补充更多行为事件、规则推断标签和反馈修正。
+3. 优化反馈按钮：让 `想吃`、`太麻烦`、`不够抗饿`、`不想洗锅`、`换清淡点`、`今天就想外卖` 驱动方案重生成。
+4. 优化画像 traits 对 `/api/plan-dinner` 的影响，让推荐解释更稳定地说明参考依据。
+5. 准备固定演示缓存和备用录屏，降低现场网络风险。
+
+## 16. Agent 架构决策
+
+当前继续使用轻量两段式 Agent：
+
+```text
+视觉识别 Agent
+  -> 输出结构化库存
+  -> 人工确认
+晚餐规划 Agent
+  -> 读取确认库存 + 用户上下文 + 画像 traits
+  -> 输出晚餐决策 JSON
+```
+
+暂不引入 LangChain、LangGraph、Dify 等成熟框架。
+
+原因：
+
+- 当前流程只有两个核心 Agent，状态简单，原生 Node.js 更稳。
+- 比赛 demo 的风险主要是模型耗时、网络不稳、识别误差和展示节奏，不是复杂编排。
+- 重框架会增加依赖、调试成本和现场不确定性。
+- 当前 JSON 合约清晰，后续迁移框架也容易。
+
+后续触发迁移框架的条件：
+
+- 出现 3 个以上工具/Agent，需要状态图管理。
+- 需要多轮追问和可回滚分支流程。
+- 需要长期任务、异步步骤、人工审批节点。
+- 需要更完整的 memory/tool tracing。
+
+届时优先评估：
+
+- LangGraph：适合状态图、多节点编排、可控回滚。
+- OpenAI Agents SDK：适合工具调用、追踪和 OpenAI 生态集成。
+- Dify：适合快速搭建后台工作流，但比赛本地 demo 的可控性较弱。
+
+## 17. 用户画像 MVP 规划
+
+当前状态：
+
+- Demo 中已有模拟用户上下文：厨艺、偏好、忌口、近期饮食、时间、精力。
+- 用户画像已抽到 `demo/profile-store.js`。
+- 已用 `data/local-users/<userId>/profile.json` 保存显式偏好、反馈事件和推断 traits。
+- 已用 `data/local-users/<userId>/vision-cache.json` 保存每个用户的上次冰箱识别结果。
+- 浏览器 `localStorage` 只作为当前选中用户和本地服务不可用时的兜底，不再作为主存储。这里的“浏览器本地”不是项目文件，不能承担长期记忆。
+- `demo/app.js` 和 `demo/dev.js` 会从 `window.FridgeProfile.buildUserContext()` 读取上下文。
+- 晚餐规划请求已携带 `userContext.profile`，包括 `explicitPreferences`、`recentEvents` 和 `traits`。
+
+MVP 目标：
+
+```text
+显式偏好 + 行为事件 + 规则推断标签
+  -> 生成 profileTraits
+  -> 传入晚餐规划 Agent
+  -> 推荐解释中说明参考依据
+```
+
+第一版数据结构建议：
+
+当前存储方案：
+
+```text
+data/demo-users/
+  xiaolin.json
+  night-coder.json
+  fitness-student.json
+
+data/local-users/<userId>/
+  profile.json
+  vision-cache.json
+```
+
+说明：
+
+- `data/demo-users/` 是可提交的假用户种子，方便队友和评委演示。
+- `data/local-users/` 是本机运行时记忆，已加入 `.gitignore`，不上传真实用户数据。
+- 不同演示用户的画像和冰箱缓存互相隔离。
+- `localStorage` 只保存当前选中的演示用户；如果本地服务写入失败，才按用户写入一份浏览器兜底缓存。
+
+```json
+{
+  "explicitPreferences": {
+    "cookingLevel": "新手",
+    "taste": ["少油", "微辣"],
+    "avoid": ["香菜", "油炸"],
+    "tools": ["电磁炉", "炒锅"],
+    "cleaningTolerance": "低"
+  },
+  "events": [
+    {
+      "type": "meal_feedback",
+      "label": "不想洗锅",
+      "createdAt": "2026-05-23T21:10:00+08:00"
+    }
+  ],
+  "traits": [
+    {
+      "key": "onePotPreference",
+      "label": "低洗锅倾向",
+      "confidence": 0.76,
+      "evidence": ["多次选择不想洗锅", "偏好简单热食"],
+      "updatedAt": "2026-05-23T21:10:00+08:00",
+      "expiresAt": "2026-06-06T21:10:00+08:00"
+    }
+  ]
+}
+```
+
+实现步骤：
+
+1. 已新建 `profileStore`，优先读写 `data/local-users/<userId>/`，不上云端数据库。
+2. 已加反馈按钮，把用户点击记录成事件。
+3. 已用规则函数从事件生成 traits，例如深夜热食偏好、低洗锅倾向、快手饭倾向。
+4. 已将 `profileTraits` 加入 `/api/plan-dinner` 请求体。
+5. 已修改晚餐规划 prompt，要求模型解释参考依据。
+6. 已在展示页新增“本次参考依据”区域，但不做价值判断。
+7. 下一步：让反馈按钮支持“记录后立即重生成方案”，并增加清除画像/查看画像详情入口。
