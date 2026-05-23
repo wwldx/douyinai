@@ -243,14 +243,21 @@ async function requestResponsesJsonResponse({ instructions, input, schema, name 
     requestBody.stream = true;
   }
 
-  const response = await fetch(`${responsesBaseUrl}/responses`, {
-    method: "POST",
-    headers: {
-      authorization: `Bearer ${apiKey}`,
-      "content-type": "application/json",
-    },
-    body: JSON.stringify(requestBody),
-  });
+  let response;
+  try {
+    response = await fetch(`${responsesBaseUrl}/responses`, {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${apiKey}`,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify(requestBody),
+    });
+  } catch (error) {
+    const wrapped = new Error(`模型服务连接失败：${formatNetworkError(error)}`);
+    wrapped.status = 502;
+    throw wrapped;
+  }
 
   if (requestBody.stream) {
     const raw = await response.text();
@@ -333,6 +340,11 @@ function extractErrorMessage(raw) {
   } catch {
     return raw.slice(0, 500).replace(/\s+/g, " ");
   }
+}
+
+function formatNetworkError(error) {
+  const parts = [error.message, error.cause?.code, error.cause?.message].filter(Boolean);
+  return parts.join(" / ") || "网络请求失败";
 }
 
 async function parseResponseJson(response) {

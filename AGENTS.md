@@ -23,6 +23,7 @@
 - `demo/dev.css`：开发检验台样式。
 - `demo/styles.css`：页面视觉和响应式布局。
 - `demo/server.mjs`：本地 Node 服务，提供两个轻量 Agent API。
+- `测试演示操作手册.md`：本地启动、页面入口、测试流程、常见问题和 GitHub 上传步骤。
 - `/api/analyze-fridge`：视觉识别 Agent，输入冰箱图片 data URL，输出结构化库存 JSON。
 - `/api/plan-dinner`：晚餐规划 Agent，输入确认后的库存和用户上下文，输出结构化晚餐方案 JSON。
 - `.env.local`：本地 API Key 和模型配置，仅本机使用，不提交。

@@ -35,6 +35,10 @@ let uploadedImageDataUrl = "";
 let currentVision = { items: [], uncertainItems: [], warnings: [] };
 let confirmedItems = new Set();
 
+const MAX_IMAGE_EDGE = 1600;
+const COMPRESS_IMAGE_BYTES = 2 * 1024 * 1024;
+const IMAGE_JPEG_QUALITY = 0.82;
+
 function setStatus(message) {
   elements.statusText.textContent = message;
 }
@@ -115,12 +119,61 @@ function renderInventory() {
   elements.planButton.disabled = !confirmedItems.size;
 }
 
-function fileToDataUrl(file) {
+function readFileDataUrl(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.addEventListener("load", () => resolve(reader.result));
     reader.addEventListener("error", () => reject(reader.error));
     reader.readAsDataURL(file);
+  });
+}
+
+function fileToDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    if (!file.type.startsWith("image/")) {
+      reject(new Error("请上传图片文件"));
+      return;
+    }
+
+    const objectUrl = URL.createObjectURL(file);
+    const image = new Image();
+
+    image.addEventListener("load", async () => {
+      try {
+        const width = image.naturalWidth || image.width;
+        const height = image.naturalHeight || image.height;
+        const maxEdge = Math.max(width, height);
+
+        if (maxEdge <= MAX_IMAGE_EDGE && file.size <= COMPRESS_IMAGE_BYTES) {
+          URL.revokeObjectURL(objectUrl);
+          resolve(await readFileDataUrl(file));
+          return;
+        }
+
+        const scale = Math.min(1, MAX_IMAGE_EDGE / maxEdge);
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.max(1, Math.round(width * scale));
+        canvas.height = Math.max(1, Math.round(height * scale));
+
+        const context = canvas.getContext("2d");
+        context.fillStyle = "#fff";
+        context.fillRect(0, 0, canvas.width, canvas.height);
+        context.drawImage(image, 0, 0, canvas.width, canvas.height);
+
+        URL.revokeObjectURL(objectUrl);
+        resolve(canvas.toDataURL("image/jpeg", IMAGE_JPEG_QUALITY));
+      } catch (error) {
+        URL.revokeObjectURL(objectUrl);
+        reject(error);
+      }
+    });
+
+    image.addEventListener("error", () => {
+      URL.revokeObjectURL(objectUrl);
+      reject(new Error("图片读取失败"));
+    });
+
+    image.src = objectUrl;
   });
 }
 
@@ -215,13 +268,23 @@ elements.fridgeUpload.addEventListener("change", async (event) => {
 
   elements.uploadPreview.src = URL.createObjectURL(file);
   elements.uploadPreview.style.display = "block";
-  uploadedImageDataUrl = await fileToDataUrl(file);
+
+  try {
+    uploadedImageDataUrl = await fileToDataUrl(file);
+  } catch (error) {
+    uploadedImageDataUrl = "";
+    setStatus(error.message || "图片读取失败");
+    showToast("图片读取失败");
+    setBusy(false);
+    return;
+  }
+
   currentVision = { items: [], uncertainItems: [], warnings: [] };
   confirmedItems = new Set();
   renderInventory();
   renderJson(elements.visionRaw, "已加载图片，等待调用视觉识别。");
   renderJson(elements.planRaw, "暂无。");
-  setStatus(`已上传：${file.name}。`);
+  setStatus(`已上传：${file.name}。大图会在本地压缩后再发送给模型。`);
   setBusy(false);
 });
 
