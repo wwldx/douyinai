@@ -11,7 +11,19 @@ cp .env.example .env.local
 PORT=4174 npm run dev
 ```
 
-展示页：
+比赛展示端需要另开一个终端：
+
+```bash
+npm run showcase
+```
+
+比赛展示端：
+
+```text
+http://localhost:5173/
+```
+
+旧展示/兜底页：
 
 ```text
 http://localhost:4174/
@@ -34,16 +46,25 @@ demo/
     schemas.mjs
   server.mjs             本地 API 服务
   profile-store.js       用户画像 MVP，读取本地用户文件并提供浏览器兜底
-  index.html             展示界面
+  speech-input.js        本地录音输入实验链路，不作为比赛主流程
+  index.html             旧展示/兜底界面
   dev.html               开发检验台
   app.js / dev.js        前端交互
+
+frontend/
+  src/                   Vite + React 比赛展示端
+
+scripts/
+  mac-speech-transcribe.swift  macOS Speech 本机转写辅助脚本
 
 assets/
   fridge-images/          演示冰箱图片
 
 data/
   demo-users/             可提交的假用户种子
+  demo-cache/vision/      可提交的演示图片预分析缓存
   local-users/            本机运行时用户记忆和冰箱缓存，已 gitignore
+  local-cache/            本机运行时视觉缓存，已 gitignore
 
 docs/
   demo/                   测试演示和 Demo 方案
@@ -91,9 +112,13 @@ AGENTS.md                 项目级长期记忆和协作规范
 刷到想吃的，拍下冰箱，AI 判断今晚能不能复刻。
 ```
 
-目标菜复刻不展示分数，而是给出可执行路线：能做就尽量做，难度较高时提醒风险，并提供简化版本、明日准备路线和抖音商城/本地生活模拟补齐卡。
+目标菜复刻不展示分数，而是给出可执行路线：能做就尽量做，难度较高时提醒风险，并提供简化版本、明日准备路线和抖音商城/本地生活模拟补齐卡。结果页还保留饭后「拍成品，发抖音」入口，用来表达做完饭后的生活记录闭环；当前是展示 CTA，不做真实发布。
 
 当前 V2 采用两个明确上传区：一个上传冰箱照片，一个上传想复刻的菜图。多图自动分类暂不进入主流程，后续再做。
+
+演示图片有本地预分析缓存：后端仍然先调用模型；如果超过约 4.5 秒还没返回，并且命中 `data/demo-cache/vision/`，才切到缓存。开发检验台可通过接口返回的 `source` 区分 `model`、`model-timeout-cache` 和 `model-error-cache`。
+
+语音输入保留为实验链路，不进入比赛主演示流程。当前 Right Code `/codex/v1` 未配置常见 ASR 模型，macOS Speech 也容易超时，现场统一使用手动输入目标菜，避免影响主链路稳定性。
 
 ## 本地用户记忆
 

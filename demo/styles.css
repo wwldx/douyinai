@@ -425,6 +425,49 @@ h4 {
   padding: 11px 12px;
 }
 
+.voice-input-row {
+  display: grid;
+  grid-template-columns: minmax(96px, auto) minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+}
+
+.voice-button {
+  min-height: 38px;
+  border: 1px solid rgba(217, 95, 67, 0.32);
+  border-radius: 8px;
+  background: var(--coral-soft);
+  color: var(--coral);
+  font-size: 13px;
+  font-weight: 850;
+  padding: 0 12px;
+}
+
+.voice-button.listening {
+  border-color: rgba(217, 95, 67, 0.62);
+  background: var(--coral);
+  color: #fff;
+  animation: soft-pulse 1.4s ease-in-out infinite;
+}
+
+.voice-button:disabled {
+  cursor: not-allowed;
+  border-color: var(--line);
+  background: #e5e0d8;
+  color: #8d867b;
+}
+
+.voice-input-row span {
+  min-height: 38px;
+  border: 1px solid rgba(217, 95, 67, 0.2);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
+  padding: 9px 10px;
+}
+
 .target-controls {
   display: grid;
   grid-template-columns: minmax(84px, 0.48fr) repeat(2, minmax(130px, 1fr));
@@ -915,7 +958,8 @@ h4 {
   .actions-panel,
   .context-grid,
   .target-result-grid,
-  .target-controls {
+  .target-controls,
+  .voice-input-row {
     grid-template-columns: 1fr;
   }
 

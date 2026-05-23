@@ -7,3 +7,4 @@ build/
 !.env.example
 *.log
 data/local-users/
+data/local-cache/

@@ -1,0 +1,46 @@
+{
+  "version": 1,
+  "updatedAt": "2026-05-23",
+  "entries": [
+    {
+      "id": "dish-huangmenji",
+      "fileName": "黄焖鸡.webp",
+      "fileNames": ["huangmenji.webp"],
+      "sourcePath": "assets/菜/黄焖鸡.webp",
+      "cachedAt": "2026-05-23",
+      "targetVision": {
+        "dishName": "黄焖鸡",
+        "confidence": 0.88,
+        "dishType": "焖菜",
+        "coreTaste": "咸香微甜、热乎下饭",
+        "likelyIngredients": ["鸡腿肉", "土豆", "香菇", "青椒"],
+        "optionalIngredients": ["姜", "蒜", "米饭"],
+        "requiredTools": ["炒锅", "锅盖"],
+        "estimatedTime": "35-45 分钟",
+        "difficulty": "中等",
+        "visualEvidence": ["鸡肉块", "浓稠酱汁", "下饭焖菜形态"],
+        "warnings": ["仅凭图片无法确认鸡肉部位和调味比例，菜名仍需用户确认。"]
+      }
+    },
+    {
+      "id": "dish-huiguorou",
+      "fileName": "回锅肉.jpeg",
+      "fileNames": ["huiguorou.jpeg", "回锅肉.jpg"],
+      "sourcePath": "assets/菜/回锅肉.jpeg",
+      "cachedAt": "2026-05-23",
+      "targetVision": {
+        "dishName": "回锅肉",
+        "confidence": 0.9,
+        "dishType": "川味小炒",
+        "coreTaste": "咸香微辣、下饭",
+        "likelyIngredients": ["五花肉", "青椒", "蒜苗", "豆瓣酱"],
+        "optionalIngredients": ["姜", "蒜", "洋葱"],
+        "requiredTools": ["炒锅"],
+        "estimatedTime": "35-45 分钟",
+        "difficulty": "中等偏难",
+        "visualEvidence": ["肉片", "红油酱色", "青椒或蒜苗配菜"],
+        "warnings": ["回锅肉通常需要先煮肉再回锅炒，五花肉和豆瓣酱是关键。"]
+      }
+    }
+  ]
+}

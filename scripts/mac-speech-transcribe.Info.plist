@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>CFBundleIdentifier</key>
+  <string>com.douyinai.fridgeagent.macspeech</string>
+  <key>CFBundleName</key>
+  <string>FridgeAgentMacSpeech</string>
+  <key>NSSpeechRecognitionUsageDescription</key>
+  <string>冰箱晚餐 Agent 使用本机语音识别将目标菜语音转成可编辑文字。</string>
+  <key>NSMicrophoneUsageDescription</key>
+  <string>冰箱晚餐 Agent 的网页录音由浏览器处理，本机 helper 只转写临时音频文件。</string>
+</dict>
+</plist>

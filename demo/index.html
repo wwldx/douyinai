@@ -62,6 +62,10 @@
               </div>
               <div class="target-dish-guess" id="targetDishGuess">可直接输入目标菜，也可以上传菜图后点击「识别目标菜」。</div>
               <textarea id="targetDishText" rows="3">我今晚想吃番茄牛腩</textarea>
+              <div class="voice-input-row">
+                <button class="voice-button" id="targetVoiceButton" type="button">语音输入</button>
+                <span id="targetVoiceStatus">可说出想吃的菜或补充要求。</span>
+              </div>
               <div class="target-controls">
                 <select id="targetDishTime" aria-label="目标时间">
                   <option value="tonight">今晚</option>
@@ -224,6 +228,7 @@
 
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
     <script src="./profile-store.js"></script>
+    <script src="./speech-input.js"></script>
     <script src="./app.js"></script>
   </body>
 </html>

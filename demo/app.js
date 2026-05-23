@@ -242,12 +242,15 @@ const fallbackTargetPlan = {
 let activeSample = samples[0];
 let confirmedItems = new Set(activeSample.vision.items.map((item) => item.name));
 let uploadedImageDataUrl = "";
+let uploadedSourceFileName = "";
 let activeProvider = "mock";
 let inventorySource = "缓存样例";
 let lastVisionError = "";
 let targetDishPlan = fallbackTargetPlan;
 let targetDishImageDataUrl = "";
+let targetDishSourceFileName = "";
 let targetDishImageAnalysis = null;
+let targetVoiceController = null;
 let isBusy = false;
 let operationTimer = 0;
 
@@ -267,6 +270,8 @@ const elements = {
   targetDishPreview: document.querySelector("#targetDishPreview"),
   targetDishGuess: document.querySelector("#targetDishGuess"),
   targetDishText: document.querySelector("#targetDishText"),
+  targetVoiceButton: document.querySelector("#targetVoiceButton"),
+  targetVoiceStatus: document.querySelector("#targetVoiceStatus"),
   targetDishTime: document.querySelector("#targetDishTime"),
   targetDishAnalyzeButton: document.querySelector("#targetDishAnalyzeButton"),
   targetDishButton: document.querySelector("#targetDishButton"),
@@ -317,6 +322,7 @@ function setBusy(busy, message) {
   elements.planButton.disabled = busy;
   elements.targetDishAnalyzeButton.disabled = busy || !targetDishImageDataUrl;
   elements.targetDishButton.disabled = busy || !elements.targetDishText.value.trim();
+  targetVoiceController?.setDisabled(busy);
   updateCacheButton(busy);
   if (message) elements.modeStatus.textContent = message;
 }
@@ -491,9 +497,42 @@ function normalizeTargetDishVision(vision) {
 }
 
 function cleanDishName(name) {
-  return String(name || "")
+  const cleaned = String(name || "")
     .replace(/^(疑似|可能是|可能为|大概率是)/, "")
+    .replace(/[，。！？,.!?；;].*$/g, "")
+    .replace(/\s+/g, "")
     .trim();
+
+  if (!cleaned) return "";
+  if (/^(模型结果|目标菜|目标菜待确认|待确认|未知|未知菜品|无法确定|不确定|菜品|食物|图片|照片)$/i.test(cleaned)) return "";
+  if (cleaned.length < 2) return "";
+  return cleaned.slice(0, 18);
+}
+
+function normalizeSpeechText(text) {
+  return String(text || "")
+    .replace(/[，。！？,.!?]+$/g, "")
+    .replace(/\s+/g, "")
+    .trim();
+}
+
+function isSupplementSpeech(text) {
+  return /(只有|不要|不想|少油|少盐|清淡|微辣|别太辣|不辣|分钟|小时|洗锅|锅具|空气炸锅|明天|这周|今晚|今天|太麻烦|简单点)/.test(text);
+}
+
+function applySpeechToTargetDish(rawText) {
+  const text = normalizeSpeechText(rawText);
+  if (!text) return;
+
+  const current = elements.targetDishText.value.trim();
+  const timeText = elements.targetDishTime.options[elements.targetDishTime.selectedIndex]?.textContent || "今晚";
+  const alreadyHasIntent = /(想吃|想做|复刻|做一道|来一份)/.test(text);
+  const shouldAppend = current && isSupplementSpeech(text) && !alreadyHasIntent;
+  const nextText = shouldAppend ? `${current.replace(/[；;，,。]+$/g, "")}；${text}` : alreadyHasIntent ? text : `我${timeText}想吃${text}`;
+
+  elements.targetDishText.value = nextText;
+  elements.targetDishButton.disabled = isBusy || !nextText.trim();
+  showToast("语音已写入目标菜");
 }
 
 function decisionRouteLabel(decision) {
@@ -837,6 +876,20 @@ function render() {
   elements.targetDishButton.disabled = isBusy || !elements.targetDishText.value.trim();
 }
 
+function setupSpeechInput() {
+  if (!window.FridgeSpeech) {
+    elements.targetVoiceButton.disabled = true;
+    elements.targetVoiceStatus.textContent = "语音模块未加载，可手动输入。";
+    return;
+  }
+
+  targetVoiceController = window.FridgeSpeech.createSpeechInput({
+    button: elements.targetVoiceButton,
+    status: elements.targetVoiceStatus,
+    onTranscript: applySpeechToTargetDish,
+  });
+}
+
 function showToast(message) {
   elements.toast.textContent = message;
   elements.toast.classList.add("show");
@@ -952,7 +1005,7 @@ async function runVisionAgent() {
   try {
     setBusy(true);
     const startedAt = startOperationStatus("vision", "视觉识别中");
-    const data = await postJson("/api/analyze-fridge", { imageDataUrl: uploadedImageDataUrl });
+    const data = await postJson("/api/analyze-fridge", { imageDataUrl: uploadedImageDataUrl, sourceFileName: uploadedSourceFileName });
     const seconds = Math.max(1, Math.round((Date.now() - startedAt) / 1000));
     applyVisionResult(data, `模型识别 · ${data.model || "model"}`);
     saveCachedVision(data);
@@ -1012,7 +1065,7 @@ async function runTargetDishVision() {
   try {
     setBusy(true);
     const startedAt = startOperationStatus("dishVision", "目标菜识别中");
-    const data = await postJson("/api/analyze-target-dish", { imageDataUrl: targetDishImageDataUrl });
+    const data = await postJson("/api/analyze-target-dish", { imageDataUrl: targetDishImageDataUrl, sourceFileName: targetDishSourceFileName });
     const seconds = Math.max(1, Math.round((Date.now() - startedAt) / 1000));
     targetDishImageAnalysis = normalizeTargetDishVision(data.targetVision);
     const dishName = cleanDishName(targetDishImageAnalysis.dishName);
@@ -1113,12 +1166,14 @@ elements.targetDishUpload.addEventListener("change", async (event) => {
 
   try {
     targetDishImageDataUrl = await fileToDataUrl(file);
+    targetDishSourceFileName = file.name;
     targetDishImageAnalysis = null;
     renderTargetDishGuess();
     elements.targetDishAnalyzeButton.disabled = isBusy || !targetDishImageDataUrl;
     elements.modeStatus.textContent = "已上传目标菜图，待识别";
   } catch (error) {
     targetDishImageDataUrl = "";
+    targetDishSourceFileName = "";
     targetDishImageAnalysis = null;
     renderTargetDishGuess();
     showToast(error.message || "目标菜图片读取失败");
@@ -1142,8 +1197,10 @@ elements.fridgeUpload.addEventListener("change", async (event) => {
 
   try {
     uploadedImageDataUrl = await fileToDataUrl(file);
+    uploadedSourceFileName = file.name;
   } catch (error) {
     uploadedImageDataUrl = "";
+    uploadedSourceFileName = "";
     showToast(error.message || "图片读取失败");
     return;
   }
@@ -1163,7 +1220,9 @@ elements.resetButton.addEventListener("click", () => {
   inventorySource = "缓存样例";
   lastVisionError = "";
   uploadedImageDataUrl = "";
+  uploadedSourceFileName = "";
   targetDishImageDataUrl = "";
+  targetDishSourceFileName = "";
   targetDishImageAnalysis = null;
   resetConfirmedItems(activeSample);
   elements.fridgeUpload.value = "";
@@ -1180,6 +1239,7 @@ elements.resetButton.addEventListener("click", () => {
 async function initializeApp() {
   await window.FridgeProfile.init();
   refreshUserContext();
+  setupSpeechInput();
   render();
   updateCacheButton(false);
 }
