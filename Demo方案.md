@@ -2,7 +2,7 @@
 
 方案定位：现场可试玩的视觉搜索 AI Agent  
 推荐赛道：赛道 2，视觉搜索：视觉 + 语音，所见即所想  
-当前实现：`demo/index.html` 静态 Web Demo，可离线演示
+当前实现：`demo/index.html` 前端 + `demo/server.mjs` 轻量 Agent API，可接 OpenAI 视觉识别和晚餐规划，也可缓存兜底
 
 ## 1. 一句话
 
@@ -15,7 +15,7 @@
 ## 3. 30 秒演示路径
 
 1. 选择一张预置冰箱样例，或上传现场冰箱照片。
-2. 页面模拟视觉模型识别食材、速食、饮料和不确定物品。
+2. 有 API Key 时调用视觉识别 Agent，输出食材、速食、饮料和不确定物品；无 Key 或失败时回退缓存样例。
 3. 用户勾选确认可用食材，取消错误识别项。
 4. 系统读取模拟已授权上下文：新手、25 分钟、精力低、少油微辣、不爱洗太多锅、最近外卖偏多。
 5. AI 输出今晚决策：建议自炊、速食优先，或必要时外卖兜底。
@@ -31,7 +31,7 @@
 | 想练一道菜 | 豆腐、鸡胸、胡萝卜、生菜、米饭 | 豆腐胡萝卜盖饭 |
 | 太晚太累 | 速冻饺子、鸡蛋、生菜、面包、饮料 | 速冻饺子 + 生菜汤 |
 
-上传图片时，Demo 会展示上传预览，并使用缓存 JSON 模拟视觉模型结果。真实接入后只需要把缓存对象替换为模型返回 JSON。
+上传图片时，Demo 会展示上传预览，并调用 `/api/analyze-fridge` 获取视觉识别 JSON；用户确认库存后，可调用 `/api/plan-dinner` 生成晚餐规划 JSON。没有 `OPENAI_API_KEY` 或接口失败时，页面保留缓存 JSON 兜底，现场不会空白。
 
 ## 5. 页面结构
 
@@ -67,22 +67,24 @@ Demo 要强调 AI 不是“识别冰箱里有什么”，而是完成一个决�
 
 当前阶段：
 
-- 纯 HTML/CSS/JavaScript 单页 Demo。
-- 静态样例模拟视觉模型输出。
+- HTML/CSS/JavaScript 单页 Demo。
+- 零依赖 Node 服务：`demo/server.mjs`。
+- 两个轻量 Agent 端点：`/api/analyze-fridge` 和 `/api/plan-dinner`。
+- OpenAI Responses API + JSON schema 结构化输出。
+- 静态样例作为模型失败兜底。
 - 勾选库存后实时重算可执行分数、缺料补买和兜底文案。
-- 不依赖后端，适合现场离线演示。
 
-后续接入：
+Agent 分层：
 
 ```text
-FridgeVisionProvider.analyzeFridge(image)
+/api/analyze-fridge
   -> 返回 items / uncertainItems / warnings
 
-DinnerPlannerProvider.planDinner(inventory, userContext)
+/api/plan-dinner
   -> 返回 decision / baseMeal / stretchMeal / shoppingUpgrade / fallback / safetyTips
 ```
 
-模型可优先接入 GPT 或 Claude 高阶视觉能力。接口失败时保留缓存样例兜底。
+默认模型通过 `OPENAI_MODEL` 配置，未设置时使用 `gpt-4.1-mini`。后续如改接 Claude、豆包视觉或 Agents SDK，只需要替换服务端 provider，前端 JSON 合约不变。
 
 ## 8. 现场讲解要点
 
@@ -104,11 +106,19 @@ DinnerPlannerProvider.planDinner(inventory, userContext)
 
 ## 10. 运行方式
 
-直接打开 `demo/index.html` 即可演示。  
-如需浏览器插件或局域网访问，可在 `demo/` 目录启动静态服务器：
+缓存模式可以直接打开 `demo/index.html`。  
+模型模式需要启动本地 Node 服务，并在环境变量中设置 `OPENAI_API_KEY`：
 
 ```bash
-python3 -m http.server 4173
+OPENAI_API_KEY=你的_key npm run dev
 ```
 
 然后访问 `http://localhost:4173/`。
+
+无 Key 时也可以运行：
+
+```bash
+npm run dev
+```
+
+页面会提示回退缓存，仍可完整演示前端流程。

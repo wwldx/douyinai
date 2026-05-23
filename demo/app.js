@@ -198,22 +198,26 @@ const fallbackUpload = {
   ...samples[0],
   id: "upload",
   name: "现场上传",
-  scene: "上传图片模拟识别",
+  scene: "上传图片待识别",
   plan: {
     ...samples[0].plan,
     score: 86,
-    summary: "已接收现场上传图片。当前离线 Demo 使用缓存识别结构模拟视觉模型返回，真实接入后会替换为模型 JSON。",
+    summary: "已接收现场上传图片。请先调用视觉识别 Agent，再确认库存并生成晚餐方案。",
   },
 };
 
 let activeSample = samples[0];
 let confirmedItems = new Set(activeSample.vision.items.map((item) => item.name));
+let uploadedImageDataUrl = "";
+let activeProvider = "mock";
 
 const elements = {
   modeStatus: document.querySelector("#modeStatus"),
   sampleGrid: document.querySelector("#sampleGrid"),
   fridgeUpload: document.querySelector("#fridgeUpload"),
   uploadPreview: document.querySelector("#uploadPreview"),
+  analyzeButton: document.querySelector("#analyzeButton"),
+  planButton: document.querySelector("#planButton"),
   resetButton: document.querySelector("#resetButton"),
   contextGrid: document.querySelector("#contextGrid"),
   inventoryCount: document.querySelector("#inventoryCount"),
@@ -239,12 +243,55 @@ const elements = {
   toast: document.querySelector("#toast"),
 };
 
+function setBusy(isBusy, message) {
+  elements.analyzeButton.disabled = isBusy || !uploadedImageDataUrl;
+  elements.planButton.disabled = isBusy;
+  if (message) elements.modeStatus.textContent = message;
+}
+
 function resetConfirmedItems(sample) {
   confirmedItems = new Set(sample.vision.items.map((item) => item.name));
 }
 
 function getConfirmedInventory() {
   return activeSample.vision.items.filter((item) => confirmedItems.has(item.name));
+}
+
+function normalizeVision(vision) {
+  return {
+    items: Array.isArray(vision?.items) ? vision.items : [],
+    uncertainItems: Array.isArray(vision?.uncertainItems) ? vision.uncertainItems : [],
+    warnings: Array.isArray(vision?.warnings) ? vision.warnings : ["模型未返回安全边界，需人工确认食材状态。"],
+  };
+}
+
+function normalizePlan(plan) {
+  return {
+    ...samples[0].plan,
+    ...plan,
+    baseMeal: { ...samples[0].plan.baseMeal, ...plan?.baseMeal },
+    stretchMeal: { ...samples[0].plan.stretchMeal, ...plan?.stretchMeal },
+    shoppingUpgrade: { ...samples[0].plan.shoppingUpgrade, ...plan?.shoppingUpgrade },
+    fallback: { ...samples[0].plan.fallback, ...plan?.fallback },
+    commerceSuggestion: { ...samples[0].plan.commerceSuggestion, ...plan?.commerceSuggestion },
+  };
+}
+
+function makeUploadSample(vision = fallbackUpload.vision, plan = fallbackUpload.plan) {
+  const itemNames = normalizeVision(vision)
+    .items.slice(0, 6)
+    .map((item) => item.name);
+
+  return {
+    ...fallbackUpload,
+    vision: normalizeVision(vision),
+    plan: normalizePlan(plan),
+    fridge: {
+      shelfTop: itemNames.slice(0, 3),
+      shelfMid: itemNames.slice(3, 6),
+      shelfLow: ["待确认", "安全边界"],
+    },
+  };
 }
 
 function getAdjustedPlan() {
@@ -298,8 +345,12 @@ function renderSamples() {
       const next = samples.find((sample) => sample.id === button.dataset.sampleId);
       if (!next) return;
       activeSample = next;
+      activeProvider = "mock";
+      uploadedImageDataUrl = "";
       resetConfirmedItems(activeSample);
       elements.modeStatus.textContent = "缓存视觉样例";
+      elements.analyzeButton.disabled = true;
+      elements.planButton.disabled = false;
       elements.fridgeUpload.value = "";
       elements.uploadPreview.style.display = "none";
       elements.uploadPreview.removeAttribute("src");
@@ -333,6 +384,17 @@ function renderContext() {
 function renderInventory() {
   const confirmedCount = getConfirmedInventory().length;
   elements.inventoryCount.textContent = `${confirmedCount}/${activeSample.vision.items.length} 已确认`;
+
+  if (!activeSample.vision.items.length) {
+    elements.inventoryList.innerHTML = `
+      <div class="inventory-empty">等待视觉识别结果。也可以直接选择下方缓存样例演示完整流程。</div>
+    `;
+    elements.uncertainBox.innerHTML = `
+      <strong>不确定项与安全边界</strong>
+      <ul><li>上传图片后，视觉识别 Agent 会在这里列出遮挡、保鲜盒和新鲜度风险。</li></ul>
+    `;
+    return;
+  }
 
   elements.inventoryList.innerHTML = activeSample.vision.items
     .map((item) => {
@@ -411,7 +473,7 @@ function renderAnalysis() {
   elements.shoppingReason.textContent = `${plan.shoppingUpgrade.reason} 预计 ${plan.shoppingUpgrade.estimatedCost}。`;
   elements.fallbackText.textContent = `${plan.fallback.condition}：${plan.fallback.suggestion}`;
   elements.safetyText.innerHTML = plan.baseMeal.safetyTips.map((tip) => `<li>${tip}</li>`).join("");
-  elements.pitchText.textContent = `AI 不是只识别冰箱里有什么，而是把视觉库存、用户厨艺、时间和精力一起纳入决策，给出今晚最现实的一顿饭：${plan.baseMeal.name}。`;
+  elements.pitchText.textContent = `AI 不是只识别冰箱里有什么，而是把视觉库存、用户厨艺、时间和精力一起纳入决策，给出今晚最现实的一顿饭：${plan.baseMeal.name}。当前规划来源：${activeProvider === "openai" ? "模型生成" : "缓存兜底"}。`;
   elements.commerceTitle.textContent = `${plan.commerceSuggestion.title}：${plan.commerceSuggestion.item}`;
   elements.commerceBody.textContent = plan.commerceSuggestion.reason;
 
@@ -423,6 +485,7 @@ function render() {
   renderContext();
   renderInventory();
   renderAnalysis();
+  elements.analyzeButton.disabled = !uploadedImageDataUrl;
 }
 
 function showToast(message) {
@@ -460,25 +523,111 @@ async function copyText(targetId) {
   }
 }
 
+function fileToDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.addEventListener("load", () => resolve(reader.result));
+    reader.addEventListener("error", () => reject(reader.error));
+    reader.readAsDataURL(file);
+  });
+}
+
+async function postJson(url, payload) {
+  const response = await fetch(url, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(data.error || `请求失败：${response.status}`);
+  }
+  return data;
+}
+
+async function runVisionAgent() {
+  if (!uploadedImageDataUrl) {
+    showToast("请先上传冰箱照片");
+    return;
+  }
+
+  try {
+    setBusy(true, "视觉识别中");
+    const data = await postJson("/api/analyze-fridge", { imageDataUrl: uploadedImageDataUrl });
+    activeProvider = data.provider || "openai";
+    activeSample = makeUploadSample(data.vision, fallbackUpload.plan);
+    resetConfirmedItems(activeSample);
+    renderInventory();
+    renderAnalysis();
+    elements.modeStatus.textContent = `视觉识别完成：${data.model || "模型"}`;
+    showToast("视觉识别完成，请确认库存");
+  } catch (error) {
+    activeProvider = "mock";
+    activeSample = makeUploadSample(fallbackUpload.vision, fallbackUpload.plan);
+    resetConfirmedItems(activeSample);
+    renderInventory();
+    renderAnalysis();
+    elements.modeStatus.textContent = "识别失败，已回退缓存";
+    showToast(error.message || "识别失败，已回退缓存");
+  } finally {
+    setBusy(false);
+  }
+}
+
+async function runDinnerPlanner() {
+  const inventory = getConfirmedInventory();
+  if (!inventory.length) {
+    showToast("请先确认至少一个食材");
+    return;
+  }
+
+  try {
+    setBusy(true, "晚餐规划中");
+    const data = await postJson("/api/plan-dinner", { inventory, userContext });
+    activeProvider = data.provider || "openai";
+    activeSample = {
+      ...activeSample,
+      plan: normalizePlan(data.plan),
+    };
+    renderAnalysis();
+    elements.modeStatus.textContent = `晚餐规划完成：${data.model || "模型"}`;
+    showToast("晚餐方案已生成");
+  } catch (error) {
+    activeProvider = "mock";
+    renderAnalysis();
+    elements.modeStatus.textContent = "规划失败，保留缓存方案";
+    showToast(error.message || "规划失败，保留缓存方案");
+  } finally {
+    setBusy(false);
+  }
+}
+
 document.querySelectorAll("[data-copy-target]").forEach((button) => {
   button.addEventListener("click", () => copyText(button.dataset.copyTarget));
 });
 
-elements.fridgeUpload.addEventListener("change", (event) => {
+elements.analyzeButton.addEventListener("click", runVisionAgent);
+elements.planButton.addEventListener("click", runDinnerPlanner);
+
+elements.fridgeUpload.addEventListener("change", async (event) => {
   const [file] = event.target.files;
   if (!file) return;
 
   const previewUrl = URL.createObjectURL(file);
   elements.uploadPreview.src = previewUrl;
   elements.uploadPreview.style.display = "block";
-  activeSample = fallbackUpload;
+  uploadedImageDataUrl = await fileToDataUrl(file);
+  activeProvider = "mock";
+  activeSample = makeUploadSample({ items: [], uncertainItems: [], warnings: [] }, fallbackUpload.plan);
   resetConfirmedItems(activeSample);
-  elements.modeStatus.textContent = "上传模拟视觉识别";
+  elements.modeStatus.textContent = "已上传，待识别";
   render();
 });
 
 elements.resetButton.addEventListener("click", () => {
   activeSample = samples[0];
+  activeProvider = "mock";
+  uploadedImageDataUrl = "";
   resetConfirmedItems(activeSample);
   elements.fridgeUpload.value = "";
   elements.uploadPreview.style.display = "none";

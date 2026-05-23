@@ -35,9 +35,14 @@
               <div class="upload-copy">
                 <span class="upload-icon" aria-hidden="true">+</span>
                 <strong>上传冰箱照片</strong>
-                <span>当前版本用缓存 JSON 模拟视觉模型输出</span>
+                <span>上传后先调用视觉识别 Agent，失败时回退缓存</span>
               </div>
               <img id="uploadPreview" alt="上传的冰箱照片预览" />
+            </div>
+
+            <div class="agent-actions" aria-label="Agent 操作">
+              <button class="primary-button" id="analyzeButton" type="button" disabled>识别冰箱</button>
+              <button class="primary-button secondary" id="planButton" type="button">生成晚餐方案</button>
             </div>
 
             <div class="sample-grid" id="sampleGrid" aria-label="预置冰箱样例"></div>

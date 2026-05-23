@@ -1,0 +1,8 @@
+{
+  "scripts": {
+    "dev": "node demo/server.mjs",
+    "check": "node --check demo/app.js && node --check demo/server.mjs",
+    "push": "bash scripts/push-to-github.sh"
+  },
+  "dependencies": {}
+}
