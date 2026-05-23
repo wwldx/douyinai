@@ -190,12 +190,64 @@ const fallbackUpload = {
   },
 };
 
+const fallbackTargetPlan = {
+  targetDish: {
+    name: "番茄牛腩",
+    intentTime: "tonight",
+    coreTaste: "热乎、酸甜、下饭",
+    estimatedTime: "90 分钟以上",
+    difficulty: "中等偏难",
+  },
+  verdict: {
+    title: "今晚不建议硬做，给你一条可执行替代路线",
+    summary: "当前样例里有番茄和鸡蛋，但缺少牛腩、土豆等关键材料。今晚可以先保留酸甜热食体验，改做番茄鸡蛋面；如果明天还想复刻，再补齐牛腩和土豆。",
+    primaryAction: "cook_simplified",
+  },
+  inventoryMatch: {
+    availableItems: ["番茄", "鸡蛋", "面条"],
+    missingCritical: ["牛腩", "土豆"],
+    missingOptional: ["洋葱", "八角"],
+    substitutions: [{ from: "牛腩", to: "鸡蛋", result: "今晚改成番茄鸡蛋面，保留热乎酸甜口" }],
+  },
+  executionPlan: {
+    recommendedVersion: "今晚做番茄鸡蛋面，明天补齐材料再复刻番茄牛腩。",
+    steps: ["确认番茄、鸡蛋和面条可用。", "先做番茄汤底，再加入面条。", "最后加入鸡蛋，做成低失败率热汤面。"],
+    difficultyWarnings: ["番茄牛腩需要较长炖煮时间，对新手和 25 分钟时间预算都偏吃力。", "肉类新鲜度和熟度不能只靠图片判断，需要人工确认。"],
+    prepForTomorrow: "如果明天想吃番茄牛腩，今晚先补买牛腩和土豆，明天预留 90 分钟以上。",
+  },
+  userFit: {
+    skillNote: "对新手来说，从零做番茄牛腩偏难。",
+    timeNote: "当前时间预算更适合 25 分钟内的一锅热食。",
+    profileNotes: ["参考了新手厨艺和低洗锅倾向。", "尊重用户想吃酸甜热食的意愿，优先给可执行替代路线。"],
+  },
+  commerceCards: [
+    {
+      type: "douyin_mall",
+      title: "明天复刻补齐关键材料",
+      item: "牛腩 + 土豆组合",
+      reason: "这是番茄牛腩的核心缺口；今晚不买也能先做简化热食。",
+      cta: "模拟去抖音商城看看",
+    },
+    {
+      type: "douyin_mall",
+      title: "省事版本",
+      item: "番茄牛腩半成品包",
+      reason: "如果想降低处理肉类和长时间炖煮的失败率，可以作为明天方案。",
+      cta: "模拟查看半成品",
+    },
+  ],
+  talkTrack: "刷到想吃的菜后，不是直接给菜谱，而是先看冰箱和用户状态，判断今晚能不能复刻，并给出补买或替代路线。",
+};
+
 let activeSample = samples[0];
 let confirmedItems = new Set(activeSample.vision.items.map((item) => item.name));
 let uploadedImageDataUrl = "";
 let activeProvider = "mock";
 let inventorySource = "缓存样例";
 let lastVisionError = "";
+let targetDishPlan = fallbackTargetPlan;
+let targetDishImageDataUrl = "";
+let targetDishImageAnalysis = null;
 let isBusy = false;
 let operationTimer = 0;
 
@@ -211,6 +263,13 @@ const elements = {
   analyzeButton: document.querySelector("#analyzeButton"),
   planButton: document.querySelector("#planButton"),
   cacheVisionButton: document.querySelector("#cacheVisionButton"),
+  targetDishUpload: document.querySelector("#targetDishUpload"),
+  targetDishPreview: document.querySelector("#targetDishPreview"),
+  targetDishGuess: document.querySelector("#targetDishGuess"),
+  targetDishText: document.querySelector("#targetDishText"),
+  targetDishTime: document.querySelector("#targetDishTime"),
+  targetDishAnalyzeButton: document.querySelector("#targetDishAnalyzeButton"),
+  targetDishButton: document.querySelector("#targetDishButton"),
   resetButton: document.querySelector("#resetButton"),
   contextGrid: document.querySelector("#contextGrid"),
   userSelect: document.querySelector("#userSelect"),
@@ -233,6 +292,13 @@ const elements = {
   shoppingList: document.querySelector("#shoppingList"),
   shoppingReason: document.querySelector("#shoppingReason"),
   fallbackText: document.querySelector("#fallbackText"),
+  targetVerdictTitle: document.querySelector("#targetVerdictTitle"),
+  targetDishName: document.querySelector("#targetDishName"),
+  targetVerdictSummary: document.querySelector("#targetVerdictSummary"),
+  targetMatchList: document.querySelector("#targetMatchList"),
+  targetSteps: document.querySelector("#targetSteps"),
+  targetWarnings: document.querySelector("#targetWarnings"),
+  targetCommerceCards: document.querySelector("#targetCommerceCards"),
   safetyText: document.querySelector("#safetyText"),
   pitchText: document.querySelector("#pitchText"),
   commerceTitle: document.querySelector("#commerceTitle"),
@@ -249,6 +315,8 @@ function setBusy(busy, message) {
   });
   elements.analyzeButton.disabled = busy || !uploadedImageDataUrl;
   elements.planButton.disabled = busy;
+  elements.targetDishAnalyzeButton.disabled = busy || !targetDishImageDataUrl;
+  elements.targetDishButton.disabled = busy || !elements.targetDishText.value.trim();
   updateCacheButton(busy);
   if (message) elements.modeStatus.textContent = message;
 }
@@ -259,6 +327,20 @@ function operationHint(kind, seconds) {
     if (seconds < 18) return "等待视觉模型";
     if (seconds < 45) return "模型仍在识别";
     return "耗时较长，可稍等或使用上次识别";
+  }
+
+  if (kind === "target") {
+    if (seconds < 3) return "发送目标菜和库存";
+    if (seconds < 16) return "判断复刻路线";
+    if (seconds < 35) return "生成缺料和补齐建议";
+    return "耗时较长，请稍等";
+  }
+
+  if (kind === "dishVision") {
+    if (seconds < 3) return "发送目标菜图片";
+    if (seconds < 18) return "识别菜名和关键材料";
+    if (seconds < 45) return "模型仍在看菜图";
+    return "耗时较长，请稍等";
   }
 
   if (seconds < 3) return "发送确认库存";
@@ -359,6 +441,70 @@ function normalizePlan(plan) {
     fallback: { ...samples[0].plan.fallback, ...plan?.fallback },
     commerceSuggestion: { ...samples[0].plan.commerceSuggestion, ...plan?.commerceSuggestion },
   };
+}
+
+function normalizeTargetDishPlan(plan) {
+  return {
+    ...fallbackTargetPlan,
+    ...plan,
+    targetDish: { ...fallbackTargetPlan.targetDish, ...plan?.targetDish },
+    verdict: { ...fallbackTargetPlan.verdict, ...plan?.verdict },
+    inventoryMatch: {
+      ...fallbackTargetPlan.inventoryMatch,
+      ...plan?.inventoryMatch,
+      availableItems: Array.isArray(plan?.inventoryMatch?.availableItems) ? plan.inventoryMatch.availableItems : fallbackTargetPlan.inventoryMatch.availableItems,
+      missingCritical: Array.isArray(plan?.inventoryMatch?.missingCritical) ? plan.inventoryMatch.missingCritical : fallbackTargetPlan.inventoryMatch.missingCritical,
+      missingOptional: Array.isArray(plan?.inventoryMatch?.missingOptional) ? plan.inventoryMatch.missingOptional : fallbackTargetPlan.inventoryMatch.missingOptional,
+      substitutions: Array.isArray(plan?.inventoryMatch?.substitutions) ? plan.inventoryMatch.substitutions : fallbackTargetPlan.inventoryMatch.substitutions,
+    },
+    executionPlan: {
+      ...fallbackTargetPlan.executionPlan,
+      ...plan?.executionPlan,
+      steps: Array.isArray(plan?.executionPlan?.steps) ? plan.executionPlan.steps : fallbackTargetPlan.executionPlan.steps,
+      difficultyWarnings: Array.isArray(plan?.executionPlan?.difficultyWarnings)
+        ? plan.executionPlan.difficultyWarnings
+        : fallbackTargetPlan.executionPlan.difficultyWarnings,
+    },
+    userFit: {
+      ...fallbackTargetPlan.userFit,
+      ...plan?.userFit,
+      profileNotes: Array.isArray(plan?.userFit?.profileNotes) ? plan.userFit.profileNotes : fallbackTargetPlan.userFit.profileNotes,
+    },
+    commerceCards: Array.isArray(plan?.commerceCards) ? plan.commerceCards : fallbackTargetPlan.commerceCards,
+  };
+}
+
+function normalizeTargetDishVision(vision) {
+  return {
+    dishName: vision?.dishName || "目标菜待确认",
+    confidence: typeof vision?.confidence === "number" ? vision.confidence : 0,
+    dishType: vision?.dishType || "菜品",
+    coreTaste: vision?.coreTaste || "口味待确认",
+    likelyIngredients: Array.isArray(vision?.likelyIngredients) ? vision.likelyIngredients : [],
+    optionalIngredients: Array.isArray(vision?.optionalIngredients) ? vision.optionalIngredients : [],
+    requiredTools: Array.isArray(vision?.requiredTools) ? vision.requiredTools : [],
+    estimatedTime: vision?.estimatedTime || "耗时待确认",
+    difficulty: vision?.difficulty || "难度待确认",
+    visualEvidence: Array.isArray(vision?.visualEvidence) ? vision.visualEvidence : [],
+    warnings: Array.isArray(vision?.warnings) ? vision.warnings : [],
+  };
+}
+
+function cleanDishName(name) {
+  return String(name || "")
+    .replace(/^(疑似|可能是|可能为|大概率是)/, "")
+    .trim();
+}
+
+function decisionRouteLabel(decision) {
+  const labels = {
+    cook_with_existing_items: "自炊",
+    cook_with_small_purchase: "补买",
+    quick_meal_first: "速食",
+    delivery_recommended: "外卖",
+    cook_with_small_practice: "练习",
+  };
+  return labels[decision] || "方案";
 }
 
 function refreshUserContext() {
@@ -578,13 +724,87 @@ function renderSummary(plan) {
     .join("");
 }
 
+function renderTargetDishGuess() {
+  if (!targetDishImageDataUrl && !targetDishImageAnalysis) {
+    elements.targetDishGuess.innerHTML = "可直接输入目标菜，也可以上传菜图后点击「识别目标菜」。";
+    return;
+  }
+
+  if (targetDishImageDataUrl && !targetDishImageAnalysis) {
+    elements.targetDishGuess.innerHTML = "已上传目标菜图。点击「识别目标菜」后，AI 会先猜菜名和关键材料，你仍然可以手动修改。";
+    return;
+  }
+
+  const vision = normalizeTargetDishVision(targetDishImageAnalysis);
+  const ingredients = vision.likelyIngredients.slice(0, 5).join("、") || "关键材料待确认";
+  const tools = vision.requiredTools.slice(0, 3).join("、") || "常规厨具";
+  elements.targetDishGuess.innerHTML = `
+    <strong>${vision.dishName}</strong> · 置信 ${(vision.confidence * 100).toFixed(0)}% · ${vision.difficulty}<br />
+    关键材料：${ingredients}<br />
+    可能工具：${tools}；预计 ${vision.estimatedTime}
+  `;
+}
+
+function renderTargetDishPlan() {
+  const plan = normalizeTargetDishPlan(targetDishPlan);
+  const match = plan.inventoryMatch;
+  const available = match.availableItems.length ? match.availableItems.join("、") : "暂无可直接匹配材料";
+  const missingCritical = match.missingCritical.length ? match.missingCritical.join("、") : "无关键缺口";
+  const missingOptional = match.missingOptional.length ? match.missingOptional.join("、") : "无明显可选缺口";
+  const substitutions = match.substitutions.length
+    ? match.substitutions.map((item) => `${item.from} -> ${item.to}：${item.result}`).join("；")
+    : "暂无替代路线";
+
+  elements.targetVerdictTitle.textContent = plan.verdict.title;
+  elements.targetDishName.textContent = plan.targetDish.name;
+  elements.targetVerdictSummary.textContent = plan.verdict.summary;
+  elements.targetMatchList.innerHTML = [
+    ["冰箱已有", available],
+    ["关键缺口", missingCritical],
+    ["可选缺口", missingOptional],
+    ["替代路线", substitutions],
+  ]
+    .map(([label, value]) => `<span><strong>${label}</strong>${value}</span>`)
+    .join("");
+  elements.targetSteps.innerHTML = [
+    plan.executionPlan.recommendedVersion,
+    ...plan.executionPlan.steps,
+    plan.executionPlan.prepForTomorrow,
+  ]
+    .filter(Boolean)
+    .map((step) => `<li>${step}</li>`)
+    .join("");
+  elements.targetWarnings.innerHTML = [
+    plan.userFit.skillNote,
+    plan.userFit.timeNote,
+    ...plan.userFit.profileNotes,
+    ...plan.executionPlan.difficultyWarnings,
+  ]
+    .filter(Boolean)
+    .map((warning) => `<li>${warning}</li>`)
+    .join("");
+  elements.targetCommerceCards.innerHTML = plan.commerceCards.length
+    ? plan.commerceCards
+        .map(
+          (card) => `
+            <div class="commerce-mini-card">
+              <strong>${card.title}：${card.item}</strong>
+              ${card.reason}
+              <small>${card.cta}</small>
+            </div>
+          `,
+        )
+        .join("")
+    : '<div class="commerce-mini-card"><strong>暂不需要补买</strong>先用现有食材完成可执行版本。<small>不硬推消费</small></div>';
+}
+
 function renderAnalysis() {
   const plan = getAdjustedPlan();
   const required = plan.baseMeal.requiredItems.join("、");
   const shoppingItems = plan.shoppingUpgrade.neededItems.length ? plan.shoppingUpgrade.neededItems : ["无"];
 
   elements.decisionTitle.textContent = plan.baseMeal.name;
-  elements.scoreValue.textContent = plan.score;
+  elements.scoreValue.textContent = decisionRouteLabel(plan.decision);
   elements.decisionSummary.textContent = plan.summary;
   elements.profileNotes.innerHTML = plan.personalizationNotes.map((note) => `<li>${note}</li>`).join("");
   elements.baseTime.textContent = plan.baseMeal.timeCost;
@@ -602,6 +822,8 @@ function renderAnalysis() {
   elements.commerceBody.textContent = plan.commerceSuggestion.reason;
 
   renderSummary(plan);
+  renderTargetDishGuess();
+  renderTargetDishPlan();
 }
 
 function render() {
@@ -611,6 +833,8 @@ function render() {
   renderInventory();
   renderAnalysis();
   elements.analyzeButton.disabled = !uploadedImageDataUrl;
+  elements.targetDishAnalyzeButton.disabled = isBusy || !targetDishImageDataUrl;
+  elements.targetDishButton.disabled = isBusy || !elements.targetDishText.value.trim();
 }
 
 function showToast(message) {
@@ -779,6 +1003,82 @@ async function runDinnerPlanner() {
   }
 }
 
+async function runTargetDishVision() {
+  if (!targetDishImageDataUrl) {
+    showToast("请先上传想复刻的菜图");
+    return;
+  }
+
+  try {
+    setBusy(true);
+    const startedAt = startOperationStatus("dishVision", "目标菜识别中");
+    const data = await postJson("/api/analyze-target-dish", { imageDataUrl: targetDishImageDataUrl });
+    const seconds = Math.max(1, Math.round((Date.now() - startedAt) / 1000));
+    targetDishImageAnalysis = normalizeTargetDishVision(data.targetVision);
+    const dishName = cleanDishName(targetDishImageAnalysis.dishName);
+    if (dishName) {
+      const timeText = elements.targetDishTime.options[elements.targetDishTime.selectedIndex]?.textContent || "今晚";
+      elements.targetDishText.value = `我${timeText}想吃${dishName}`;
+    }
+    renderTargetDishGuess();
+    finishOperationStatus(`目标菜识别完成：${data.model || "模型"} · ${seconds}s`);
+    showToast(`目标菜识别完成，用时 ${seconds}s`);
+  } catch (error) {
+    targetDishImageAnalysis = null;
+    renderTargetDishGuess();
+    finishOperationStatus("目标菜识别失败，可手动输入菜名");
+    showToast(error.message || "目标菜识别失败，可手动输入菜名");
+  } finally {
+    setBusy(false);
+  }
+}
+
+async function runTargetDishPlanner() {
+  const inventory = getConfirmedInventory();
+  const targetText = elements.targetDishText.value.trim();
+  if (!inventory.length) {
+    showToast("请先确认至少一个食材");
+    return;
+  }
+  if (!targetText) {
+    showToast("请先输入想吃的菜");
+    return;
+  }
+  refreshUserContext();
+
+  const requestPayload = {
+    inventory,
+    targetDish: {
+      text: targetText,
+      intentTime: elements.targetDishTime.value || "tonight",
+      imageAnalysis: targetDishImageAnalysis,
+    },
+    userContext,
+  };
+
+  try {
+    setBusy(true);
+    const startedAt = startOperationStatus("target", "目标菜复刻规划中");
+    const data = await postJson("/api/plan-target-dish", requestPayload);
+    const seconds = Math.max(1, Math.round((Date.now() - startedAt) / 1000));
+    activeProvider = data.provider || "openai";
+    targetDishPlan = normalizeTargetDishPlan(data.targetPlan);
+    renderTargetDishPlan();
+    finishOperationStatus(`复刻路线完成：${data.model || "模型"} · ${seconds}s`);
+    showToast(`复刻路线已生成，用时 ${seconds}s`);
+  } catch (error) {
+    targetDishPlan = normalizeTargetDishPlan({
+      ...fallbackTargetPlan,
+      targetDish: { ...fallbackTargetPlan.targetDish, name: targetText.replace(/^我(今晚|明天|这周)?想吃/, "") || targetText },
+    });
+    renderTargetDishPlan();
+    finishOperationStatus("目标菜规划失败，保留演示样例");
+    showToast(error.message || "目标菜规划失败，保留演示样例");
+  } finally {
+    setBusy(false);
+  }
+}
+
 function loadCachedVision() {
   const cached = readCachedVision();
   if (!cached) {
@@ -797,7 +1097,33 @@ document.querySelectorAll("[data-copy-target]").forEach((button) => {
 
 elements.analyzeButton.addEventListener("click", runVisionAgent);
 elements.planButton.addEventListener("click", runDinnerPlanner);
+elements.targetDishAnalyzeButton.addEventListener("click", runTargetDishVision);
+elements.targetDishButton.addEventListener("click", runTargetDishPlanner);
 elements.cacheVisionButton.addEventListener("click", loadCachedVision);
+elements.targetDishText.addEventListener("input", () => {
+  elements.targetDishButton.disabled = isBusy || !elements.targetDishText.value.trim();
+});
+elements.targetDishUpload.addEventListener("change", async (event) => {
+  const [file] = event.target.files;
+  if (!file) return;
+
+  const previewUrl = URL.createObjectURL(file);
+  elements.targetDishPreview.src = previewUrl;
+  elements.targetDishPreview.style.display = "block";
+
+  try {
+    targetDishImageDataUrl = await fileToDataUrl(file);
+    targetDishImageAnalysis = null;
+    renderTargetDishGuess();
+    elements.targetDishAnalyzeButton.disabled = isBusy || !targetDishImageDataUrl;
+    elements.modeStatus.textContent = "已上传目标菜图，待识别";
+  } catch (error) {
+    targetDishImageDataUrl = "";
+    targetDishImageAnalysis = null;
+    renderTargetDishGuess();
+    showToast(error.message || "目标菜图片读取失败");
+  }
+});
 elements.userSelect.addEventListener("change", async () => {
   await window.FridgeProfile.selectUser(elements.userSelect.value);
   refreshUserContext();
@@ -837,11 +1163,17 @@ elements.resetButton.addEventListener("click", () => {
   inventorySource = "缓存样例";
   lastVisionError = "";
   uploadedImageDataUrl = "";
+  targetDishImageDataUrl = "";
+  targetDishImageAnalysis = null;
   resetConfirmedItems(activeSample);
   elements.fridgeUpload.value = "";
+  elements.targetDishUpload.value = "";
   elements.uploadPreview.style.display = "none";
   elements.uploadPreview.removeAttribute("src");
+  elements.targetDishPreview.style.display = "none";
+  elements.targetDishPreview.removeAttribute("src");
   elements.modeStatus.textContent = "缓存视觉样例";
+  targetDishPlan = fallbackTargetPlan;
   render();
 });
 

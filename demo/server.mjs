@@ -4,7 +4,9 @@ import { extname, join, normalize } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createModelClient } from "./agent/modelClient.mjs";
 import { analyzeFridge } from "./agent/fridgeVisionAgent.mjs";
+import { analyzeTargetDish } from "./agent/targetDishVisionAgent.mjs";
 import { planDinner } from "./agent/dinnerPlannerAgent.mjs";
+import { planTargetDish } from "./agent/targetDishPlannerAgent.mjs";
 import { createUserMemoryStore } from "./agent/userMemoryStore.mjs";
 
 const rootDir = fileURLToPath(new URL(".", import.meta.url));
@@ -117,7 +119,7 @@ function healthPayload() {
     hasApiKey: Boolean(modelConfig.apiKey),
     disableResponseStorage: modelConfig.disableResponseStorage,
     agentRuntime: "lightweight-node-agent",
-    agents: ["fridgeVisionAgent", "dinnerPlannerAgent"],
+    agents: ["fridgeVisionAgent", "targetDishVisionAgent", "dinnerPlannerAgent", "targetDishPlannerAgent"],
   };
 }
 
@@ -171,6 +173,17 @@ const server = createServer(async (req, res) => {
       return;
     }
 
+    if (req.method === "POST" && req.url === "/api/analyze-target-dish") {
+      const body = await readJsonBody(req);
+      if (!body.imageDataUrl?.startsWith("data:image/")) {
+        sendJson(res, 400, { error: "请上传目标菜图片 data URL。" });
+        return;
+      }
+      const targetVision = await analyzeTargetDish(body.imageDataUrl, modelClient);
+      sendJson(res, 200, { provider: modelConfig.provider, model: modelConfig.model, agent: "targetDishVisionAgent", targetVision });
+      return;
+    }
+
     if (req.method === "POST" && req.url === "/api/plan-dinner") {
       const body = await readJsonBody(req);
       if (!Array.isArray(body.inventory) || !body.userContext) {
@@ -179,6 +192,28 @@ const server = createServer(async (req, res) => {
       }
       const plan = await planDinner({ inventory: body.inventory, userContext: body.userContext }, modelClient);
       sendJson(res, 200, { provider: modelConfig.provider, model: modelConfig.model, agent: "dinnerPlannerAgent", plan });
+      return;
+    }
+
+    if (req.method === "POST" && req.url === "/api/plan-target-dish") {
+      const body = await readJsonBody(req);
+      if (!Array.isArray(body.inventory) || !body.userContext || !body.targetDish?.text?.trim()) {
+        sendJson(res, 400, { error: "缺少 inventory、targetDish.text 或 userContext。" });
+        return;
+      }
+      const targetPlan = await planTargetDish(
+        {
+          inventory: body.inventory,
+          targetDish: {
+            text: body.targetDish.text.trim(),
+            intentTime: body.targetDish.intentTime || "tonight",
+            imageAnalysis: body.targetDish.imageAnalysis || null,
+          },
+          userContext: body.userContext,
+        },
+        modelClient,
+      );
+      sendJson(res, 200, { provider: modelConfig.provider, model: modelConfig.model, agent: "targetDishPlannerAgent", targetPlan });
       return;
     }
 

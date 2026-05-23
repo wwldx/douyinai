@@ -7,6 +7,13 @@ const elements = {
   analyzeButton: document.querySelector("#analyzeButton"),
   planButton: document.querySelector("#planButton"),
   cacheVisionButton: document.querySelector("#cacheVisionButton"),
+  targetDishUpload: document.querySelector("#targetDishUpload"),
+  targetDishPreview: document.querySelector("#targetDishPreview"),
+  targetDishGuess: document.querySelector("#targetDishGuess"),
+  targetDishText: document.querySelector("#targetDishText"),
+  targetDishTime: document.querySelector("#targetDishTime"),
+  targetDishAnalyzeButton: document.querySelector("#targetDishAnalyzeButton"),
+  targetDishButton: document.querySelector("#targetDishButton"),
   statusText: document.querySelector("#statusText"),
   userSelect: document.querySelector("#userSelect"),
   profileTraits: document.querySelector("#profileTraits"),
@@ -16,10 +23,13 @@ const elements = {
   uncertainBox: document.querySelector("#uncertainBox"),
   visionRaw: document.querySelector("#visionRaw"),
   planRaw: document.querySelector("#planRaw"),
+  targetRaw: document.querySelector("#targetRaw"),
   toast: document.querySelector("#toast"),
 };
 
 let uploadedImageDataUrl = "";
+let targetDishImageDataUrl = "";
+let targetDishImageAnalysis = null;
 let currentVision = { items: [], uncertainItems: [], warnings: [] };
 let confirmedItems = new Set();
 let isBusy = false;
@@ -37,6 +47,8 @@ function setBusy(busy) {
   isBusy = busy;
   elements.analyzeButton.disabled = busy || !uploadedImageDataUrl;
   elements.planButton.disabled = busy || !confirmedItems.size;
+  elements.targetDishAnalyzeButton.disabled = busy || !targetDishImageDataUrl;
+  elements.targetDishButton.disabled = busy || !confirmedItems.size || !elements.targetDishText.value.trim();
   elements.statusText.classList.toggle("busy", busy);
   updateCacheButton(busy);
 }
@@ -89,6 +101,20 @@ function operationHint(kind, seconds) {
     if (seconds < 18) return "等待视觉模型返回";
     if (seconds < 45) return "模型仍在识别，可以继续等待";
     return "耗时较长，必要时加载上次识别继续演示";
+  }
+
+  if (kind === "target") {
+    if (seconds < 3) return "发送目标菜、库存和画像";
+    if (seconds < 16) return "判断复刻路线";
+    if (seconds < 35) return "生成缺料、替代和模拟商城卡";
+    return "耗时较长，请稍等";
+  }
+
+  if (kind === "dishVision") {
+    if (seconds < 3) return "发送目标菜图片";
+    if (seconds < 18) return "识别菜名和关键材料";
+    if (seconds < 45) return "模型仍在看菜图";
+    return "耗时较长，请稍等";
   }
 
   if (seconds < 3) return "发送人工确认库存";
@@ -157,6 +183,49 @@ function normalizeVision(vision) {
   };
 }
 
+function normalizeTargetDishVision(vision) {
+  return {
+    dishName: vision?.dishName || "目标菜待确认",
+    confidence: typeof vision?.confidence === "number" ? vision.confidence : 0,
+    dishType: vision?.dishType || "菜品",
+    coreTaste: vision?.coreTaste || "口味待确认",
+    likelyIngredients: Array.isArray(vision?.likelyIngredients) ? vision.likelyIngredients : [],
+    optionalIngredients: Array.isArray(vision?.optionalIngredients) ? vision.optionalIngredients : [],
+    requiredTools: Array.isArray(vision?.requiredTools) ? vision.requiredTools : [],
+    estimatedTime: vision?.estimatedTime || "耗时待确认",
+    difficulty: vision?.difficulty || "难度待确认",
+    visualEvidence: Array.isArray(vision?.visualEvidence) ? vision.visualEvidence : [],
+    warnings: Array.isArray(vision?.warnings) ? vision.warnings : [],
+  };
+}
+
+function cleanDishName(name) {
+  return String(name || "")
+    .replace(/^(疑似|可能是|可能为|大概率是)/, "")
+    .trim();
+}
+
+function renderTargetDishGuess() {
+  if (!targetDishImageDataUrl && !targetDishImageAnalysis) {
+    elements.targetDishGuess.innerHTML = "可直接输入目标菜，也可以上传菜图后点击「识别目标菜」。";
+    return;
+  }
+
+  if (targetDishImageDataUrl && !targetDishImageAnalysis) {
+    elements.targetDishGuess.innerHTML = "已上传目标菜图，等待识别。识别后仍可手动修改目标菜名。";
+    return;
+  }
+
+  const vision = normalizeTargetDishVision(targetDishImageAnalysis);
+  const ingredients = vision.likelyIngredients.slice(0, 5).join("、") || "关键材料待确认";
+  const tools = vision.requiredTools.slice(0, 3).join("、") || "常规厨具";
+  elements.targetDishGuess.innerHTML = `
+    <strong>${vision.dishName}</strong> · 置信 ${(vision.confidence * 100).toFixed(0)}% · ${vision.difficulty}<br />
+    关键材料：${ingredients}<br />
+    可能工具：${tools}；预计 ${vision.estimatedTime}
+  `;
+}
+
 function getConfirmedInventory() {
   return currentVision.items.filter((item) => confirmedItems.has(item.name));
 }
@@ -214,6 +283,8 @@ function renderInventory() {
 
   elements.visionMeta.textContent = `${confirmedItems.size}/${currentVision.items.length} 已确认`;
   elements.planButton.disabled = !confirmedItems.size;
+  elements.targetDishAnalyzeButton.disabled = !targetDishImageDataUrl;
+  elements.targetDishButton.disabled = !confirmedItems.size || !elements.targetDishText.value.trim();
 }
 
 function readFileDataUrl(file) {
@@ -352,6 +423,80 @@ async function runPlan() {
   }
 }
 
+async function runTargetDishVision() {
+  if (!targetDishImageDataUrl) {
+    showToast("请先上传目标菜图");
+    return;
+  }
+
+  try {
+    setBusy(true);
+    const startedAt = startOperationStatus("dishVision", "正在调用 /api/analyze-target-dish");
+    renderJson(elements.targetRaw, { targetDishVisionRequest: "请求中..." });
+    const data = await postJson("/api/analyze-target-dish", { imageDataUrl: targetDishImageDataUrl });
+    const seconds = Math.max(1, Math.round((Date.now() - startedAt) / 1000));
+    targetDishImageAnalysis = normalizeTargetDishVision(data.targetVision);
+    const dishName = cleanDishName(targetDishImageAnalysis.dishName);
+    if (dishName) {
+      const timeText = elements.targetDishTime.options[elements.targetDishTime.selectedIndex]?.textContent || "今晚";
+      elements.targetDishText.value = `我${timeText}想吃${dishName}`;
+    }
+    renderTargetDishGuess();
+    renderJson(elements.targetRaw, { targetDishVisionResponse: data, note: "目标菜名已写入输入框，可手动修改后再调用复刻规划。" });
+    finishOperationStatus(`目标菜识别完成，用时 ${seconds}s。可检查 targetVision 并手动修正菜名。`);
+    showToast(`目标菜识别完成，用时 ${seconds}s`);
+  } catch (error) {
+    targetDishImageAnalysis = null;
+    renderTargetDishGuess();
+    renderJson(elements.targetRaw, { targetDishVisionError: error.payload || error.message });
+    finishOperationStatus(`目标菜识别失败：${error.message}`);
+    showToast("目标菜识别失败，可手动输入菜名");
+  } finally {
+    setBusy(false);
+  }
+}
+
+async function runTargetPlan() {
+  const inventory = getConfirmedInventory();
+  const targetText = elements.targetDishText.value.trim();
+  if (!inventory.length) {
+    showToast("请至少确认一个食材");
+    return;
+  }
+  if (!targetText) {
+    showToast("请先输入想吃的菜");
+    return;
+  }
+
+  refreshUserContext();
+  const requestPayload = {
+    inventory,
+    targetDish: {
+      text: targetText,
+      intentTime: elements.targetDishTime.value || "tonight",
+      imageAnalysis: targetDishImageAnalysis,
+    },
+    userContext,
+  };
+
+  try {
+    setBusy(true);
+    const startedAt = startOperationStatus("target", "正在调用 /api/plan-target-dish");
+    renderJson(elements.targetRaw, { request: requestPayload, response: "请求中..." });
+    const data = await postJson("/api/plan-target-dish", requestPayload);
+    const seconds = Math.max(1, Math.round((Date.now() - startedAt) / 1000));
+    renderJson(elements.targetRaw, { request: requestPayload, response: data });
+    finishOperationStatus(`目标菜复刻规划完成，用时 ${seconds}s。可检查缺料、难点提醒和 commerceCards。`);
+    showToast(`目标菜规划完成，用时 ${seconds}s`);
+  } catch (error) {
+    renderJson(elements.targetRaw, { request: requestPayload, error: error.payload || error.message });
+    finishOperationStatus(`目标菜规划失败：${error.message}`);
+    showToast("目标菜规划失败");
+  } finally {
+    setBusy(false);
+  }
+}
+
 function loadCachedVision() {
   const cached = readCachedVision();
   if (!cached) {
@@ -393,19 +538,49 @@ elements.fridgeUpload.addEventListener("change", async (event) => {
   renderInventory();
   renderJson(elements.visionRaw, "已加载图片，等待调用视觉识别。");
   renderJson(elements.planRaw, "暂无。");
+  renderJson(elements.targetRaw, "暂无。");
   setStatus(`已上传：${file.name}。大图会在本地压缩后再发送给模型。`);
   setBusy(false);
 });
 
 elements.analyzeButton.addEventListener("click", runVision);
 elements.planButton.addEventListener("click", runPlan);
+elements.targetDishAnalyzeButton.addEventListener("click", runTargetDishVision);
+elements.targetDishButton.addEventListener("click", runTargetPlan);
 elements.cacheVisionButton.addEventListener("click", loadCachedVision);
+elements.targetDishText.addEventListener("input", () => {
+  elements.targetDishButton.disabled = isBusy || !confirmedItems.size || !elements.targetDishText.value.trim();
+});
+elements.targetDishUpload.addEventListener("change", async (event) => {
+  const [file] = event.target.files;
+  if (!file) return;
+
+  elements.targetDishPreview.src = URL.createObjectURL(file);
+  elements.targetDishPreview.style.display = "block";
+
+  try {
+    targetDishImageDataUrl = await fileToDataUrl(file);
+    targetDishImageAnalysis = null;
+    renderTargetDishGuess();
+    renderJson(elements.targetRaw, "已加载目标菜图，等待调用目标菜识别。");
+    setStatus(`已上传目标菜图：${file.name}。不会覆盖冰箱图片。`);
+    setBusy(false);
+  } catch (error) {
+    targetDishImageDataUrl = "";
+    targetDishImageAnalysis = null;
+    renderTargetDishGuess();
+    setStatus(error.message || "目标菜图片读取失败");
+    showToast("目标菜图片读取失败");
+    setBusy(false);
+  }
+});
 elements.userSelect.addEventListener("change", async () => {
   await window.FridgeProfile.selectUser(elements.userSelect.value);
   refreshUserContext();
   renderProfile();
   updateCacheButton(false);
   renderJson(elements.planRaw, { userContext, note: "已切换演示用户，晚餐规划会使用该用户画像。" });
+  renderJson(elements.targetRaw, { userContext, note: "已切换演示用户，目标菜复刻也会使用该用户画像。" });
   showToast(`已切换用户：${elements.userSelect.options[elements.userSelect.selectedIndex].textContent}`);
 });
 document.querySelectorAll("[data-copy-target]").forEach((button) => {
@@ -418,6 +593,7 @@ async function initializeDev() {
   await checkHealth();
   renderInventory();
   renderProfile();
+  renderTargetDishGuess();
   updateCacheButton(false);
 }
 

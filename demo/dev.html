@@ -42,6 +42,32 @@
             <button class="primary-button secondary" id="planButton" type="button" disabled>调用晚餐规划</button>
             <button class="primary-button tertiary" id="cacheVisionButton" type="button" disabled>加载上次识别</button>
           </div>
+          <section class="target-dish-card" aria-label="目标菜复刻规划">
+            <div>
+              <p class="section-kicker">目标菜复刻</p>
+              <h2>刷到想吃的，先看能不能做</h2>
+            </div>
+            <div class="target-upload-zone">
+              <input id="targetDishUpload" type="file" accept="image/*" />
+              <div class="upload-copy">
+                <span class="upload-icon" aria-hidden="true">+</span>
+                <strong>选择目标菜图</strong>
+                <span>用于识别菜名和关键材料</span>
+              </div>
+              <img id="targetDishPreview" alt="上传的目标菜图片预览" />
+            </div>
+            <div class="target-dish-guess" id="targetDishGuess">可直接输入目标菜，也可以上传菜图后点击「识别目标菜」。</div>
+            <textarea id="targetDishText" rows="3">我今晚想吃番茄牛腩</textarea>
+            <div class="target-controls">
+              <select id="targetDishTime" aria-label="目标时间">
+                <option value="tonight">今晚</option>
+                <option value="tomorrow">明天</option>
+                <option value="this_week">这周</option>
+              </select>
+              <button class="primary-button" id="targetDishAnalyzeButton" type="button" disabled>识别目标菜</button>
+              <button class="primary-button secondary" id="targetDishButton" type="button" disabled>调用目标菜规划</button>
+            </div>
+          </section>
           <div class="dev-status" id="statusText">等待上传图片。</div>
           <div class="dev-profile">
             <p class="section-kicker">用户画像 MVP</p>
@@ -87,6 +113,17 @@
             <button class="small-button" data-copy-target="planRaw" type="button">复制 JSON</button>
           </div>
           <pre class="json-view" id="planRaw">暂无。</pre>
+        </section>
+
+        <section class="dev-panel wide">
+          <div class="dev-section-heading">
+            <div>
+              <p class="section-kicker">Step 5</p>
+              <h2>目标菜图识别与复刻原始返回</h2>
+            </div>
+            <button class="small-button" data-copy-target="targetRaw" type="button">复制 JSON</button>
+          </div>
+          <pre class="json-view" id="targetRaw">暂无。</pre>
         </section>
       </section>
     </main>

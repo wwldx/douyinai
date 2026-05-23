@@ -1,7 +1,7 @@
 {
   "scripts": {
     "dev": "node demo/server.mjs",
-    "check": "node --check demo/profile-store.js && node --check demo/app.js && node --check demo/dev.js && node --check demo/agent/modelClient.mjs && node --check demo/agent/fridgeVisionAgent.mjs && node --check demo/agent/dinnerPlannerAgent.mjs && node --check demo/agent/schemas.mjs && node --check demo/agent/userMemoryStore.mjs && node --check demo/server.mjs",
+    "check": "node --check demo/profile-store.js && node --check demo/app.js && node --check demo/dev.js && node --check demo/agent/modelClient.mjs && node --check demo/agent/fridgeVisionAgent.mjs && node --check demo/agent/targetDishVisionAgent.mjs && node --check demo/agent/dinnerPlannerAgent.mjs && node --check demo/agent/targetDishPlannerAgent.mjs && node --check demo/agent/mockCommerceCatalog.mjs && node --check demo/agent/schemas.mjs && node --check demo/agent/userMemoryStore.mjs && node --check demo/server.mjs",
     "push": "bash scripts/push-to-github.sh"
   },
   "dependencies": {}

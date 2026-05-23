@@ -46,6 +46,33 @@
               <button class="primary-button tertiary" id="cacheVisionButton" type="button" disabled>加载上次识别</button>
             </div>
 
+            <section class="target-dish-card" aria-label="目标菜复刻规划">
+              <div>
+                <p class="section-kicker">刷到想吃的</p>
+                <h2>判断今晚能不能复刻</h2>
+              </div>
+              <div class="target-upload-zone">
+                <input id="targetDishUpload" type="file" accept="image/*" />
+                <div class="upload-copy">
+                  <span class="upload-icon" aria-hidden="true">+</span>
+                  <strong>上传想复刻的菜图</strong>
+                  <span>先猜菜名和关键材料，再由你确认</span>
+                </div>
+                <img id="targetDishPreview" alt="上传的目标菜图片预览" />
+              </div>
+              <div class="target-dish-guess" id="targetDishGuess">可直接输入目标菜，也可以上传菜图后点击「识别目标菜」。</div>
+              <textarea id="targetDishText" rows="3">我今晚想吃番茄牛腩</textarea>
+              <div class="target-controls">
+                <select id="targetDishTime" aria-label="目标时间">
+                  <option value="tonight">今晚</option>
+                  <option value="tomorrow">明天</option>
+                  <option value="this_week">这周</option>
+                </select>
+                <button class="primary-button" id="targetDishAnalyzeButton" type="button" disabled>识别目标菜</button>
+                <button class="primary-button secondary" id="targetDishButton" type="button">判断复刻路线</button>
+              </div>
+            </section>
+
             <div class="sample-grid" id="sampleGrid" aria-label="预置冰箱样例"></div>
 
             <section class="context-card" aria-label="模拟用户状态">
@@ -88,9 +115,9 @@
                 <p class="section-kicker">AI 决策</p>
                 <h2 id="decisionTitle">晚餐方案生成中</h2>
               </div>
-              <div class="score-ring" aria-label="现实可执行指数">
+              <div class="decision-badge" aria-label="当前晚餐路线">
                 <span id="scoreValue">--</span>
-                <small>可执行</small>
+                <small>路线</small>
               </div>
             </div>
 
@@ -131,6 +158,35 @@
                 <p id="fallbackText"></p>
               </section>
             </div>
+
+            <section class="target-result" id="targetResultPanel" aria-label="目标菜复刻结果">
+              <div class="section-title-row">
+                <div>
+                  <p class="section-kicker">目标菜复刻</p>
+                  <h3 id="targetVerdictTitle">输入想吃的菜，判断今晚能不能复刻</h3>
+                </div>
+                <span id="targetDishName">待规划</span>
+              </div>
+              <p id="targetVerdictSummary"></p>
+              <div class="target-result-grid">
+                <div>
+                  <h4>已有 / 缺口</h4>
+                  <div class="target-match-list" id="targetMatchList"></div>
+                </div>
+                <div>
+                  <h4>可执行路线</h4>
+                  <ul id="targetSteps"></ul>
+                </div>
+                <div>
+                  <h4>难点提醒</h4>
+                  <ul id="targetWarnings"></ul>
+                </div>
+                <div>
+                  <h4>抖音模拟补齐</h4>
+                  <div class="commerce-card-list" id="targetCommerceCards"></div>
+                </div>
+              </div>
+            </section>
 
             <div class="actions-panel">
               <div class="action-card">
