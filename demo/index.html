@@ -3,26 +3,26 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>海报速读行动卡</title>
+    <title>冰箱晚餐 Agent</title>
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
     <main class="app-shell">
-      <section class="workspace" aria-label="海报分析工作区">
+      <section class="workspace" aria-label="冰箱晚餐 Agent 工作区">
         <header class="topbar">
           <div>
             <p class="eyebrow">视觉搜索赛道 Demo</p>
-            <h1>海报速读行动卡</h1>
+            <h1>冰箱晚餐 Agent</h1>
           </div>
-          <div class="status-pill" id="modeStatus">缓存样例模式</div>
+          <div class="status-pill" id="modeStatus">缓存视觉样例</div>
         </header>
 
         <div class="layout">
-          <section class="input-panel" aria-label="海报输入">
+          <section class="input-panel" aria-label="冰箱图片与库存确认">
             <div class="panel-heading">
               <div>
-                <p class="section-kicker">输入</p>
-                <h2>选择一张海报</h2>
+                <p class="section-kicker">视觉输入</p>
+                <h2>拍一下今晚的冰箱</h2>
               </div>
               <button class="icon-button" id="resetButton" type="button" title="重置演示">
                 <span aria-hidden="true">↻</span>
@@ -31,84 +31,110 @@
             </div>
 
             <div class="upload-zone" id="uploadZone">
-              <input id="posterUpload" type="file" accept="image/*" />
+              <input id="fridgeUpload" type="file" accept="image/*" />
               <div class="upload-copy">
                 <span class="upload-icon" aria-hidden="true">+</span>
-                <strong>上传现场海报</strong>
-                <span>当前版本会用缓存分析结构模拟模型输出</span>
+                <strong>上传冰箱照片</strong>
+                <span>当前版本用缓存 JSON 模拟视觉模型输出</span>
               </div>
-              <img id="uploadPreview" alt="上传的海报预览" />
+              <img id="uploadPreview" alt="上传的冰箱照片预览" />
             </div>
 
-            <div class="sample-grid" id="sampleGrid" aria-label="预置海报样例"></div>
+            <div class="sample-grid" id="sampleGrid" aria-label="预置冰箱样例"></div>
 
-            <div class="persona-panel">
+            <section class="context-card" aria-label="模拟用户状态">
               <div>
-                <p class="section-kicker">身份</p>
-                <h2>选择你的关注点</h2>
+                <p class="section-kicker">已授权上下文</p>
+                <h2>今晚状态</h2>
               </div>
-              <div class="persona-list" id="personaList" role="listbox" aria-label="身份标签"></div>
-            </div>
+              <div class="context-grid" id="contextGrid"></div>
+            </section>
+
+            <section class="inventory-panel" aria-label="识别库存确认">
+              <div class="inventory-heading">
+                <div>
+                  <p class="section-kicker">识别库存</p>
+                  <h2>3 秒确认可用食材</h2>
+                </div>
+                <span id="inventoryCount"></span>
+              </div>
+              <div class="inventory-list" id="inventoryList"></div>
+              <div class="uncertain-box" id="uncertainBox"></div>
+            </section>
           </section>
 
-          <section class="result-panel" aria-label="AI 分析结果">
+          <section class="result-panel" aria-label="AI 晚餐规划结果">
             <div class="analysis-header">
               <div>
-                <p class="section-kicker">AI 行动卡</p>
-                <h2 id="resultTitle">活动信息分析中</h2>
+                <p class="section-kicker">AI 决策</p>
+                <h2 id="decisionTitle">晚餐方案生成中</h2>
               </div>
-              <div class="score-ring" aria-label="推荐指数">
+              <div class="score-ring" aria-label="现实可执行指数">
                 <span id="scoreValue">--</span>
-                <small>推荐</small>
+                <small>可执行</small>
               </div>
             </div>
+
+            <p class="decision-summary" id="decisionSummary"></p>
 
             <div class="summary-strip" id="summaryStrip"></div>
 
             <div class="content-grid">
-              <section class="result-section">
-                <h3>为什么适合你</h3>
-                <p id="fitReason"></p>
+              <section class="result-section primary">
+                <div class="section-title-row">
+                  <h3>保底方案</h3>
+                  <span id="baseTime"></span>
+                </div>
+                <h4 id="baseMealName"></h4>
+                <p id="baseWhy"></p>
+                <ul id="baseSteps"></ul>
               </section>
 
               <section class="result-section">
-                <h3>到场前准备</h3>
-                <ul id="prepList"></ul>
+                <h3>进阶一点</h3>
+                <h4 id="stretchMealName"></h4>
+                <p id="stretchMealBody"></p>
               </section>
 
-              <section class="result-section wide">
-                <h3>活动亮点</h3>
-                <div class="tag-list" id="highlightList"></div>
+              <section class="result-section">
+                <h3>缺料补买</h3>
+                <div class="tag-list" id="shoppingList"></div>
+                <p id="shoppingReason"></p>
+              </section>
+
+              <section class="result-section">
+                <h3>外卖 / 速食兜底</h3>
+                <p id="fallbackText"></p>
               </section>
             </div>
 
             <div class="actions-panel">
               <div class="action-card">
                 <div class="action-card-header">
-                  <h3>日程提醒</h3>
-                  <button class="small-button" data-copy-target="calendarText" type="button">复制</button>
+                  <h3>安全提醒</h3>
+                  <button class="small-button" data-copy-target="safetyText" type="button">复制</button>
                 </div>
-                <p id="calendarText"></p>
+                <ul id="safetyText"></ul>
               </div>
 
               <div class="action-card">
                 <div class="action-card-header">
-                  <h3>转发文案</h3>
-                  <button class="small-button" data-copy-target="shareText" type="button">复制</button>
+                  <h3>现场讲解话术</h3>
+                  <button class="small-button" data-copy-target="pitchText" type="button">复制</button>
                 </div>
-                <p id="shareText"></p>
+                <p id="pitchText"></p>
               </div>
             </div>
 
-            <section class="share-preview" aria-label="分享卡预览">
+            <section class="commerce-preview" aria-label="商业延展建议">
               <div>
-                <p class="section-kicker">分享卡</p>
-                <h3 id="shareCardTitle"></h3>
+                <p class="section-kicker">商业延展</p>
+                <h3 id="commerceTitle"></h3>
               </div>
-              <p id="shareCardBody"></p>
+              <p id="commerceBody"></p>
               <div class="share-card-footer">
-                <span id="shareCardMeta"></span>
-                <span>海报速读行动卡</span>
+                <span>视觉识别 -> 库存确认 -> 晚餐决策</span>
+                <span>冰箱晚餐 Agent</span>
               </div>
             </section>
           </section>
@@ -120,4 +146,3 @@
     <script src="./app.js"></script>
   </body>
 </html>
-
