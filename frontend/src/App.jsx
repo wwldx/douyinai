@@ -324,6 +324,123 @@ function dishKnowledge(dishName) {
     };
   }
 
+  if (/鱼香肉丝/.test(dishName)) {
+    return {
+      name: "鱼香肉丝",
+      coreTaste: "酸甜咸香、微辣、下饭",
+      estimatedTime: "30-40 分钟",
+      difficulty: "中等",
+      required: ["猪肉", "胡萝卜", "木耳", "辣椒"],
+      optional: ["豆瓣酱", "醋", "酱油", "白糖", "姜", "蒜", "米饭"],
+      steps: ["猪肉切细条，用少量酱油和淀粉抓匀。", "胡萝卜、木耳和辣椒切丝备用。", "先把肉丝滑炒到变色后盛出。", "用豆瓣酱、醋、酱油和少量糖调出鱼香味，再把肉丝和配菜回锅炒匀。"],
+      warning: "鱼香肉丝的关键是肉丝别炒老、酸甜咸的调味比例要稳；如果没有猪肉或木耳，不建议硬说成完整鱼香肉丝。",
+    };
+  }
+
+  if (/宫保鸡丁/.test(dishName)) {
+    return {
+      name: "宫保鸡丁",
+      coreTaste: "酸甜微辣、花生香、下饭",
+      estimatedTime: "30-40 分钟",
+      difficulty: "中等",
+      required: ["鸡胸肉", "花生", "辣椒", "黄瓜"],
+      optional: ["葱", "姜", "蒜", "醋", "酱油", "白糖", "米饭"],
+      steps: ["鸡胸肉切丁，用少量酱油和淀粉抓匀。", "黄瓜切丁，花生准备好。", "先把鸡丁炒到变色后盛出。", "用醋、酱油和少量糖调味，鸡丁回锅后放黄瓜和花生快速炒匀。"],
+      warning: "宫保鸡丁要快炒，鸡丁别炒老；如果没有鸡肉或花生，就不要硬说成完整宫保鸡丁。",
+    };
+  }
+
+  if (/麻婆豆腐/.test(dishName)) {
+    return {
+      name: "麻婆豆腐",
+      coreTaste: "麻辣咸香、热乎下饭",
+      estimatedTime: "20-30 分钟",
+      difficulty: "入门到中等",
+      required: ["豆腐", "豆瓣酱", "猪肉"],
+      optional: ["花椒", "辣椒", "葱", "蒜", "米饭"],
+      steps: ["豆腐切块，用热水轻轻焯一下。", "少油炒香肉末和豆瓣酱。", "加水煮开后放豆腐，小火煮到入味。", "最后勾一点薄芡，撒葱花或花椒粉。"],
+      warning: "豆腐容易碎，新手尽量少翻动；如果没有肉末，也可以做素版麻婆豆腐。",
+    };
+  }
+
+  if (/番茄炒蛋|西红柿炒鸡蛋|番茄鸡蛋/.test(dishName)) {
+    return {
+      name: "番茄炒蛋",
+      coreTaste: "酸甜热乎、家常下饭",
+      estimatedTime: "10-15 分钟",
+      difficulty: "新手友好",
+      required: ["番茄", "鸡蛋"],
+      optional: ["葱", "米饭", "面条"],
+      steps: ["鸡蛋打散，先炒到刚凝固后盛出。", "番茄切块，下锅炒出汁。", "把鸡蛋倒回锅里，加一点盐和少量糖调味。", "如果想更抗饿，可以配米饭或加面条。"],
+      warning: "番茄炒蛋很适合新手，重点是别把鸡蛋炒太老。",
+    };
+  }
+
+  if (/番茄.*面|西红柿.*面/.test(dishName)) {
+    return {
+      name: "番茄鸡蛋面",
+      coreTaste: "酸甜热汤、暖胃省事",
+      estimatedTime: "12-18 分钟",
+      difficulty: "新手友好",
+      required: ["番茄", "鸡蛋", "面条"],
+      optional: ["青菜", "葱", "酱油"],
+      steps: ["番茄切块，下锅炒出汤汁。", "加水煮开后下面条。", "面条快熟时打入鸡蛋或倒入蛋液。", "最后放一点青菜和盐调味。"],
+      warning: "这道适合赶时间，注意面条别煮过头。",
+    };
+  }
+
+  if (/青椒肉丝/.test(dishName)) {
+    return {
+      name: "青椒肉丝",
+      coreTaste: "咸香微辣、快手下饭",
+      estimatedTime: "20-30 分钟",
+      difficulty: "中等",
+      required: ["猪肉", "辣椒"],
+      optional: ["酱油", "蒜", "姜", "米饭"],
+      steps: ["猪肉切丝，用少量酱油和淀粉抓匀。", "辣椒切丝。", "先炒肉丝到变色后盛出。", "再炒辣椒，最后肉丝回锅调味。"],
+      warning: "肉丝别炒太久，辣椒下锅后保持中大火更香。",
+    };
+  }
+
+  if (/土豆.*牛肉|牛肉.*土豆|土豆炖牛肉/.test(dishName)) {
+    return {
+      name: "土豆炖牛肉",
+      coreTaste: "热乎、咸香、抗饿",
+      estimatedTime: "60 分钟以上",
+      difficulty: "偏难",
+      required: ["牛肉", "土豆"],
+      optional: ["番茄", "洋葱", "胡萝卜", "姜", "蒜"],
+      steps: ["牛肉切块后焯水。", "土豆切块备用。", "先把牛肉加水炖到变软。", "再放土豆继续炖到软糯并调味。"],
+      warning: "牛肉炖菜耗时较长，不适合只剩 25 分钟时从零开始。",
+    };
+  }
+
+  if (/可乐鸡翅|鸡翅/.test(dishName)) {
+    return {
+      name: "可乐鸡翅",
+      coreTaste: "咸甜、酱香、适合配饭",
+      estimatedTime: "30-40 分钟",
+      difficulty: "入门到中等",
+      required: ["鸡翅"],
+      optional: ["酱油", "姜", "可乐", "米饭"],
+      steps: ["鸡翅洗净后两面划口。", "先把鸡翅煎到表面微黄。", "加入酱油、姜片和可乐，小火焖煮。", "最后开盖收汁，确认鸡翅完全熟透。"],
+      warning: "鸡翅必须彻底熟透；如果没有可乐，也可以做酱油焖鸡翅。",
+    };
+  }
+
+  if (/蛋炒饭|炒饭/.test(dishName)) {
+    return {
+      name: "蛋炒饭",
+      coreTaste: "咸香、快手、抗饿",
+      estimatedTime: "10-15 分钟",
+      difficulty: "新手友好",
+      required: ["米饭", "鸡蛋"],
+      optional: ["葱", "胡萝卜", "青菜", "酱油"],
+      steps: ["鸡蛋打散先炒成小块。", "加入米饭炒散。", "有胡萝卜或青菜可以切碎一起炒。", "最后用盐或少量酱油调味。"],
+      warning: "剩米饭更适合炒饭；米饭太湿时容易结块。",
+    };
+  }
+
   if (/番茄.*牛腩|牛腩/.test(dishName)) {
     return {
       name: "番茄牛腩",
@@ -342,10 +459,10 @@ function dishKnowledge(dishName) {
     coreTaste: "按你想吃的口味来",
     estimatedTime: "30-45 分钟",
     difficulty: "中等",
-    required: [dishName || "这道菜的主料"],
+    required: [],
     optional: ["常用调味料"],
-    steps: ["先确认这道菜最重要的主料够不够。", "把已有食材按相近口味处理。", "缺主料时先补买，不要硬凑成另一道菜。", "用少油、少步骤版本完成这一餐。"],
-    warning: "当前只能按你想吃的方向给出保守路线，主料不够时需要你确认或补买。",
+    steps: ["先确认这道菜最重要的主料是什么。", "再和冰箱里的现有食材对一下。", "如果主料不明确，先不要硬凑成另一道菜。", "可以补充一句“我有猪肉/鸡蛋/面条”，再重新判断。"],
+    warning: "当前只知道你想吃这道菜，但缺少更具体的主料信息；可以补充主料或换成已有食材能做的菜。",
   };
 }
 
@@ -357,7 +474,15 @@ function ingredientMatches(ingredient, inventoryNames) {
     牛腩: ["牛腩", "牛肉"],
     青椒: ["青椒", "彩椒", "甜椒", "辣椒"],
     蒜苗: ["蒜苗", "青蒜", "大蒜"],
+    葱: ["葱", "小葱", "香葱", "大葱"],
+    姜: ["姜", "生姜"],
+    蒜: ["蒜", "大蒜"],
     豆瓣酱: ["豆瓣酱", "辣酱"],
+    醋: ["醋", "陈醋", "米醋", "香醋"],
+    白糖: ["白糖", "糖"],
+    花生: ["花生", "花生米"],
+    木耳: ["木耳", "黑木耳"],
+    鸡翅: ["鸡翅", "翅中", "鸡肉"],
     香菇: ["香菇", "蘑菇", "菌菇"],
     土豆: ["土豆", "马铃薯"],
     番茄: ["番茄", "西红柿"],
@@ -393,6 +518,7 @@ function createTargetFallbackPlan({ text, imageAnalysis, inventory, mealSlot, av
   const inventoryNames = namesOf(inventory, 24);
   const availableItems = [];
   const missingCritical = [];
+  const knownRequiredItems = knowledge.required.length > 0;
 
   knowledge.required.forEach((item) => {
     const matched = ingredientMatches(item, inventoryNames);
@@ -400,7 +526,9 @@ function createTargetFallbackPlan({ text, imageAnalysis, inventory, mealSlot, av
     else missingCritical.push(item);
   });
 
-  const title = missingCritical.length
+  const title = !knownRequiredItems
+    ? `想吃${knowledge.name}，还需要确认主料`
+    : missingCritical.length
     ? `想吃${knowledge.name}，家里还差几样`
     : `家里材料够，可以做一版${knowledge.name}`;
 
@@ -414,20 +542,24 @@ function createTargetFallbackPlan({ text, imageAnalysis, inventory, mealSlot, av
     },
     verdict: {
       title,
-      summary: missingCritical.length
+      summary: !knownRequiredItems
+        ? `你想吃的是${knowledge.name}。我还不确定这道菜最关键的主料和调味，先别把整道菜当成购物项；可以补充“家里有猪肉/鸡蛋/面条”等信息后再判断。`
+        : missingCritical.length
         ? `你想吃的是${knowledge.name}。现在家里还少 ${missingCritical.join("、")}；不补买的话，可以先做相近口味的简化热食，但就不能算完整的${knowledge.name}。`
         : `你想吃的是${knowledge.name}。家里主要材料够，可以按简化步骤做一版。`,
-      primaryAction: missingCritical.length ? "shop_then_cook" : "cook_now",
+      primaryAction: !knownRequiredItems || missingCritical.length ? "shop_then_cook" : "cook_now",
     },
     inventoryMatch: {
       availableItems: availableItems.length ? availableItems : inventoryNames.slice(0, 4),
-      missingCritical,
+      missingCritical: knownRequiredItems ? missingCritical : [],
       missingOptional: knowledge.optional.filter((item) => !ingredientMatches(item, inventoryNames)),
       substitutions: [],
     },
     executionPlan: {
       recommendedVersion: missingCritical.length
         ? `先补 ${missingCritical.slice(0, 3).join("、")}，再做${knowledge.name}；如果不补买，就改成现有食材的相近口味热食。`
+        : !knownRequiredItems
+        ? `先确认${knowledge.name}需要的主料，再看家里够不够做；不要把菜名本身当成要买的东西。`
         : `用现有食材做一版${knowledge.name}，按 ${availableTime} 控制步骤。`,
       steps: knowledge.steps,
       difficultyWarnings: [knowledge.warning],
@@ -438,13 +570,13 @@ function createTargetFallbackPlan({ text, imageAnalysis, inventory, mealSlot, av
       timeNote: `当前确认的可支配时间是 ${availableTime}。`,
       profileNotes: ["已按用户确认的餐次和时间约束生成。"],
     },
-    commerceCards: missingCritical.slice(0, 2).map((item) => ({
+    commerceCards: knownRequiredItems ? missingCritical.slice(0, 2).map((item) => ({
       type: "douyin_mall",
       title: "顺手补点材料",
       item,
       reason: `做${knowledge.name}少不了${item}，没有它味道会差一截。`,
       cta: "模拟去看看",
-    })),
+    })) : [],
   });
 }
 
