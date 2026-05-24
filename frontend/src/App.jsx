@@ -290,6 +290,13 @@ function cleanDishName(name) {
   return cleaned.slice(0, 18);
 }
 
+function dishNamesMatch(a, b) {
+  const left = cleanDishName(a);
+  const right = cleanDishName(b);
+  if (!left || !right) return false;
+  return left.includes(right) || right.includes(left);
+}
+
 function dishKnowledge(dishName) {
   if (/黄焖鸡/.test(dishName)) {
     return {
@@ -381,7 +388,7 @@ function userText(text) {
 }
 
 function createTargetFallbackPlan({ text, imageAnalysis, inventory, mealSlot, availableTime }) {
-  const inferredName = imageAnalysis?.dishName || extractDishName(text);
+  const inferredName = cleanDishName(extractDishName(text)) || cleanDishName(imageAnalysis?.dishName);
   const knowledge = dishKnowledge(inferredName);
   const inventoryNames = namesOf(inventory, 24);
   const availableItems = [];
@@ -641,6 +648,9 @@ export default function App() {
       const explicitText = targetText.trim();
       const explicitDishName = cleanDishName(extractDishName(explicitText));
       const imageDishName = cleanDishName(imageAnalysis?.dishName);
+      const requestImageAnalysis = explicitDishName && imageDishName && !dishNamesMatch(explicitDishName, imageDishName)
+        ? null
+        : imageAnalysis;
       const text = explicitDishName
         ? explicitText
         : imageDishName
@@ -660,12 +670,12 @@ export default function App() {
           targetDish: {
             text,
             intentTime: mapIntentTime(mealSlot),
-            imageAnalysis,
+            imageAnalysis: requestImageAnalysis,
           },
         }, { timeoutMs: 15000 });
         setResult({ type: "target", plan: normalizeTargetPlan(data.targetPlan) });
       } catch {
-        setResult({ type: "target", plan: createTargetFallbackPlan({ text, imageAnalysis, inventory, mealSlot, availableTime }) });
+        setResult({ type: "target", plan: createTargetFallbackPlan({ text, imageAnalysis: requestImageAnalysis, inventory, mealSlot, availableTime }) });
       } finally {
         setLoading("");
         setStep(3);
@@ -715,7 +725,7 @@ export default function App() {
       <header className="app-topbar">
         <div>
           <span className="brand-dot" />
-          <strong>冰箱晚餐</strong>
+          <strong>厨房小助手</strong>
         </div>
           <span className="topbar-note">一餐计划</span>
       </header>
