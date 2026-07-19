@@ -14,6 +14,7 @@ export async function analyzeTargetDish(imageDataUrl, modelClient) {
   ].join("\n");
 
   return modelClient.createJsonResponse({
+    timeoutMs: 22_000,
     name: "target_dish_vision_result",
     schema: targetDishVisionSchema,
     instructions,

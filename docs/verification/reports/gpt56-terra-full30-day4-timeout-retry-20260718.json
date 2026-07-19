@@ -1,0 +1,86 @@
+{
+  "generatedAt": "2026-07-18T09:58:38.749Z",
+  "baseUrl": "http://127.0.0.1:4181",
+  "selection": {
+    "suite": "all",
+    "preset": null,
+    "caseIds": [
+      "vision-fridge-imgs-ai-day4"
+    ],
+    "limit": null,
+    "requireModelSource": true,
+    "retrievalMode": "off",
+    "timeoutMs": 70000
+  },
+  "total": 1,
+  "passed": 0,
+  "failed": 1,
+  "passRate": 0,
+  "latencyMs": {
+    "average": 50097,
+    "p50": 50097,
+    "p95": 50097,
+    "vision": {
+      "count": 1,
+      "average": 50097,
+      "p50": 50097,
+      "p95": 50097
+    },
+    "planning": {
+      "count": 0,
+      "average": 0,
+      "p50": 0,
+      "p95": 0
+    }
+  },
+  "sourceCounts": {
+    "error": 1
+  },
+  "providerCounts": {
+    "unknown": 1
+  },
+  "modelCounts": {
+    "unknown": 1
+  },
+  "failureCounts": {
+    "upstream": 1
+  },
+  "usage": {
+    "casesWithUsage": 0,
+    "inputTokens": 0,
+    "outputTokens": 0,
+    "totalTokens": 0,
+    "cachedInputTokens": 0,
+    "reasoningTokens": 0
+  },
+  "metrics": {
+    "visionSchemaRate": 0,
+    "planningSchemaRate": 0,
+    "planningActionRate": 0,
+    "planningSafetyRate": 0
+  },
+  "results": [
+    {
+      "id": "vision-fridge-imgs-ai-day4",
+      "suite": "vision",
+      "endpoint": "/api/analyze-fridge",
+      "durationMs": 50097,
+      "status": 504,
+      "requestId": "1841f346-d3f4-421c-a521-98c16ac6928c",
+      "passed": false,
+      "failures": [
+        "上游模型请求超过 50 秒，已取消。"
+      ],
+      "failureTypes": [
+        "upstream"
+      ],
+      "metrics": {},
+      "source": "error",
+      "provider": null,
+      "model": null,
+      "usage": null,
+      "retrieval": null,
+      "output": null
+    }
+  ]
+}

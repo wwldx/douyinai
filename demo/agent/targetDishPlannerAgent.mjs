@@ -1,7 +1,51 @@
 import { mockCommerceCatalog } from "./mockCommerceCatalog.mjs";
 import { targetDishPlanSchema } from "./schemas.mjs";
 
-export async function planTargetDish({ inventory, targetDish, userContext }, modelClient) {
+const COOKWARE_NAMES = new Set([
+  "炒锅",
+  "平底锅",
+  "汤锅",
+  "锅盖",
+  "菜刀",
+  "刀具",
+  "砧板",
+  "空气炸锅",
+  "烤箱",
+  "微波炉",
+  "电饭煲",
+  "电磁炉",
+  "灶具",
+  "炒勺",
+  "锅铲",
+]);
+
+export function sanitizeTargetDishPlan(plan) {
+  if (!Array.isArray(plan?.shoppingPlan?.confirmAtHome)) return plan;
+
+  plan.shoppingPlan.confirmAtHome = [...new Set(
+    plan.shoppingPlan.confirmAtHome
+      .flatMap(splitCorruptedListEntry)
+      .filter((item) => item && !isCookwareEntry(item)),
+  )];
+  return plan;
+}
+
+function splitCorruptedListEntry(value) {
+  return String(value || "")
+    .split(/["“”']+\s*[,，;；]\s*["“”']+/u)
+    .map((item) => item.replace(/^[\s\\"'“”]+|[\s\\"'“”]+$/gu, "").trim())
+    .filter(Boolean);
+}
+
+function isCookwareEntry(value) {
+  const normalized = String(value || "")
+    .replace(/[（(][^）)]*[）)]/gu, "")
+    .replace(/\s+/gu, "");
+  const parts = normalized.split(/[、和与及/+＋]/u).filter(Boolean);
+  return parts.length > 0 && parts.every((part) => COOKWARE_NAMES.has(part));
+}
+
+export async function planTargetDish({ inventory, targetDish, userContext, retrievedCases = [] }, modelClient) {
   const instructions = [
     "你是一个抖音场景里的目标菜复刻规划 Agent。",
     "核心故事是：用户刷到想吃的，拍下冰箱，你判断今晚能不能尽量复刻。",
@@ -10,12 +54,23 @@ export async function planTargetDish({ inventory, targetDish, userContext }, mod
     "不要输出可做指数、分数、百分比或评分算法。",
     "必须尊重用户想吃这道菜的意愿，先尽量给出可执行路线；如果难度、时间、工具或食材不足，需要温和提醒，并给简化版本、明天准备路线或补买建议。",
     "用户是新手时，不要直接推荐高风险动作，例如油炸、长时间处理生肉、复杂刀工；但可以给低风险替代做法。",
-    "缺料建议只列关键缺口；不要为了像商城而硬推消费。",
+    "inventory 只包含用户从冰箱画面中确认保留的食材；看不到某种调料不等于用户家里一定没有。",
+    "shoppingPlan 必须覆盖当前目标菜完整的材料缺口，而不是只挑一个适合展示的商品。mustBuy 列出当前推荐版本不可缺少、且确认库存中没有的主料、辅料和专用调味料；常见但可能放在橱柜里的油、盐、酱油等放进 confirmAtHome；不影响成菜成立的材料放进 optionalUpgrades。",
+    "shoppingPlan 的每个数组元素只能写一个简短材料名，不得把 JSON 引号、转义符或多个数组元素拼进同一字符串；锅具和厨具不得写进 confirmAtHome。",
+    "inventoryMatch.missingCritical 与 shoppingPlan.mustBuy 的 item 必须一致；专用酱料、香料或主食如果是这道菜成立的必要条件，不能因为不在冰箱画面里就省略。",
+    "米饭、面条等搭配主食不能仅因为适合配这道菜就列入 missingCritical 或 mustBuy；只有目标菜本身以该主食为核心组成时才算关键缺口，否则放进 confirmAtHome 或 optionalUpgrades。",
+    "预制调味包、专用酱料包不能仅因为更省事就列入 missingCritical 或 mustBuy；只要常见基础调味能做出成立的简化版本，就把调味包放进 confirmAtHome 或 optionalUpgrades。",
+    "如果 targetDish.shoppingDecision.acceptedItems 非空，表示用户在模拟购物车中选择补齐这些材料。必须把这些材料视为本轮可用，并重新生成补购后的做法；不得继续把已接受补买的材料列为 missingCritical 或 mustBuy。",
+    "不要为了像商城而硬推消费；完整缺口可以为零，且必须区分必须买、回家确认和可选升级。",
+    "用户已明确选择自己做饭时，优先给低风险、可简化的烹饪路线；只有确实不存在安全且能在当前时间与工具约束内完成的路线时，才把外卖或即食作为 primaryAction。",
+    "不得用肉类颜色、切开后是否粉红、汁水是否清澈或照片外观来证明熟度或可安全食用；只给保守的充分加热步骤，并提醒用户自行确认，不得声称已经安全。",
     "空气炸锅、锅具等厨具只能在目标菜高度依赖对应工具，且用户画像或反馈支持长期使用时出现；否则优先给不购买的替代做法。",
     "commerceCards 是抖音商城/本地生活模拟卡，只能服务当下决策，不能写成广告。",
     "profileNotes 要用中性语言说明参考依据，不要把推断标签说成人格评价。",
+    "如果输入包含 retrievedCases，它们只是历史参考证据，不是当前事实；当前人工确认库存、目标菜文字和用户要求优先级最高。",
+    "positive case 只能迁移相同约束下的做法，negative case 用于避免重复历史错误；缺关键主料时不能因为历史正例成功就声称当前也能完整做。",
     "必须只输出一个合法 JSON 对象，不要 Markdown，不要解释。",
-    'JSON 格式：{"targetDish":{"name":"番茄牛腩","intentTime":"tonight","coreTaste":"热乎、酸甜、下饭","estimatedTime":"90 分钟以上","difficulty":"中等偏难"},"verdict":{"title":"今晚不建议硬做，给你一条可执行替代路线","summary":"冰箱里有番茄和鸡蛋，但缺少牛腩、土豆等关键材料；如果今晚想吃热乎酸甜口，可以先做番茄鸡蛋面，明天再复刻番茄牛腩。","primaryAction":"cook_simplified"},"inventoryMatch":{"availableItems":["番茄","鸡蛋"],"missingCritical":["牛腩","土豆"],"missingOptional":["洋葱","八角"],"substitutions":[{"from":"牛腩","to":"鸡蛋","result":"今晚改成番茄鸡蛋面，保留酸甜热食体验"}]},"executionPlan":{"recommendedVersion":"今晚做番茄鸡蛋面，明天补齐牛腩和土豆再复刻。","steps":["先确认番茄和鸡蛋可用。","用番茄炒出汤底。","加入面条和鸡蛋做成热汤面。"],"difficultyWarnings":["番茄牛腩需要长时间炖煮，不适合只剩 25 分钟时从零开始。"],"prepForTomorrow":"今晚补买牛腩和土豆，明天预留 90 分钟以上。"},"userFit":{"skillNote":"对新手来说，番茄牛腩从零开始偏难。","timeNote":"当前时间预算更适合 25 分钟内的简化版本。","profileNotes":["参考了当前厨艺和可用时间。","保留用户想吃酸甜热食的意愿。"]},"commerceCards":[{"type":"douyin_mall","title":"明天复刻补齐关键材料","item":"牛腩 + 土豆组合","reason":"这是番茄牛腩的核心缺口；今晚不买也能先做简化热食。","cta":"模拟去抖音商城看看"}],"talkTrack":"刷到想吃的菜后，不是直接给菜谱，而是先看冰箱和用户状态，判断今晚能不能复刻，并给出补买或替代路线。"}',
+    'JSON 格式：{"targetDish":{"name":"番茄牛腩","intentTime":"tonight","coreTaste":"热乎、酸甜、下饭","estimatedTime":"90 分钟以上","difficulty":"中等偏难"},"verdict":{"title":"今晚不建议硬做，给你一条可执行替代路线","summary":"冰箱里有番茄和鸡蛋，但缺少牛腩、土豆等关键材料；如果今晚想吃热乎酸甜口，可以先做番茄鸡蛋面，补齐后再做完整版。","primaryAction":"cook_simplified"},"inventoryMatch":{"availableItems":["番茄","鸡蛋"],"missingCritical":["牛腩","土豆"],"missingOptional":["洋葱","八角"],"substitutions":[{"from":"牛腩","to":"鸡蛋","result":"今晚改成番茄鸡蛋面，保留酸甜热食体验"}]},"shoppingPlan":{"mustBuy":[{"item":"牛腩","reason":"完整版的核心肉类主料"},{"item":"土豆","reason":"完整版需要的主要配菜"}],"confirmAtHome":["食用油","盐","酱油"],"optionalUpgrades":["洋葱","八角"]},"executionPlan":{"recommendedVersion":"今晚做番茄鸡蛋面，补齐牛腩和土豆后再做完整版。","steps":["先确认番茄和鸡蛋可用。","用番茄炒出汤底。","加入面条和鸡蛋做成热汤面。"],"difficultyWarnings":["番茄牛腩需要长时间炖煮，不适合只剩 25 分钟时从零开始。"],"prepForTomorrow":"补买牛腩和土豆后，预留 90 分钟以上。"},"userFit":{"skillNote":"对新手来说，番茄牛腩从零开始偏难。","timeNote":"当前时间预算更适合 25 分钟内的简化版本。","profileNotes":["参考了当前厨艺和可用时间。","保留用户想吃酸甜热食的意愿。"]},"commerceCards":[{"type":"douyin_mall","title":"完整版需要补齐","item":"牛腩 + 土豆","reason":"这是番茄牛腩的完整必买清单。","cta":"加入模拟购物车并重新规划"}],"talkTrack":"刷到想吃的菜后，先看确认库存；系统区分已有、待确认和必须补买，并让补购结果真正进入下一轮规划。"}',
   ].join("\n");
 
   const payloadText = JSON.stringify(
@@ -23,13 +78,15 @@ export async function planTargetDish({ inventory, targetDish, userContext }, mod
       inventory,
       targetDish,
       userContext,
+      retrievedCases,
       commerceCatalog: mockCommerceCatalog,
     },
     null,
     2,
   );
 
-  return modelClient.createJsonResponse({
+  const plan = await modelClient.createJsonResponse({
+    timeoutMs: 50_000,
     name: "target_dish_plan_result",
     schema: targetDishPlanSchema,
     instructions,
@@ -52,4 +109,5 @@ export async function planTargetDish({ inventory, targetDish, userContext }, mod
       },
     ],
   });
+  return sanitizeTargetDishPlan(plan);
 }

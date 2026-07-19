@@ -1,0 +1,1361 @@
+{
+  "generatedAt": "2026-07-18T10:50:00.591Z",
+  "baseUrl": "http://127.0.0.1:4181",
+  "selection": {
+    "suite": "vision",
+    "preset": null,
+    "caseIds": [],
+    "limit": null,
+    "requireModelSource": true,
+    "retrievalMode": "off",
+    "timeoutMs": 70000,
+    "visionInput": "jpeg-max1400-showcase-equivalent"
+  },
+  "total": 11,
+  "passed": 9,
+  "failed": 2,
+  "passRate": 0.818,
+  "latencyMs": {
+    "average": 15734,
+    "p50": 16934,
+    "p95": 28277,
+    "vision": {
+      "count": 11,
+      "average": 15734,
+      "p50": 16934,
+      "p95": 28277
+    },
+    "planning": {
+      "count": 0,
+      "average": 0,
+      "p50": 0,
+      "p95": 0
+    }
+  },
+  "sourceCounts": {
+    "model": 11
+  },
+  "providerCounts": {
+    "rightcode_responses_stream": 11
+  },
+  "modelCounts": {
+    "gpt-5.6-terra": 11
+  },
+  "failureCounts": {
+    "other": 1,
+    "quality": 1
+  },
+  "usage": {
+    "casesWithUsage": 11,
+    "inputTokens": 23522,
+    "outputTokens": 11829,
+    "totalTokens": 35351,
+    "cachedInputTokens": 0,
+    "reasoningTokens": 0
+  },
+  "metrics": {
+    "visionSchemaRate": 1,
+    "planningSchemaRate": 0,
+    "planningActionRate": 0,
+    "planningSafetyRate": 0
+  },
+  "results": [
+    {
+      "id": "vision-fridge-real-fridge-330d23",
+      "suite": "vision",
+      "endpoint": "/api/analyze-fridge",
+      "durationMs": 17161,
+      "status": 200,
+      "requestId": "15754534-8910-4124-9d83-1a5628e982bd",
+      "serverTiming": "vision;dur=17002",
+      "passed": false,
+      "failures": [
+        "食材覆盖率 0.429 < 0.5"
+      ],
+      "metrics": {
+        "schemaValid": true,
+        "confirmedItemRecall": 0.429,
+        "acknowledgedItemRecall": 0.429,
+        "itemRecall": 0.429
+      },
+      "source": "model",
+      "provider": "rightcode_responses_stream",
+      "model": "gpt-5.6-terra",
+      "usage": {
+        "inputTokens": 2291,
+        "outputTokens": 1541,
+        "totalTokens": 3832,
+        "cachedInputTokens": 0,
+        "reasoningTokens": 0
+      },
+      "retrieval": null,
+      "output": {
+        "items": [
+          {
+            "name": "柠檬",
+            "category": "蔬菜",
+            "quantityEstimate": "约5-6块/个切块",
+            "confidence": 0.94,
+            "state": "看起来可用，已切开存放",
+            "notes": "中层右侧透明盒内"
+          },
+          {
+            "name": "卷心菜",
+            "category": "蔬菜",
+            "quantityEstimate": "1个",
+            "confidence": 0.94,
+            "state": "看起来可用",
+            "notes": "下层左侧蔬菜盒内"
+          },
+          {
+            "name": "花椰菜",
+            "category": "蔬菜",
+            "quantityEstimate": "1个",
+            "confidence": 0.91,
+            "state": "看起来可用",
+            "notes": "下层左侧蔬菜盒内"
+          },
+          {
+            "name": "可口可乐",
+            "category": "饮料",
+            "quantityEstimate": "1瓶",
+            "confidence": 0.97,
+            "state": "需确认剩余量和保质期",
+            "notes": "右侧门架下方"
+          },
+          {
+            "name": "番茄酱（Heinz）",
+            "category": "调味",
+            "quantityEstimate": "1瓶",
+            "confidence": 0.93,
+            "state": "需确认保质期",
+            "notes": "左侧门架上方"
+          },
+          {
+            "name": "罐装饮料",
+            "category": "饮料",
+            "quantityEstimate": "约6罐",
+            "confidence": 0.75,
+            "state": "需确认口味、剩余量和保质期",
+            "notes": "上层中央，多罐饮料标签部分可见"
+          }
+        ],
+        "uncertainItems": [
+          {
+            "description": "上层右侧两个密封保鲜盒内的红色食物",
+            "reason": "虽可见内容物，但被盒盖和遮挡影响，无法确认具体食材或菜品"
+          },
+          {
+            "description": "中层左侧盘子及玻璃碗内的剩菜",
+            "reason": "内容物不清晰，无法确认种类和新鲜度"
+          },
+          {
+            "description": "中层右侧两个白色抽屉盒中的食物",
+            "reason": "容器不透明，无法判断内容物"
+          },
+          {
+            "description": "下层中部及右侧多个塑料袋内的蔬菜",
+            "reason": "包装反光且遮挡严重，无法可靠确认具体品种"
+          },
+          {
+            "description": "下层抽屉内的食材",
+            "reason": "抽屉半透明且内容物模糊，无法确认"
+          },
+          {
+            "description": "左侧门架下方的多袋包装食品",
+            "reason": "仅能看见包装，食品内容和品类无法明确确认"
+          },
+          {
+            "description": "左侧门架上方及中层的瓶装/罐装调味品",
+            "reason": "标签与内容物不完整或模糊，无法可靠判断品类"
+          }
+        ],
+        "warnings": [
+          "图片无法判断食材是否过期或完全新鲜，需要用户自行确认。",
+          "切开的柠檬和可见剩菜的存放时间无法从图片判断，食用前请检查气味、外观和保存时长。"
+        ]
+      },
+      "failureTypes": [
+        "other"
+      ]
+    },
+    {
+      "id": "vision-fridge-real-fridge-f63de1",
+      "suite": "vision",
+      "endpoint": "/api/analyze-fridge",
+      "durationMs": 20388,
+      "status": 200,
+      "requestId": "efb36da7-1211-4b22-8b09-1e68c64ade28",
+      "serverTiming": "vision;dur=20276",
+      "passed": true,
+      "failures": [],
+      "metrics": {
+        "schemaValid": true,
+        "confirmedItemRecall": 0.5,
+        "acknowledgedItemRecall": 0.5,
+        "itemRecall": 0.5
+      },
+      "source": "model",
+      "provider": "rightcode_responses_stream",
+      "model": "gpt-5.6-terra",
+      "usage": {
+        "inputTokens": 2291,
+        "outputTokens": 1910,
+        "totalTokens": 4201,
+        "cachedInputTokens": 0,
+        "reasoningTokens": 0
+      },
+      "retrieval": null,
+      "output": {
+        "items": [
+          {
+            "name": "陈皮老酸奶",
+            "category": "蛋奶",
+            "quantityEstimate": "1 瓶",
+            "confidence": 0.96,
+            "state": "需确认保质期",
+            "notes": "上层中央，瓶身标签可辨认"
+          },
+          {
+            "name": "香肠",
+            "category": "蛋白质",
+            "quantityEstimate": "1 根",
+            "confidence": 0.8,
+            "state": "需确认保质期",
+            "notes": "上层左侧，真空包装"
+          },
+          {
+            "name": "土豆",
+            "category": "蔬菜",
+            "quantityEstimate": "约10个",
+            "confidence": 0.95,
+            "state": "看起来可用，部分表皮有泥土",
+            "notes": "中层左侧网袋内"
+          },
+          {
+            "name": "番茄",
+            "category": "蔬菜",
+            "quantityEstimate": "约4个",
+            "confidence": 0.87,
+            "state": "看起来可用，需确认是否有软烂",
+            "notes": "中层及下层透明袋内"
+          },
+          {
+            "name": "大葱",
+            "category": "蔬菜",
+            "quantityEstimate": "约3根",
+            "confidence": 0.94,
+            "state": "看起来可用",
+            "notes": "中层前方，带根须"
+          },
+          {
+            "name": "大白菜",
+            "category": "蔬菜",
+            "quantityEstimate": "约1棵",
+            "confidence": 0.86,
+            "state": "需确认叶片新鲜度",
+            "notes": "中层右侧"
+          },
+          {
+            "name": "生菜",
+            "category": "蔬菜",
+            "quantityEstimate": "约1棵",
+            "confidence": 0.75,
+            "state": "需确认叶片新鲜度",
+            "notes": "下层中央透明袋内"
+          },
+          {
+            "name": "荷兰豆",
+            "category": "蔬菜",
+            "quantityEstimate": "约1把",
+            "confidence": 0.78,
+            "state": "看起来可用",
+            "notes": "下层左侧"
+          },
+          {
+            "name": "黄瓜",
+            "category": "蔬菜",
+            "quantityEstimate": "2根",
+            "confidence": 0.96,
+            "state": "看起来可用",
+            "notes": "下层右侧"
+          },
+          {
+            "name": "姜",
+            "category": "调味",
+            "quantityEstimate": "1小块",
+            "confidence": 0.84,
+            "state": "看起来可用，需确认是否变质",
+            "notes": "下层右侧透明袋内"
+          }
+        ],
+        "uncertainItems": [
+          {
+            "description": "上层右侧黄色包装食品",
+            "reason": "包装文字和内容物被遮挡，无法确认具体食材或速食种类"
+          },
+          {
+            "description": "上层右侧透明盒中的浅色块状食品",
+            "reason": "只能看见容器及部分内容物，无法确认是否为豆腐、奶酪或其他食品"
+          },
+          {
+            "description": "中层中央及右侧透明袋内的圆形根茎和蔬菜",
+            "reason": "被塑料袋遮挡，无法可靠确认具体品种"
+          },
+          {
+            "description": "下层中央透明袋内的绿色蔬菜",
+            "reason": "与生菜等蔬菜重叠遮挡，无法准确辨认"
+          },
+          {
+            "description": "底部抽屉内的白色盒装或托盘装食品",
+            "reason": "隔着半透明抽屉且标签不清，无法确认内容物"
+          }
+        ],
+        "warnings": [
+          "图片无法判断食材是否过期或完全新鲜；请自行检查酸奶、香肠及所有蔬菜的保质期、异味、霉斑和软烂情况。"
+        ]
+      },
+      "failureTypes": []
+    },
+    {
+      "id": "vision-fridge-imgs-ai-day1",
+      "suite": "vision",
+      "endpoint": "/api/analyze-fridge",
+      "durationMs": 17157,
+      "status": 200,
+      "requestId": "a6d499ff-ec38-41a0-aaf1-1f70d3a64753",
+      "serverTiming": "vision;dur=16982",
+      "passed": true,
+      "failures": [],
+      "metrics": {
+        "schemaValid": true,
+        "confirmedItemRecall": 0.778,
+        "acknowledgedItemRecall": 0.778,
+        "itemRecall": 0.778
+      },
+      "source": "model",
+      "provider": "rightcode_responses_stream",
+      "model": "gpt-5.6-terra",
+      "usage": {
+        "inputTokens": 2248,
+        "outputTokens": 825,
+        "totalTokens": 3073,
+        "cachedInputTokens": 0,
+        "reasoningTokens": 0
+      },
+      "retrieval": null,
+      "output": {
+        "items": [
+          {
+            "category": "蛋奶",
+            "confidence": 0.98,
+            "name": "鸡蛋",
+            "notes": "上层和中层蛋托中，以及中层右侧盘中可见",
+            "quantityEstimate": "约18个",
+            "state": "看起来可用"
+          },
+          {
+            "category": "蛋奶",
+            "confidence": 0.92,
+            "name": "酸奶",
+            "notes": "上层右侧和中层各有一杯",
+            "quantityEstimate": "2 杯",
+            "state": "需确认保质期"
+          },
+          {
+            "category": "调味",
+            "confidence": 0.9,
+            "name": "番茄酱",
+            "notes": "左侧门架、中间后方及右下门架可见多瓶",
+            "quantityEstimate": "约3瓶",
+            "state": "需确认保质期"
+          },
+          {
+            "category": "饮料",
+            "confidence": 0.72,
+            "name": "绿色瓶装饮料",
+            "notes": "上层后方、左侧和右下门架可见绿色玻璃瓶",
+            "quantityEstimate": "约4瓶",
+            "state": "需确认保质期"
+          },
+          {
+            "category": "调味",
+            "confidence": 0.82,
+            "name": "果酱",
+            "notes": "上层右侧蓝盖玻璃罐内为橙色果酱状内容物",
+            "quantityEstimate": "1 罐",
+            "state": "需确认保质期"
+          },
+          {
+            "category": "蔬菜",
+            "confidence": 0.98,
+            "name": "西兰花",
+            "notes": "中下层右侧",
+            "quantityEstimate": "1 颗",
+            "state": "看起来可用"
+          },
+          {
+            "category": "其他",
+            "confidence": 0.98,
+            "name": "苹果",
+            "notes": "中下层左侧",
+            "quantityEstimate": "1 个",
+            "state": "看起来可用"
+          },
+          {
+            "category": "蔬菜",
+            "confidence": 0.96,
+            "name": "彩椒",
+            "notes": "下层左侧抽屉内，可见黄、绿、红色彩椒",
+            "quantityEstimate": "约5 个",
+            "state": "看起来可用"
+          },
+          {
+            "category": "蔬菜",
+            "confidence": 0.93,
+            "name": "红薯",
+            "notes": "下层左侧抽屉内",
+            "quantityEstimate": "1 个",
+            "state": "看起来可用"
+          },
+          {
+            "category": "蔬菜",
+            "confidence": 0.9,
+            "name": "羽衣甘蓝",
+            "notes": "下层右侧抽屉内",
+            "quantityEstimate": "1 把",
+            "state": "看起来可用"
+          }
+        ],
+        "uncertainItems": [
+          {
+            "description": "左侧门架上黄色盖玻璃罐中的黄色内容物",
+            "reason": "无法从图片明确确认具体品类"
+          },
+          {
+            "description": "左侧门架中层白色酱料瓶",
+            "reason": "标签和内容物不清晰，无法确认具体调味品"
+          },
+          {
+            "description": "右侧门架上层透明盒内的褐色颗粒状食物",
+            "reason": "仅能看到颗粒外观，无法明确判断内容物"
+          },
+          {
+            "description": "右侧门架中层红色蔬菜",
+            "reason": "被遮挡，无法确认是红甜椒或其他红色蔬菜"
+          },
+          {
+            "description": "左下门架的深色瓶装液体",
+            "reason": "瓶身标签不清晰，无法确认饮品或调味品类型"
+          },
+          {
+            "description": "右下门架的橙色瓶装液体",
+            "reason": "具体饮品或调味品类型无法确认"
+          },
+          {
+            "description": "橙汁或橙味饮料",
+            "reason": "当前只能确认大类、包装或容器，无法确定具体食材，暂不参与晚餐规划。 原识别位置/状态：需确认保质期；上层左侧、右侧门架和左下门架可见橙色瓶装饮品"
+          }
+        ],
+        "warnings": [
+          "图片无法判断食材是否过期或完全新鲜，鸡蛋、酸奶、果酱、酱料及瓶装饮品需自行确认保质期。",
+          "彩椒、红薯和羽衣甘蓝位于抽屉内，部分被遮挡，数量仅为估计。",
+          "已排除非食材物品；看不清内容的包装不会参与规划，需要补拍或人工确认。"
+        ]
+      },
+      "failureTypes": []
+    },
+    {
+      "id": "vision-fridge-imgs-ai-day2",
+      "suite": "vision",
+      "endpoint": "/api/analyze-fridge",
+      "durationMs": 16934,
+      "status": 200,
+      "requestId": "84a7bc4a-d223-4815-98ab-b73c02399dab",
+      "serverTiming": "vision;dur=16776",
+      "passed": true,
+      "failures": [],
+      "metrics": {
+        "schemaValid": true,
+        "confirmedItemRecall": 0.625,
+        "acknowledgedItemRecall": 0.625,
+        "itemRecall": 0.625
+      },
+      "source": "model",
+      "provider": "rightcode_responses_stream",
+      "model": "gpt-5.6-terra",
+      "usage": {
+        "inputTokens": 2291,
+        "outputTokens": 1398,
+        "totalTokens": 3689,
+        "cachedInputTokens": 0,
+        "reasoningTokens": 0
+      },
+      "retrieval": null,
+      "output": {
+        "items": [
+          {
+            "name": "鸡蛋",
+            "category": "蛋奶",
+            "quantityEstimate": "约4个",
+            "confidence": 0.97,
+            "state": "看起来可用",
+            "notes": "上层左侧蛋盒内可见"
+          },
+          {
+            "name": "酸奶",
+            "category": "蛋奶",
+            "quantityEstimate": "1盒",
+            "confidence": 0.82,
+            "state": "需确认保质期",
+            "notes": "上层中间杯装乳制品"
+          },
+          {
+            "name": "橙汁",
+            "category": "饮料",
+            "quantityEstimate": "1瓶",
+            "confidence": 0.9,
+            "state": "需确认保质期",
+            "notes": "上层右侧黄色瓶装饮料"
+          },
+          {
+            "name": "红色果汁饮料",
+            "category": "饮料",
+            "quantityEstimate": "1瓶",
+            "confidence": 0.69,
+            "state": "需确认保质期",
+            "notes": "上层最右侧红色瓶装饮料，具体口味无法确认"
+          },
+          {
+            "name": "橙子",
+            "category": "其他",
+            "quantityEstimate": "1个",
+            "confidence": 0.97,
+            "state": "看起来可用",
+            "notes": "中层左侧"
+          },
+          {
+            "name": "甜椒",
+            "category": "蔬菜",
+            "quantityEstimate": "约4个（含切开的部分）",
+            "confidence": 0.91,
+            "state": "看起来可用",
+            "notes": "中层有黄色、绿色及红橙色甜椒"
+          },
+          {
+            "name": "胡萝卜",
+            "category": "蔬菜",
+            "quantityEstimate": "约6根",
+            "confidence": 0.96,
+            "state": "看起来可用",
+            "notes": "下层右侧抽屉及左侧盒内可见"
+          },
+          {
+            "name": "小白菜",
+            "category": "蔬菜",
+            "quantityEstimate": "约1份",
+            "confidence": 0.9,
+            "state": "看起来可用",
+            "notes": "下层左侧透明盒内可见浅绿色菜梗和绿叶"
+          },
+          {
+            "name": "叶菜",
+            "category": "蔬菜",
+            "quantityEstimate": "约2份",
+            "confidence": 0.77,
+            "state": "需要确认新鲜度",
+            "notes": "下层左侧及中间透明盒内可见绿叶蔬菜，具体品种不清晰"
+          }
+        ],
+        "uncertainItems": [
+          {
+            "description": "中层右侧透明盒内的切块蔬菜",
+            "reason": "虽可见绿色和红色食材，但受容器反光和遮挡影响，无法确认具体种类及数量"
+          },
+          {
+            "description": "下层中间偏右带标签的透明包装盒内食材",
+            "reason": "包装遮挡且标签无法辨读，内容物不能明确确认"
+          },
+          {
+            "description": "下层右侧上方抽屉内的圆形浅色食材",
+            "reason": "被抽屉边缘和阴影遮挡，无法可靠判断是何种食材"
+          }
+        ],
+        "warnings": [
+          "图片无法判断食材是否过期、是否完全新鲜或已开封多久，需自行确认。",
+          "画面右下角标有“豆包AI生成”，图中食材与包装细节可能并非真实可核验信息。"
+        ]
+      },
+      "failureTypes": []
+    },
+    {
+      "id": "vision-fridge-imgs-ai-day3",
+      "suite": "vision",
+      "endpoint": "/api/analyze-fridge",
+      "durationMs": 9044,
+      "status": 200,
+      "requestId": "b6ba5e21-13a9-48e1-b89c-4dfa3a3edda0",
+      "serverTiming": "vision;dur=8879",
+      "passed": true,
+      "failures": [],
+      "metrics": {
+        "schemaValid": true,
+        "confirmedItemRecall": 0.75,
+        "acknowledgedItemRecall": 0.75,
+        "itemRecall": 0.75
+      },
+      "source": "model",
+      "provider": "rightcode_responses_stream",
+      "model": "gpt-5.6-terra",
+      "usage": {
+        "inputTokens": 2248,
+        "outputTokens": 372,
+        "totalTokens": 2620,
+        "cachedInputTokens": 0,
+        "reasoningTokens": 0
+      },
+      "retrieval": null,
+      "output": {
+        "items": [
+          {
+            "category": "蛋奶",
+            "confidence": 0.99,
+            "name": "鸡蛋",
+            "notes": "上层左侧，单个未包装鸡蛋",
+            "quantityEstimate": "1 个",
+            "state": "看起来可用"
+          },
+          {
+            "category": "蔬菜",
+            "confidence": 0.98,
+            "name": "柠檬",
+            "notes": "中层左侧",
+            "quantityEstimate": "1 个",
+            "state": "看起来可用"
+          },
+          {
+            "category": "蛋奶",
+            "confidence": 0.94,
+            "name": "奶酪",
+            "notes": "中层右侧，可见包装上的奶酪及孔洞特征",
+            "quantityEstimate": "1 块",
+            "state": "需确认保质期及开封情况"
+          },
+          {
+            "category": "蔬菜",
+            "confidence": 0.91,
+            "name": "生菜",
+            "notes": "底部两个蔬果抽屉内，可见散放叶片",
+            "quantityEstimate": "约 2 抽屉，其中左侧少量、右侧较多",
+            "state": "需要确认新鲜度"
+          }
+        ],
+        "uncertainItems": [
+          {
+            "description": "上层多个带盖小塑料杯中的红褐色与橙色内容物",
+            "reason": "虽可见酱状内容物，但无标签且无法可靠确认具体种类"
+          },
+          {
+            "description": "冰箱门搁架内的瓶装及罐装物品",
+            "reason": "大部分被画面边缘遮挡，标签和内容物无法辨认"
+          }
+        ],
+        "warnings": [
+          "图片无法判断鸡蛋、奶酪、生菜及其他食材是否过期或完全新鲜，需要用户自行确认。",
+          "冰箱内可见少量叶菜碎屑和液体/污渍痕迹，建议清洁后再存放食材。"
+        ]
+      },
+      "failureTypes": []
+    },
+    {
+      "id": "vision-fridge-imgs-ai-day4",
+      "suite": "vision",
+      "endpoint": "/api/analyze-fridge",
+      "durationMs": 28277,
+      "status": 200,
+      "requestId": "95417d56-b696-4e9c-a217-6cc204e2a18f",
+      "serverTiming": "vision;dur=28108",
+      "passed": true,
+      "failures": [],
+      "metrics": {
+        "schemaValid": true,
+        "confirmedItemRecall": 0.538,
+        "acknowledgedItemRecall": 0.538,
+        "itemRecall": 0.538
+      },
+      "source": "model",
+      "provider": "rightcode_responses_stream",
+      "model": "gpt-5.6-terra",
+      "usage": {
+        "inputTokens": 2291,
+        "outputTokens": 1668,
+        "totalTokens": 3959,
+        "cachedInputTokens": 0,
+        "reasoningTokens": 0
+      },
+      "retrieval": null,
+      "output": {
+        "items": [
+          {
+            "name": "鸡蛋",
+            "category": "蛋奶",
+            "quantityEstimate": "约10个",
+            "confidence": 0.98,
+            "state": "看起来可用",
+            "notes": "上层中央蛋盒内"
+          },
+          {
+            "name": "西兰花",
+            "category": "蔬菜",
+            "quantityEstimate": "约2颗",
+            "confidence": 0.97,
+            "state": "看起来可用",
+            "notes": "中层左侧"
+          },
+          {
+            "name": "花椰菜",
+            "category": "蔬菜",
+            "quantityEstimate": "约2颗",
+            "confidence": 0.97,
+            "state": "看起来可用",
+            "notes": "中层左侧及下层左侧"
+          },
+          {
+            "name": "大白菜",
+            "category": "蔬菜",
+            "quantityEstimate": "约1颗",
+            "confidence": 0.91,
+            "state": "看起来可用",
+            "notes": "中层左侧"
+          },
+          {
+            "name": "小白菜",
+            "category": "蔬菜",
+            "quantityEstimate": "约2把",
+            "confidence": 0.84,
+            "state": "看起来可用",
+            "notes": "下层蔬菜抽屉"
+          },
+          {
+            "name": "绿叶菜",
+            "category": "蔬菜",
+            "quantityEstimate": "约3把",
+            "confidence": 0.85,
+            "state": "看起来可用",
+            "notes": "中下层及蔬菜抽屉，可见不同种类叶菜"
+          },
+          {
+            "name": "胡萝卜",
+            "category": "蔬菜",
+            "quantityEstimate": "约10根",
+            "confidence": 0.98,
+            "state": "看起来可用",
+            "notes": "两个左侧蔬菜抽屉"
+          },
+          {
+            "name": "黄瓜",
+            "category": "蔬菜",
+            "quantityEstimate": "约3根",
+            "confidence": 0.94,
+            "state": "看起来可用",
+            "notes": "中下层左侧"
+          },
+          {
+            "name": "番茄",
+            "category": "蔬菜",
+            "quantityEstimate": "约5个",
+            "confidence": 0.96,
+            "state": "看起来可用",
+            "notes": "中层前方"
+          },
+          {
+            "name": "红甜椒",
+            "category": "蔬菜",
+            "quantityEstimate": "约2个",
+            "confidence": 0.93,
+            "state": "看起来可用",
+            "notes": "中层中央"
+          },
+          {
+            "name": "青苹果",
+            "category": "其他",
+            "quantityEstimate": "约3个",
+            "confidence": 0.97,
+            "state": "看起来可用",
+            "notes": "中层中央"
+          },
+          {
+            "name": "红苹果",
+            "category": "其他",
+            "quantityEstimate": "约4个",
+            "confidence": 0.95,
+            "state": "看起来可用",
+            "notes": "中下层中央"
+          },
+          {
+            "name": "葡萄",
+            "category": "其他",
+            "quantityEstimate": "约1串",
+            "confidence": 0.97,
+            "state": "看起来可用",
+            "notes": "中层右侧"
+          },
+          {
+            "name": "橙子",
+            "category": "其他",
+            "quantityEstimate": "约4个",
+            "confidence": 0.95,
+            "state": "看起来可用",
+            "notes": "中层及中下层"
+          },
+          {
+            "name": "柠檬",
+            "category": "其他",
+            "quantityEstimate": "约1个",
+            "confidence": 0.96,
+            "state": "看起来可用",
+            "notes": "中下层左侧"
+          },
+          {
+            "name": "奶酪",
+            "category": "蛋奶",
+            "quantityEstimate": "约3块",
+            "confidence": 0.98,
+            "state": "看起来可用",
+            "notes": "中下层右侧，黄色奶酪块/片状奶酪可见孔洞特征及包装块装奶酪盒装产品无法完全确认品类，仅计明显奶酪块及片装奶酪区域并可能含有包装奶酪块装产品无法完全确认品类，仅计明显奶酪块及片装奶酪区域并可能含有包装奶酪块装产品无法完全确认品类，仅计明显奶酪块及片装奶酪区域并可能含有包装奶酪块装产品无法完全确认品类，仅计明显奶酪块及片装奶酪区域并可能含有包装奶酪块装产品无法完全确认品类，仅计明显奶酪块及片装奶酪区域并可能含有包装奶酪块装产品无法完全确认品类，仅计明显奶酪块及片装奶酪区域并可能含有包装奶酪块装产品无法完全确认品类，仅计明显奶酪块及片装奶酪区域并可能含有包装奶酪块装产品无法完全确认品类，仅计明显奶酪块及片装奶酪区域并可能含有包装奶酪块装产品无法完全确认品类，仅计明显奶酪块及片装奶酪区域并可能含有包装奶酪块装产品无法完全确认品类，仅计明显奶酪块及片装奶酪区域并可能含有包装奶酪块装产品无法完全确认品类，仅计明显奶酪块及片装奶酪区域并可能含有包装奶酪块装产品无法完全确认品类，仅计明显奶酪块及片装奶酪区域并可能含有包装奶酪块装产品无法完全确认品类，仅计明显奶酪块及片装奶酪区域并可能含有包装奶酪块装产品无法完全确认品类，仅计明显奶酪块及片装奶酪区域并可能含有包装奶酪块装产品无法完全确认品类，仅计明显奶酪块及片装奶酪区域并可能含有包装奶酪块装产品无法完全确认品类，仅计明显奶酪块及片装奶酪区域并可能含有包装奶酪块装产品无法完全确认品类，仅计明显奶酪块及片装奶酪区域并可能含有包装奶酪块装产品无法完全确认品类，仅计明显奶酪块及片装奶酪区域"
+          }
+        ],
+        "uncertainItems": [],
+        "warnings": []
+      },
+      "failureTypes": []
+    },
+    {
+      "id": "vision-fridge-imgs-ai-day5",
+      "suite": "vision",
+      "endpoint": "/api/analyze-fridge",
+      "durationMs": 11797,
+      "status": 200,
+      "requestId": "d4b2948c-08b5-4df2-971f-88c71ce617f7",
+      "serverTiming": "vision;dur=11636",
+      "passed": true,
+      "failures": [],
+      "metrics": {
+        "schemaValid": true,
+        "confirmedItemRecall": 0.8,
+        "acknowledgedItemRecall": 0.8,
+        "itemRecall": 0.8
+      },
+      "source": "model",
+      "provider": "rightcode_responses_stream",
+      "model": "gpt-5.6-terra",
+      "usage": {
+        "inputTokens": 2291,
+        "outputTokens": 1339,
+        "totalTokens": 3630,
+        "cachedInputTokens": 0,
+        "reasoningTokens": 0
+      },
+      "retrieval": null,
+      "output": {
+        "items": [
+          {
+            "name": "鸡蛋",
+            "category": "蛋奶",
+            "quantityEstimate": "3 个",
+            "confidence": 0.97,
+            "state": "看起来可用",
+            "notes": "上层右侧蛋盒内"
+          },
+          {
+            "name": "苹果",
+            "category": "其他",
+            "quantityEstimate": "1 个",
+            "confidence": 0.98,
+            "state": "看起来可用",
+            "notes": "下层左侧"
+          },
+          {
+            "name": "生菜",
+            "category": "蔬菜",
+            "quantityEstimate": "约 1 小把",
+            "confidence": 0.95,
+            "state": "看起来可用",
+            "notes": "下层右侧"
+          },
+          {
+            "name": "胡萝卜",
+            "category": "蔬菜",
+            "quantityEstimate": "3 根",
+            "confidence": 0.98,
+            "state": "看起来可用",
+            "notes": "左侧底部抽屉内"
+          },
+          {
+            "name": "橙子",
+            "category": "其他",
+            "quantityEstimate": "约 1 个（部分可见）",
+            "confidence": 0.83,
+            "state": "看起来可用",
+            "notes": "冰箱门中部置物架"
+          }
+        ],
+        "uncertainItems": [
+          {
+            "description": "上层左侧两杯加冰饮品",
+            "reason": "仅能看见液体，无法确认具体饮料种类或是否可饮用"
+          },
+          {
+            "description": "冰箱门上方置物架内的褐色圆形物品",
+            "reason": "被门架遮挡，无法可靠确认是否为食材及其种类"
+          },
+          {
+            "description": "冰箱门下方两瓶橙色内容物",
+            "reason": "瓶身标签和内容物种类不可辨认，无法确认是饮料、酱料或其他食品"
+          }
+        ],
+        "warnings": [
+          "图片无法判断食材是否过期或完全新鲜，需要用户自行确认。",
+          "冰箱内有少量食物碎屑，建议使用前检查并清洁存放区域。"
+        ]
+      },
+      "failureTypes": []
+    },
+    {
+      "id": "vision-fridge-imgs-ai-day6",
+      "suite": "vision",
+      "endpoint": "/api/analyze-fridge",
+      "durationMs": 11982,
+      "status": 200,
+      "requestId": "152966b8-e7c0-4068-82dd-ff5f21639429",
+      "serverTiming": "vision;dur=11840",
+      "passed": true,
+      "failures": [],
+      "metrics": {
+        "schemaValid": true,
+        "confirmedItemRecall": 0.5,
+        "acknowledgedItemRecall": 0.5,
+        "itemRecall": 0.5
+      },
+      "source": "model",
+      "provider": "rightcode_responses_stream",
+      "model": "gpt-5.6-terra",
+      "usage": {
+        "inputTokens": 2291,
+        "outputTokens": 1027,
+        "totalTokens": 3318,
+        "cachedInputTokens": 0,
+        "reasoningTokens": 0
+      },
+      "retrieval": null,
+      "output": {
+        "items": [
+          {
+            "category": "蛋奶",
+            "confidence": 0.97,
+            "name": "鸡蛋",
+            "notes": "上层左侧蛋盒内，可见约5枚",
+            "quantityEstimate": "约5 个",
+            "state": "看起来可用"
+          },
+          {
+            "category": "饮料",
+            "confidence": 0.72,
+            "name": "黄色饮品",
+            "notes": "上层右侧玻璃瓶，未见可辨认标签或品名",
+            "quantityEstimate": "1 瓶",
+            "state": "需确认饮品种类与保质期"
+          },
+          {
+            "category": "饮料",
+            "confidence": 0.72,
+            "name": "橙色饮品",
+            "notes": "上层右侧玻璃瓶，未见可辨认标签或品名",
+            "quantityEstimate": "1 瓶",
+            "state": "需确认饮品种类与保质期"
+          },
+          {
+            "category": "其他",
+            "confidence": 0.94,
+            "name": "橙子",
+            "notes": "中层左侧，已剥开一部分",
+            "quantityEstimate": "约1 个",
+            "state": "已剥开，建议优先食用并确认果肉状态"
+          },
+          {
+            "category": "蔬菜",
+            "confidence": 0.82,
+            "name": "羽衣甘蓝",
+            "notes": "下层右侧，一把叶菜",
+            "quantityEstimate": "约1 把",
+            "state": "看起来可用，需确认叶片新鲜度"
+          }
+        ],
+        "uncertainItems": [
+          {
+            "description": "冰箱门内中部储物格中的浅色物品",
+            "reason": "被门侧遮挡且画面模糊，无法确认是否为食材及具体内容"
+          },
+          {
+            "description": "冰箱门内下部储物格中的橙色物品",
+            "reason": "仅局部可见，无法确认具体食材或包装内容"
+          }
+        ],
+        "warnings": [
+          "图片无法判断食材是否过期或完全新鲜，需要用户自行确认。",
+          "已剥开的橙子可能较易变质，建议尽快检查并食用。"
+        ]
+      },
+      "failureTypes": []
+    },
+    {
+      "id": "vision-fridge-imgs-ai-day7",
+      "suite": "vision",
+      "endpoint": "/api/analyze-fridge",
+      "durationMs": 22995,
+      "status": 200,
+      "requestId": "d3c400b8-b431-47d4-a051-37fcf554cd39",
+      "serverTiming": "vision;dur=22836",
+      "passed": true,
+      "failures": [],
+      "metrics": {
+        "schemaValid": true,
+        "confirmedItemRecall": 0.667,
+        "acknowledgedItemRecall": 0.833,
+        "itemRecall": 0.833
+      },
+      "source": "model",
+      "provider": "rightcode_responses_stream",
+      "model": "gpt-5.6-terra",
+      "usage": {
+        "inputTokens": 2248,
+        "outputTokens": 1103,
+        "totalTokens": 3351,
+        "cachedInputTokens": 0,
+        "reasoningTokens": 0
+      },
+      "retrieval": null,
+      "output": {
+        "items": [
+          {
+            "category": "饮料",
+            "confidence": 0.99,
+            "name": "可口可乐",
+            "notes": "上层左侧塑料瓶",
+            "quantityEstimate": "1 瓶",
+            "state": "需确认保质期"
+          },
+          {
+            "category": "饮料",
+            "confidence": 0.88,
+            "name": "茶饮料",
+            "notes": "上层左侧，绿色标签塑料瓶",
+            "quantityEstimate": "1 瓶",
+            "state": "需确认保质期"
+          },
+          {
+            "category": "饮料",
+            "confidence": 0.86,
+            "name": "柠檬茶饮料",
+            "notes": "上层中间，绿色瓶身",
+            "quantityEstimate": "1 瓶",
+            "state": "需确认保质期"
+          },
+          {
+            "category": "饮料",
+            "confidence": 0.8,
+            "name": "橙味汽水",
+            "notes": "上层中间，橙色易拉罐",
+            "quantityEstimate": "1 罐",
+            "state": "需确认保质期"
+          },
+          {
+            "category": "蛋奶",
+            "confidence": 0.99,
+            "name": "鸡蛋",
+            "notes": "上层中央纸质蛋托",
+            "quantityEstimate": "约 6 个",
+            "state": "看起来可用，需确认新鲜度"
+          },
+          {
+            "category": "饮料",
+            "confidence": 0.9,
+            "name": "橙汁",
+            "notes": "上层右侧黄色瓶装饮品",
+            "quantityEstimate": "1 瓶",
+            "state": "需确认保质期"
+          },
+          {
+            "category": "蛋奶",
+            "confidence": 0.83,
+            "name": "酸奶",
+            "notes": "上层右侧蓝白色杯装",
+            "quantityEstimate": "1 杯",
+            "state": "需确认保质期"
+          },
+          {
+            "category": "调味",
+            "confidence": 0.91,
+            "name": "番茄酱",
+            "notes": "上层右侧透明小碗内红色酱料",
+            "quantityEstimate": "约 1 小碗",
+            "state": "需确认存放时间"
+          },
+          {
+            "category": "蔬菜",
+            "confidence": 0.99,
+            "name": "西兰花",
+            "notes": "中层右侧",
+            "quantityEstimate": "约 2 颗",
+            "state": "看起来可用，需确认新鲜度"
+          },
+          {
+            "category": "蔬菜",
+            "confidence": 0.96,
+            "name": "红甜椒",
+            "notes": "中层中右侧",
+            "quantityEstimate": "约 2 个",
+            "state": "看起来可用，需确认新鲜度"
+          },
+          {
+            "category": "蔬菜",
+            "confidence": 0.95,
+            "name": "绿甜椒",
+            "notes": "中层中右侧",
+            "quantityEstimate": "约 1 个",
+            "state": "看起来可用，需确认新鲜度"
+          },
+          {
+            "category": "蔬菜",
+            "confidence": 0.95,
+            "name": "大白菜",
+            "notes": "中层右下方，透明包装内",
+            "quantityEstimate": "约 1 棵",
+            "state": "看起来可用，需确认新鲜度"
+          },
+          {
+            "category": "其他",
+            "confidence": 0.98,
+            "name": "苹果",
+            "notes": "中层左侧",
+            "quantityEstimate": "约 6 个",
+            "state": "看起来可用，需确认新鲜度"
+          },
+          {
+            "category": "其他",
+            "confidence": 0.98,
+            "name": "橙子",
+            "notes": "中层中央",
+            "quantityEstimate": "约 5 个",
+            "state": "看起来可用，需确认新鲜度"
+          },
+          {
+            "category": "其他",
+            "confidence": 0.94,
+            "name": "柠檬",
+            "notes": "中层前方",
+            "quantityEstimate": "约 1 个",
+            "state": "看起来可用，需确认新鲜度"
+          },
+          {
+            "category": "蔬菜",
+            "confidence": 0.97,
+            "name": "卷心菜",
+            "notes": "下层中央",
+            "quantityEstimate": "约 2 颗",
+            "state": "看起来可用，需确认新鲜度"
+          }
+        ],
+        "uncertainItems": [
+          {
+            "description": "下层左侧和中央的深绿色叶菜",
+            "reason": "可判断为叶菜类，但品种因遮挡和画面细节不足无法明确确认。"
+          },
+          {
+            "description": "下层右侧盘中的胡萝卜及后方红色蔬菜",
+            "reason": "胡萝卜外观可见但部分被遮挡；红色蔬菜无法明确确认具体品种。"
+          },
+          {
+            "description": "左下抽屉中的叶菜和胡萝卜",
+            "reason": "隔着抽屉且互相遮挡，数量和部分内容不宜精确判断。"
+          },
+          {
+            "description": "右下抽屉内真空包装的生肉",
+            "reason": "可见为生肉排，但肉类具体部位和种类无法仅凭图片明确确认。"
+          },
+          {
+            "description": "右下抽屉后方的圆形褐色食材",
+            "reason": "遮挡严重，无法确认是土豆或其他食材。"
+          },
+          {
+            "description": "冰箱门上多瓶罐装食品、酱料及饮品",
+            "reason": "部分标签模糊或仅见包装，无法可靠确认具体内容物。"
+          },
+          {
+            "description": "下层左侧包装块状食品",
+            "reason": "外观类似奶酪，但包装标签不清，无法明确确认。"
+          }
+        ],
+        "warnings": [
+          "图片无法判断食材是否过期、是否完全新鲜或是否已开封，需要自行确认。",
+          "画面右下角带有“豆包AI生成”水印，图片可能为生成图像，包装标签与食材细节仅供视觉参考。"
+        ]
+      },
+      "failureTypes": []
+    },
+    {
+      "id": "vision-target-dish-huangmenji",
+      "suite": "vision",
+      "endpoint": "/api/analyze-target-dish",
+      "durationMs": 8696,
+      "status": 200,
+      "requestId": "f4393e47-b51d-492a-8b75-bda06f1e6255",
+      "serverTiming": "vision;dur=8610",
+      "passed": false,
+      "failures": [
+        "菜名既不匹配也未保守表达歧义：疑似干锅青椒鸡块",
+        "关键材料召回率 0.25 < 0.5"
+      ],
+      "metrics": {
+        "schemaValid": true,
+        "dishNameMatch": false,
+        "ingredientRecall": 0.25,
+        "dishNameUncertaintyAcknowledged": true,
+        "dishNameAccepted": false
+      },
+      "source": "model",
+      "provider": "rightcode_responses_stream",
+      "model": "gpt-5.6-terra",
+      "usage": {
+        "inputTokens": 1041,
+        "outputTokens": 320,
+        "totalTokens": 1361,
+        "cachedInputTokens": 0,
+        "reasoningTokens": 0
+      },
+      "retrieval": null,
+      "output": {
+        "dishName": "疑似干锅青椒鸡块",
+        "confidence": 0.84,
+        "dishType": "干锅炒菜",
+        "coreTaste": "香辣咸鲜、鸡肉焦香、青椒清脆下饭",
+        "likelyIngredients": [
+          "带骨鸡块",
+          "青椒",
+          "干辣椒",
+          "蒜瓣",
+          "姜",
+          "食用油",
+          "生抽",
+          "老抽",
+          "料酒",
+          "盐"
+        ],
+        "optionalIngredients": [
+          "洋葱",
+          "青蒜苗",
+          "花椒",
+          "豆瓣酱",
+          "蚝油",
+          "白糖",
+          "鸡精",
+          "小米辣"
+        ],
+        "requiredTools": [
+          "炒锅或深煎锅",
+          "锅铲",
+          "菜刀",
+          "砧板"
+        ],
+        "estimatedTime": "35—50 分钟（含腌制或焯水）",
+        "difficulty": "中等",
+        "visualEvidence": [
+          "黑色干锅中盛放带骨鸡块",
+          "可见大块青椒和少量红色干辣椒",
+          "鸡块表面呈红褐色油亮挂汁，带煸炒焦香感",
+          "菜品汤汁不多，符合干锅或辣炒做法"
+        ],
+        "warnings": [
+          "图片中的肉块疑似带骨鸡肉，也可能是鸡腿肉块；无法仅凭图片确认是否使用豆瓣酱、花椒及具体辣度。",
+          "复刻难点在于鸡块需先炒至出油、表皮微焦后再调味，避免成品出水过多或鸡肉未熟。"
+        ]
+      },
+      "failureTypes": [
+        "quality"
+      ]
+    },
+    {
+      "id": "vision-target-dish-huiguorou",
+      "suite": "vision",
+      "endpoint": "/api/analyze-target-dish",
+      "durationMs": 8639,
+      "status": 200,
+      "requestId": "95c7100c-aff8-4490-880f-a94ddccaa458",
+      "serverTiming": "vision;dur=8566",
+      "passed": true,
+      "failures": [],
+      "metrics": {
+        "schemaValid": true,
+        "dishNameMatch": false,
+        "ingredientRecall": 0.75,
+        "dishNameUncertaintyAcknowledged": true,
+        "dishNameAccepted": true
+      },
+      "source": "model",
+      "provider": "rightcode_responses_stream",
+      "model": "gpt-5.6-terra",
+      "usage": {
+        "inputTokens": 1991,
+        "outputTokens": 326,
+        "totalTokens": 2317,
+        "cachedInputTokens": 0,
+        "reasoningTokens": 0
+      },
+      "retrieval": null,
+      "output": {
+        "dishName": "疑似青红椒炒五花肉",
+        "confidence": 0.82,
+        "dishType": "家常小炒",
+        "coreTaste": "咸香微辣、肥而不腻、锅气足、下饭",
+        "likelyIngredients": [
+          "带皮五花肉",
+          "青椒",
+          "红椒",
+          "蒜苗或青蒜",
+          "大蒜",
+          "食用油"
+        ],
+        "optionalIngredients": [
+          "豆豉",
+          "姜",
+          "干辣椒",
+          "生抽",
+          "老抽",
+          "料酒",
+          "蚝油",
+          "白糖"
+        ],
+        "requiredTools": [
+          "炒锅或铁锅",
+          "锅铲",
+          "菜刀",
+          "砧板"
+        ],
+        "estimatedTime": "25—40 分钟（若需先煮五花肉则约40分钟）",
+        "difficulty": "中等",
+        "visualEvidence": [
+          "可见肥瘦相间、带皮的薄切猪五花肉",
+          "肉片呈煸炒后的焦香油亮棕色",
+          "搭配大块青椒、红椒及青蒜段",
+          "整体为少汤汁的爆炒菜，酱色均匀附着在肉片上"
+        ],
+        "warnings": [
+          "仅凭图片无法确认是生炒五花肉还是先煮后炒的回锅肉做法。",
+          "肉片肥肉比例较高，关键难点是先煸出部分油脂但避免肉片变柴、粘锅或出水。",
+          "青椒和蒜苗宜大火短炒，过久会失去脆嫩和颜色。"
+        ]
+      },
+      "failureTypes": []
+    }
+  ]
+}

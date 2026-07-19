@@ -1,0 +1,146 @@
+{
+  "generatedAt": "2026-07-18T12:51:23.409Z",
+  "baseUrl": "http://127.0.0.1:4181",
+  "modelCalls": 2,
+  "passed": 0,
+  "total": 2,
+  "results": {
+    "lifeLog": {
+      "status": 200,
+      "durationMs": 26648,
+      "requestId": "7e059f27-061a-463d-8b6a-f5655e55730d",
+      "serverTiming": "draft;dur=26563",
+      "payload": {
+        "provider": "rightcode_responses_stream",
+        "model": "gpt-5.6-terra",
+        "agent": "lifeLogDraftAgent",
+        "source": "model",
+        "cache": null,
+        "modelError": null,
+        "usage": {
+          "inputTokens": 2360,
+          "outputTokens": 868,
+          "totalTokens": 3228,
+          "cachedInputTokens": 0,
+          "reasoningTokens": 0
+        },
+        "lifeLog": {
+          "dishName": "黄焖鸡",
+          "confidence": 0.98,
+          "visualSummary": "黑色砂锅置于木桌上，棕褐色汤汁包裹鸡块和土豆块，搭配绿色椒块与深色香菇，整体色泽明亮有光泽。",
+          "titleOptions": [
+            "一锅黄焖鸡上桌",
+            "今天的黄焖鸡",
+            "砂锅里的家常菜"
+          ],
+          "coverText": "黄焖鸡上桌",
+          "voiceoverDraft": "今天这一锅黄焖鸡装进黑砂锅，鸡块、土豆、青椒和香菇都在镜头里。记录一份刚完成的家常饭。",
+          "suggestedShots": [
+            {
+              "shot": "补拍砂锅成品的俯拍镜头，缓慢环绕展示整体摆盘。",
+              "onScreenText": "黄焖鸡上桌"
+            },
+            {
+              "shot": "补拍筷子夹起一块鸡肉或土豆的近景，画面聚焦食材表面的酱汁光泽。",
+              "onScreenText": "鸡块和土豆"
+            },
+            {
+              "shot": "补拍从砂锅边缘推进至青椒、香菇和鸡块的特写镜头。",
+              "onScreenText": "一锅家常菜"
+            },
+            {
+              "shot": "补拍木桌与砂锅的静态收尾镜头，可保留自然环境声。",
+              "onScreenText": "今日份记录"
+            }
+          ],
+          "tags": [
+            "#黄焖鸡",
+            "#家常菜",
+            "#下厨日记",
+            "#美食记录",
+            "#砂锅菜"
+          ],
+          "warnings": [
+            "草稿需由用户确认并编辑后再发布。",
+            "镜头列表均为后续补拍建议，请以实际拍摄内容为准。"
+          ]
+        },
+        "trace": {
+          "totalMs": 26563,
+          "source": "model"
+        }
+      },
+      "assessment": {
+        "passed": false,
+        "failures": [
+          "补拍镜头没有保持建议语气"
+        ]
+      }
+    },
+    "unknownStepRescue": {
+      "status": 200,
+      "durationMs": 24737,
+      "requestId": "bc8bdaa6-088b-44bf-b757-335a1771380e",
+      "serverTiming": "rescue;dur=24705",
+      "payload": {
+        "provider": "rightcode_responses_stream",
+        "model": "gpt-5.6-terra",
+        "agent": "dishRescueAgent",
+        "source": "model",
+        "cache": null,
+        "modelError": null,
+        "usage": {
+          "inputTokens": 2433,
+          "outputTokens": 436,
+          "totalTokens": 2869,
+          "cachedInputTokens": 0,
+          "reasoningTokens": 0
+        },
+        "dishRescue": {
+          "headline": "现在最像“鸡蛋已回锅、正在收汁”的阶段，先只做收汁。",
+          "visualObservations": [
+            "锅里番茄和鸡蛋已经混合在一起。",
+            "汤汁较多、能明显流动，尚未收浓。",
+            "画面中未见明显焦黑或干锅迹象。"
+          ],
+          "assessment": {
+            "category": "next_step",
+            "likelyIssue": "已到合炒后的收汁阶段，但锅内汁水偏多。",
+            "confidence": "high",
+            "needsConfirmation": false
+          },
+          "actions": [
+            {
+              "title": "立即动作：中火收汁",
+              "instruction": "保持中火，不加水也先不要加任何调料；用锅铲每隔十几秒轻轻翻动一次，避免鸡蛋粘底。",
+              "check": "观察锅底和食材之间的汤汁是否逐渐变少、从清亮流动变得能薄薄挂在番茄和鸡蛋上。"
+            },
+            {
+              "title": "观察点：出现浓稠感就停",
+              "instruction": "当大部分汤汁收掉、锅底只剩少量酱汁而不是一汪汤时，关小火或关火。",
+              "check": "用锅铲推开食材后，锅底露出的汁不会立刻大量回流。"
+            },
+            {
+              "title": "后续动作：再决定是否调味",
+              "instruction": "收汁完成后先尝一小口；只有根据你尝到的味道，再少量分次补盐、糖或其他调味，每加一次都拌匀再尝。",
+              "check": "确认味道后再出锅。"
+            }
+          ],
+          "nextStep": "现在开中火收汁，先不要加调料或额外加水。",
+          "askUser": "收 1—2 分钟后告诉我：锅底还是有一汪明显汤汁，还是已经只剩薄薄一层汁？",
+          "boundaryReminder": "图片只能判断汤汁和形态，不能判断咸淡、酸甜或准确调料用量。"
+        },
+        "trace": {
+          "totalMs": 24705,
+          "source": "model"
+        }
+      },
+      "assessment": {
+        "passed": false,
+        "failures": [
+          "完全说不清步骤时未要求用户确认"
+        ]
+      }
+    }
+  }
+}

@@ -4,10 +4,10 @@
   "entries": [
     {
       "id": "dish-huangmenji",
-      "fileName": "黄焖鸡.webp",
-      "fileNames": ["huangmenji.webp"],
-      "sourcePath": "assets/菜/黄焖鸡.webp",
-      "cachedAt": "2026-05-23",
+      "fileName": "黄焖鸡-示例.png",
+      "fileNames": ["huangmenji.png"],
+      "sourcePath": "assets/菜/黄焖鸡-示例.png",
+      "cachedAt": "2026-07-18",
       "targetVision": {
         "dishName": "黄焖鸡",
         "confidence": 0.88,
@@ -18,7 +18,7 @@
         "requiredTools": ["炒锅", "锅盖"],
         "estimatedTime": "35-45 分钟",
         "difficulty": "中等",
-        "visualEvidence": ["鸡肉块", "浓稠酱汁", "下饭焖菜形态"],
+        "visualEvidence": ["鸡肉块浸在棕褐色焖汁中", "可见土豆块、整朵香菇和青椒", "黑色砂锅盛装的下饭焖菜形态"],
         "warnings": ["仅凭图片无法确认鸡肉部位和调味比例，菜名仍需用户确认。"]
       }
     },

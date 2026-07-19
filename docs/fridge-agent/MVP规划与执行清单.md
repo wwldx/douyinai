@@ -542,11 +542,11 @@ data/local-users/<userId>/
 
 语音输入策略：
 
-- 当前采用可切换方案：浏览器录音，服务端 `/api/transcribe-audio` 调用 `ffmpeg` 转成 wav；默认 `SPEECH_TRANSCRIBE_PROVIDER=auto`，先尝试 Audio Transcriptions API，再兜底 `scripts/mac-speech-transcribe.swift` + macOS Speech Framework。
+- 当前采用可切换方案：浏览器录音，服务端 `/api/transcribe-audio` 调用 `ffmpeg` 转成 wav；默认 `SPEECH_TRANSCRIBE_PROVIDER=auto`，依次尝试已配置的腾讯云一句话识别、显式开启的 Audio Transcriptions API 和 `scripts/mac-speech-transcribe.swift` + macOS Speech Framework。
 - 后端会用 `ffprobe/ffmpeg volumedetect` 做录音诊断；如果峰值音量过低，直接提示“录音几乎是静音”，避免把麦克风问题误判成模型问题。
 - 识别结果只写入目标菜输入框；录音只在服务端临时目录转写，处理完成后删除，不保存到用户画像或 Git。
 - 用户必须能手动修改文本后再调用复刻规划。
-- Audio Transcriptions API 默认从 `OPENAI_API_KEY` 读取 Key，base URL 可通过 `AUDIO_TRANSCRIPTION_BASE_URL` 配置；如果中转站不支持 `/audio/transcriptions`，需要换成支持音频转写的 base URL。
+- 腾讯云 provider 使用 `TENCENTCLOUD_SECRET_ID`、`TENCENTCLOUD_SECRET_KEY` 和可选临时 Token；Secret 只保存在本机 `.env.local` 或 CloudBase Secret。Right Code 当前不支持本项目的 `/audio/transcriptions`，因此 `AUDIO_TRANSCRIPTION_ENABLED` 默认关闭。
 - macOS 需要给启动本地服务的终端授予“语音识别”权限；如果提示权限被拒绝，到系统设置 -> 隐私与安全性 -> 语音识别里打开对应终端。
 - 默认 `MAC_SPEECH_ON_DEVICE_ONLY=true` 且 `MAC_SPEECH_AUTO_FALLBACK=true`：优先设备端识别，如果设备端不支持或长时间没有返回，会自动回退到 macOS 系统识别。
-- 如果比赛现场要求稳定语音，优先使用 Audio Transcriptions API；macOS Speech 只作为本地备用。
+- 如果比赛现场要求稳定语音，优先使用已通过 CloudBase 真机验收的腾讯云一句话识别；macOS Speech 只作为本地备用，文本始终是最终降级路径。

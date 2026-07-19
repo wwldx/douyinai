@@ -1,0 +1,15 @@
+.git
+.gitignore
+.env
+.env.*
+!.env.example
+.DS_Store
+build
+frontend/node_modules
+frontend/dist
+data/local-cache
+data/local-agent-runs
+data/local-users
+docs
+临时存放
+*.log

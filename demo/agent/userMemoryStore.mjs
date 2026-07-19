@@ -4,15 +4,16 @@ import { join } from "node:path";
 const FEEDBACK_OPTIONS = [
   { label: "想吃", eventType: "accept_meal" },
   { label: "太麻烦", eventType: "too_complex" },
+  { label: "缺料太多", eventType: "too_many_missing" },
   { label: "不够抗饿", eventType: "not_filling" },
   { label: "不想洗锅", eventType: "low_cleanup" },
   { label: "换清淡点", eventType: "lighter_taste" },
   { label: "今天就想外卖", eventType: "delivery_today" },
 ];
 
-export function createUserMemoryStore(dataRoot) {
+export function createUserMemoryStore(dataRoot, runtimeDataRoot = dataRoot) {
   const seedDir = join(dataRoot, "demo-users");
-  const localDir = join(dataRoot, "local-users");
+  const localDir = join(runtimeDataRoot, "local-users");
 
   return {
     listUsers: () => listUsers(seedDir, localDir),
@@ -198,6 +199,10 @@ function deriveTraits(profile, userContext) {
 
   if (eventCount("too_complex") > 0 || profile.explicitPreferences.cookingLevel === "新手") {
     traits.push(createTrait("quickMealPreference", "快手饭倾向", 0.72, ["当前厨艺或反馈显示需要降低复杂度"]));
+  }
+
+  if (eventCount("too_many_missing") > 0) {
+    traits.push(createTrait("existingInventoryPreference", "优先使用现有库存", 0.74, ["近期反馈中出现缺料太多"], 7));
   }
 
   if (eventCount("not_filling") > 0 || taste.includes("抗饿")) {

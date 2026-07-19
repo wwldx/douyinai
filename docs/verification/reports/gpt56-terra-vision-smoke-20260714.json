@@ -1,0 +1,121 @@
+{
+  "generatedAt": "2026-07-14T12:22:29.293Z",
+  "baseUrl": "http://localhost:4187",
+  "selection": {
+    "suite": "vision",
+    "preset": "mixed-smoke",
+    "caseIds": [],
+    "limit": null,
+    "requireModelSource": true,
+    "timeoutMs": 120000
+  },
+  "total": 4,
+  "passed": 3,
+  "failed": 1,
+  "passRate": 0.75,
+  "latencyMs": {
+    "average": 20307,
+    "p50": 11624,
+    "p95": 32360,
+    "vision": {
+      "count": 4,
+      "average": 20307,
+      "p50": 11624,
+      "p95": 32360
+    },
+    "planning": {
+      "count": 0,
+      "average": 0,
+      "p50": 0,
+      "p95": 0
+    }
+  },
+  "sourceCounts": {
+    "model": 4
+  },
+  "failureCounts": {
+    "quality": 1
+  },
+  "metrics": {
+    "visionSchemaRate": 1,
+    "planningSchemaRate": 0,
+    "planningActionRate": 0,
+    "planningSafetyRate": 0
+  },
+  "results": [
+    {
+      "id": "vision-fridge-real-fridge-f63de1",
+      "suite": "vision",
+      "endpoint": "/api/analyze-fridge",
+      "durationMs": 32360,
+      "status": 200,
+      "requestId": "07cfb6e5-4cc8-4735-ae15-53d0fb829eeb",
+      "serverTiming": "vision;dur=32298",
+      "passed": true,
+      "failures": [],
+      "metrics": {
+        "schemaValid": true,
+        "itemRecall": 0.556
+      },
+      "source": "model",
+      "failureTypes": []
+    },
+    {
+      "id": "vision-fridge-imgs-ai-day3",
+      "suite": "vision",
+      "endpoint": "/api/analyze-fridge",
+      "durationMs": 28911,
+      "status": 200,
+      "requestId": "761cf565-bf86-4388-b54a-d210204058ea",
+      "serverTiming": "vision;dur=28881",
+      "passed": true,
+      "failures": [],
+      "metrics": {
+        "schemaValid": true,
+        "itemRecall": 0.6
+      },
+      "source": "model",
+      "failureTypes": []
+    },
+    {
+      "id": "vision-target-dish-huangmenji",
+      "suite": "vision",
+      "endpoint": "/api/analyze-target-dish",
+      "durationMs": 8331,
+      "status": 200,
+      "requestId": "3c5048f1-08eb-4795-954f-c2603a37ebd5",
+      "serverTiming": "vision;dur=8320",
+      "passed": false,
+      "failures": [
+        "菜名不匹配：疑似干锅鸡块（青椒鸡）"
+      ],
+      "metrics": {
+        "schemaValid": true,
+        "dishNameMatch": false,
+        "ingredientRecall": 0.5
+      },
+      "source": "model",
+      "failureTypes": [
+        "quality"
+      ]
+    },
+    {
+      "id": "vision-target-dish-huiguorou",
+      "suite": "vision",
+      "endpoint": "/api/analyze-target-dish",
+      "durationMs": 11624,
+      "status": 200,
+      "requestId": "be963824-8afd-466c-8fe0-cfa187fe0d40",
+      "serverTiming": "vision;dur=11609",
+      "passed": true,
+      "failures": [],
+      "metrics": {
+        "schemaValid": true,
+        "dishNameMatch": true,
+        "ingredientRecall": 1
+      },
+      "source": "model",
+      "failureTypes": []
+    }
+  ]
+}

@@ -5,6 +5,15 @@ import { basename, join } from "node:path";
 const CACHE_FILES = {
   fridge: "fridge.json",
   targetDish: "target-dishes.json",
+  lifeLog: "life-log.json",
+  dishRescue: "dish-rescue.json",
+};
+
+const CACHE_PAYLOAD_KEYS = {
+  fridge: "vision",
+  targetDish: "targetVision",
+  lifeLog: "lifeLog",
+  dishRescue: "dishRescue",
 };
 
 export function createDemoVisionCache(dataRoot, options = {}) {
@@ -19,8 +28,10 @@ export function createDemoVisionCache(dataRoot, options = {}) {
     const registry = await loadRegistry(kind);
     const fileName = normalizeFileName(request?.sourceFileName);
     const imageHash = hashDataUrl(request?.imageDataUrl);
+    const signature = requestSignature(kind, request);
 
     for (const entry of registry.entries) {
+      if (kind === "dishRescue" && (!signature || normalizeSignature(entry.requestSignature) !== signature)) continue;
       const names = normalizeList([entry.fileName, ...(entry.fileNames || []), ...(entry.cacheKeys || [])]);
       if (fileName && names.includes(fileName)) {
         return { entry, matchedBy: "fileName", key: fileName };
@@ -39,7 +50,9 @@ export function createDemoVisionCache(dataRoot, options = {}) {
     if (!enabled || !result) return;
     const fileName = normalizeFileName(request?.sourceFileName);
     const imageHash = hashDataUrl(request?.imageDataUrl);
+    const signature = requestSignature(kind, request);
     if (!fileName && !imageHash) return;
+    if (kind === "dishRescue" && !signature) return;
 
     const cacheFile = CACHE_FILES[kind];
     if (!cacheFile) return;
@@ -48,12 +61,13 @@ export function createDemoVisionCache(dataRoot, options = {}) {
     await mkdir(localDir, { recursive: true });
     const existing = await readJson(filePath, { version: 1, entries: [] });
     const entries = Array.isArray(existing.entries) ? existing.entries : [];
-    const payloadKey = kind === "targetDish" ? "targetVision" : "vision";
-    const cacheKey = imageHash || fileName;
+    const payloadKey = CACHE_PAYLOAD_KEYS[kind];
+    const cacheKey = [imageHash || fileName, signature].filter(Boolean).join("-");
     const nextEntry = {
       id: `runtime-${kind}-${cacheKey}`,
       fileName,
       imageHash,
+      ...(signature ? { requestSignature: signature } : {}),
       sourcePath: request?.sourceFileName || "",
       cachedAt: new Date().toISOString(),
       [payloadKey]: result,
@@ -62,7 +76,8 @@ export function createDemoVisionCache(dataRoot, options = {}) {
     const filtered = entries.filter((entry) => {
       const sameFile = fileName && normalizeFileName(entry.fileName) === fileName;
       const sameHash = imageHash && normalizeFileName(entry.imageHash) === imageHash;
-      return !sameFile && !sameHash;
+      const sameSignature = !signature || normalizeSignature(entry.requestSignature) === signature;
+      return !((sameFile || sameHash) && sameSignature);
     });
 
     await writeFile(filePath, `${JSON.stringify({ version: 1, updatedAt: new Date().toISOString(), entries: [nextEntry, ...filtered].slice(0, 40) }, null, 2)}\n`);
@@ -71,7 +86,7 @@ export function createDemoVisionCache(dataRoot, options = {}) {
 
   async function race(kind, request, runModel) {
     const cached = await find(kind, request);
-    const payloadKey = kind === "targetDish" ? "targetVision" : "vision";
+    const payloadKey = CACHE_PAYLOAD_KEYS[kind];
 
     const modelPromise = Promise.resolve()
       .then(runModel)
@@ -141,6 +156,19 @@ function normalizeList(values) {
 function normalizeFileName(value) {
   if (!value) return "";
   return basename(String(value)).normalize("NFKC").trim().toLowerCase();
+}
+
+function normalizeSignature(value) {
+  return String(value || "").normalize("NFKC").trim().toLowerCase();
+}
+
+function requestSignature(kind, request) {
+  if (kind !== "dishRescue") return "";
+  const explicit = normalizeSignature(request?.requestSignature);
+  if (explicit) return explicit;
+  const category = normalizeSignature(request?.category);
+  const symptom = normalizeSignature(request?.symptom);
+  return category && symptom ? `${category}|${symptom}` : "";
 }
 
 function hashDataUrl(dataUrl) {

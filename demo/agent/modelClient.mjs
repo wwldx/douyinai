@@ -1,24 +1,32 @@
+const MODEL_RESPONSE_META = Symbol("modelResponseMeta");
+
+export function readModelResponseMeta(value) {
+  return value && typeof value === "object" ? value[MODEL_RESPONSE_META] || null : null;
+}
+
 export function createModelClient(config) {
   return {
     createJsonResponse: (request) => createJsonResponse(config, request),
   };
 }
 
-async function createJsonResponse(config, { instructions, responsesInput, chatMessages, schema, name }) {
+async function createJsonResponse(config, { instructions, responsesInput, chatMessages, schema, name, timeoutMs }) {
   if (!config.apiKey) {
-    const error = new Error("缺少 OPENAI_API_KEY，已回退到本地缓存演示。");
+    const error = new Error("未配置有效的 OPENAI_API_KEY；请填写 ASCII 格式的真实 API Key，不能保留中文占位符。");
     error.status = 503;
     throw error;
   }
 
+  const requestTimeoutMs = normalizeTimeoutMs(timeoutMs, config.requestTimeoutMs || 50_000);
+
   if (config.provider === "rightcode_chat") {
-    return requestChatJsonResponse(config, { messages: chatMessages, name });
+    return requestChatJsonResponse(config, { messages: chatMessages, name, timeoutMs: requestTimeoutMs });
   }
 
-  return requestResponsesJsonResponse(config, { instructions, input: responsesInput, schema, name });
+  return requestResponsesJsonResponse(config, { instructions, input: responsesInput, schema, name, timeoutMs: requestTimeoutMs });
 }
 
-async function requestResponsesJsonResponse(config, { instructions, input, schema, name }) {
+async function requestResponsesJsonResponse(config, { instructions, input, schema, name, timeoutMs }) {
   const requestBody = {
     model: config.model,
     instructions,
@@ -41,72 +49,112 @@ async function requestResponsesJsonResponse(config, { instructions, input, schem
     requestBody.stream = true;
   }
 
-  let response;
-  try {
-    response = await fetch(`${config.responsesBaseUrl}/responses`, {
+  return runWithModelTimeout(timeoutMs, async (signal) => {
+    let response;
+    try {
+      response = await fetch(`${config.responsesBaseUrl}/responses`, {
+        method: "POST",
+        headers: {
+          authorization: `Bearer ${config.apiKey}`,
+          "content-type": "application/json",
+        },
+        body: JSON.stringify(requestBody),
+        signal,
+      });
+    } catch (error) {
+      if (signal.aborted) throw error;
+      const wrapped = new Error(`模型服务连接失败：${formatNetworkError(error)}`);
+      wrapped.status = 502;
+      throw wrapped;
+    }
+
+    if (requestBody.stream) {
+      const raw = await response.text();
+      if (!response.ok) {
+        const error = new Error(extractErrorMessage(raw) || `OpenAI API 请求失败：${response.status}`);
+        error.status = response.status;
+        throw error;
+      }
+      const { text, response: completedResponse } = extractSseResponse(raw);
+      if (!text) throw new Error("模型没有返回可解析文本。");
+      return attachModelResponseMeta(parseJsonObjectFromText(text), {
+        model: completedResponse?.model || config.model,
+        usage: completedResponse?.usage || null,
+      });
+    }
+
+    const payload = await parseResponseJson(response);
+    if (!response.ok) {
+      const message = payload.error?.message || payload.message || JSON.stringify(payload).slice(0, 500) || `OpenAI API 请求失败：${response.status}`;
+      const error = new Error(message);
+      error.status = response.status;
+      throw error;
+    }
+
+    const text = extractOutputText(payload);
+    if (!text) throw new Error("模型没有返回可解析文本。");
+    return attachModelResponseMeta(parseJsonObjectFromText(text), {
+      model: payload.model || config.model,
+      usage: payload.usage || null,
+    });
+  });
+}
+
+async function requestChatJsonResponse(config, { messages, name, timeoutMs }) {
+  return runWithModelTimeout(timeoutMs, async (signal) => {
+    const response = await fetch(`${config.chatBaseUrl}/v1/chat/completions`, {
       method: "POST",
       headers: {
         authorization: `Bearer ${config.apiKey}`,
         "content-type": "application/json",
       },
-      body: JSON.stringify(requestBody),
+      body: JSON.stringify({
+        model: config.model,
+        stream: false,
+        messages,
+      }),
+      signal,
     });
-  } catch (error) {
-    const wrapped = new Error(`模型服务连接失败：${formatNetworkError(error)}`);
-    wrapped.status = 502;
-    throw wrapped;
-  }
 
-  if (requestBody.stream) {
-    const raw = await response.text();
+    const payload = await parseResponseJson(response);
     if (!response.ok) {
-      const error = new Error(extractErrorMessage(raw) || `OpenAI API 请求失败：${response.status}`);
+      const message = payload.error?.message || payload.message || JSON.stringify(payload).slice(0, 500) || `Right Code chat 请求失败：${response.status}`;
+      const error = new Error(message);
       error.status = response.status;
       throw error;
     }
-    const text = extractSseOutputText(raw);
-    if (!text) throw new Error("模型没有返回可解析文本。");
-    return parseJsonObjectFromText(text);
-  }
 
-  const payload = await parseResponseJson(response);
-  if (!response.ok) {
-    const message = payload.error?.message || payload.message || JSON.stringify(payload).slice(0, 500) || `OpenAI API 请求失败：${response.status}`;
-    const error = new Error(message);
-    error.status = response.status;
-    throw error;
-  }
-
-  const text = extractOutputText(payload);
-  if (!text) throw new Error("模型没有返回可解析文本。");
-  return parseJsonObjectFromText(text);
+    const text = extractChatOutputText(payload);
+    if (!text) throw new Error(`${name} 没有返回可解析文本。`);
+    return attachModelResponseMeta(parseJsonObjectFromText(text), {
+      model: payload.model || config.model,
+      usage: payload.usage || null,
+    });
+  });
 }
 
-async function requestChatJsonResponse(config, { messages, name }) {
-  const response = await fetch(`${config.chatBaseUrl}/v1/chat/completions`, {
-    method: "POST",
-    headers: {
-      authorization: `Bearer ${config.apiKey}`,
-      "content-type": "application/json",
-    },
-    body: JSON.stringify({
-      model: config.model,
-      stream: false,
-      messages,
-    }),
-  });
-
-  const payload = await parseResponseJson(response);
-  if (!response.ok) {
-    const message = payload.error?.message || payload.message || JSON.stringify(payload).slice(0, 500) || `Right Code chat 请求失败：${response.status}`;
-    const error = new Error(message);
-    error.status = response.status;
+async function runWithModelTimeout(timeoutMs, task) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await task(controller.signal);
+  } catch (error) {
+    if (controller.signal.aborted || error?.name === "AbortError") {
+      const timeoutError = new Error(`上游模型请求超过 ${Math.round(timeoutMs / 1000)} 秒，已取消。`);
+      timeoutError.name = "ModelTimeoutError";
+      timeoutError.code = "MODEL_TIMEOUT";
+      timeoutError.status = 504;
+      throw timeoutError;
+    }
     throw error;
+  } finally {
+    clearTimeout(timeoutId);
   }
+}
 
-  const text = extractChatOutputText(payload);
-  if (!text) throw new Error(`${name} 没有返回可解析文本。`);
-  return parseJsonObjectFromText(text);
+function normalizeTimeoutMs(value, fallback) {
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed >= 1_000 ? parsed : fallback;
 }
 
 function extractOutputText(response) {
@@ -127,8 +175,9 @@ function extractChatOutputText(response) {
   return response.choices?.[0]?.message?.content?.trim() || "";
 }
 
-function extractSseOutputText(raw) {
+function extractSseResponse(raw) {
   const deltas = [];
+  let completedResponse = null;
   for (const block of raw.split(/\n\n/)) {
     const dataLine = block.split(/\n/).find((line) => line.startsWith("data: "));
     if (!dataLine) continue;
@@ -142,11 +191,39 @@ function extractSseOutputText(raw) {
       if (event.type === "response.output_text.done" && typeof event.text === "string" && !deltas.length) {
         deltas.push(event.text);
       }
+      if (event.type === "response.completed" && event.response) {
+        completedResponse = event.response;
+      }
     } catch {
       continue;
     }
   }
-  return deltas.join("").trim();
+  return { text: deltas.join("").trim(), response: completedResponse };
+}
+
+function attachModelResponseMeta(value, meta) {
+  if (!value || typeof value !== "object") return value;
+  Object.defineProperty(value, MODEL_RESPONSE_META, {
+    value: {
+      model: meta?.model || null,
+      usage: normalizeUsage(meta?.usage),
+    },
+    enumerable: false,
+    configurable: false,
+    writable: false,
+  });
+  return value;
+}
+
+function normalizeUsage(usage) {
+  if (!usage || typeof usage !== "object") return null;
+  return {
+    inputTokens: usage.input_tokens ?? usage.prompt_tokens ?? null,
+    outputTokens: usage.output_tokens ?? usage.completion_tokens ?? null,
+    totalTokens: usage.total_tokens ?? null,
+    cachedInputTokens: usage.input_tokens_details?.cached_tokens ?? usage.prompt_tokens_details?.cached_tokens ?? null,
+    reasoningTokens: usage.output_tokens_details?.reasoning_tokens ?? usage.completion_tokens_details?.reasoning_tokens ?? null,
+  };
 }
 
 function extractErrorMessage(raw) {

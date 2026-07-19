@@ -1,0 +1,203 @@
+{
+  "generatedAt": "2026-07-14T11:15:47.272Z",
+  "baseUrl": "http://localhost:4185",
+  "selection": {
+    "suite": "all",
+    "preset": "mixed-smoke",
+    "caseIds": [],
+    "limit": null,
+    "requireModelSource": true
+  },
+  "total": 8,
+  "passed": 6,
+  "failed": 2,
+  "passRate": 0.75,
+  "latencyMs": {
+    "average": 61076,
+    "p50": 43195,
+    "p95": 120004,
+    "vision": {
+      "count": 4,
+      "average": 63169,
+      "p50": 61790,
+      "p95": 93206
+    },
+    "planning": {
+      "count": 4,
+      "average": 58983,
+      "p50": 39699,
+      "p95": 120004
+    }
+  },
+  "sourceCounts": {
+    "error": 1,
+    "model": 7
+  },
+  "failureCounts": {
+    "quality": 1,
+    "upstream": 1
+  },
+  "metrics": {
+    "visionSchemaRate": 1,
+    "planningSchemaRate": 0.75,
+    "planningActionRate": 0.75,
+    "planningSafetyRate": 0.75
+  },
+  "results": [
+    {
+      "id": "vision-fridge-real-fridge-f63de1",
+      "suite": "vision",
+      "endpoint": "/api/analyze-fridge",
+      "durationMs": 81842,
+      "status": 200,
+      "requestId": "f0cbe94f-641b-4334-929b-d53d4f03f093",
+      "serverTiming": "vision;dur=81781",
+      "passed": true,
+      "failures": [],
+      "metrics": {
+        "schemaValid": true,
+        "itemRecall": 0.556
+      },
+      "source": "model",
+      "failureTypes": []
+    },
+    {
+      "id": "vision-fridge-imgs-ai-day3",
+      "suite": "vision",
+      "endpoint": "/api/analyze-fridge",
+      "durationMs": 61790,
+      "status": 200,
+      "requestId": "8c724ff4-8564-424e-a5fd-16bf743657a3",
+      "serverTiming": "vision;dur=61761",
+      "passed": true,
+      "failures": [],
+      "metrics": {
+        "schemaValid": true,
+        "itemRecall": 0.6
+      },
+      "source": "model",
+      "failureTypes": []
+    },
+    {
+      "id": "vision-target-dish-huangmenji",
+      "suite": "vision",
+      "endpoint": "/api/analyze-target-dish",
+      "durationMs": 15839,
+      "status": 200,
+      "requestId": "da257cad-483c-4905-bc99-c11cc5edaaac",
+      "serverTiming": "vision;dur=15828",
+      "passed": false,
+      "failures": [
+        "菜名不匹配：疑似重庆鸡公煲",
+        "关键材料召回率 0.25 < 0.5"
+      ],
+      "metrics": {
+        "schemaValid": true,
+        "dishNameMatch": false,
+        "ingredientRecall": 0.25
+      },
+      "source": "model",
+      "failureTypes": [
+        "quality"
+      ]
+    },
+    {
+      "id": "vision-target-dish-huiguorou",
+      "suite": "vision",
+      "endpoint": "/api/analyze-target-dish",
+      "durationMs": 93206,
+      "status": 200,
+      "requestId": "2ff451d8-2e6e-43ec-88fe-52bcfa422f73",
+      "serverTiming": "vision;dur=93182",
+      "passed": true,
+      "failures": [],
+      "metrics": {
+        "schemaValid": true,
+        "dishNameMatch": true,
+        "ingredientRecall": 1
+      },
+      "source": "model",
+      "failureTypes": []
+    },
+    {
+      "id": "target-huangmenji-missing-chicken",
+      "suite": "planning",
+      "endpoint": "/api/plan-target-dish",
+      "durationMs": 33035,
+      "status": 200,
+      "requestId": "1c103967-d37a-4bf5-bd8f-f60d05ecee50",
+      "serverTiming": "retrieval;dur=1, planning;dur=33019",
+      "passed": true,
+      "failures": [],
+      "metrics": {
+        "schemaValid": true,
+        "actionValid": true,
+        "requiredHit": true,
+        "forbiddenSafe": true,
+        "missingHit": true
+      },
+      "action": "shop_then_cook",
+      "source": "model",
+      "failureTypes": []
+    },
+    {
+      "id": "target-chicken-wings-food-safety",
+      "suite": "planning",
+      "endpoint": "/api/plan-target-dish",
+      "durationMs": 39699,
+      "status": 200,
+      "requestId": "4521e570-9e5f-4466-a148-88b696fd83ea",
+      "serverTiming": "retrieval;dur=0, planning;dur=39693",
+      "passed": true,
+      "failures": [],
+      "metrics": {
+        "schemaValid": true,
+        "actionValid": true,
+        "requiredHit": true,
+        "forbiddenSafe": true,
+        "missingHit": true
+      },
+      "action": "prep_for_tomorrow",
+      "source": "model",
+      "failureTypes": []
+    },
+    {
+      "id": "dinner-fast-tomato-eggs",
+      "suite": "planning",
+      "endpoint": "/api/plan-dinner",
+      "durationMs": 43195,
+      "status": 200,
+      "requestId": "590c9bed-26de-430d-8b55-85e90ec03947",
+      "serverTiming": "retrieval;dur=0, planning;dur=43185",
+      "passed": true,
+      "failures": [],
+      "metrics": {
+        "schemaValid": true,
+        "actionValid": true,
+        "requiredHit": true,
+        "forbiddenSafe": true,
+        "missingHit": true
+      },
+      "action": "cook_with_existing_items",
+      "source": "model",
+      "failureTypes": []
+    },
+    {
+      "id": "dinner-uncertain-meat-safety",
+      "suite": "planning",
+      "endpoint": "/api/plan-dinner",
+      "durationMs": 120004,
+      "status": 0,
+      "requestId": "",
+      "passed": false,
+      "failures": [
+        "The operation was aborted due to timeout"
+      ],
+      "failureTypes": [
+        "upstream"
+      ],
+      "metrics": {},
+      "source": "error"
+    }
+  ]
+}

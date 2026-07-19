@@ -1,158 +1,149 @@
-# 冰箱晚餐 Agent
+# 冰箱晚餐视觉搜索 Agent
 
-赛道 2：视觉搜索  
-当前主线：拍一下冰箱，AI 根据可见食材、用户状态和时间约束，推荐今晚最现实的一顿饭。
+抖音 AI 创变者计划 2026 大区赛赛道四「视觉搜索」作品。
 
-## 快速启动
+当前公网基线为 CloudBase 011：`AGENT_APP_VERSION=011`、三任务 `gpt-5.6-terra`、Case 检索 `off`、固定目标菜规划和 `agent_runs`/`ops.html` 查询均已通过定向验收；010 是首选回滚版本，009 是次级回滚点。当前版本的 iPhone 相机、局部补拍、语音权限和移动网络链路仍待复验。
+
+```text
+抖音 Feed 刷到想吃的菜
+  -> 上传/圈选菜图或用语音、文本表达要求
+  -> 拍冰箱并确认可用食材
+  -> AI 判断现在能否照着做
+  -> 输出步骤、缺料补齐、抖音商城和饭后发布入口
+```
+
+## 大区赛执行入口
+
+- [升级总计划](docs/roadmap/大区赛升级总计划-2026-07-13.md)：候选评分、执行顺序、日期、删减和冻结规则。
+- [公网部署与回滚计划](docs/deployment/公网部署与回滚计划-2026-07-13.md)：Secret、Docker、HTTPS、外网验收和回滚。
+- [历史 Case 检索与评测方案](docs/algorithm/历史Case检索与评测方案-2026-07-13.md)：结构化检索、正反例 ICL、数据隔离和消融。
+- [冰箱管理与扩展方向评估](docs/roadmap/冰箱管理与扩展方向评估-2026-07-13.md)：先吃清单、分区移动建议、食品安全边界和其他视觉搜索方向。
+- [011 最终交付清单](docs/submission/最终交付清单-011.md)：部署包、Skill、海报、视频、证据哈希和发布收尾顺序。
+
+新功能先进入升级总计划，再开始实现；当前项目不复现 OneReason 的预训练、GRPO、RFT/MOPD 或多 teacher 蒸馏。
+
+## 本地开发
 
 ```bash
 cp .env.example .env.local
-# 填写 .env.local 里的 OPENAI_API_KEY
-PORT=4174 npm run dev
+# 把 OPENAI_API_KEY 改为真实 API Key，不能保留中文占位符
+npm run dev
 ```
 
-比赛展示端需要另开一个终端：
+默认入口：
+
+- 主展示端：`http://localhost:4173/`
+- 开发检验台：`http://localhost:4173/dev.html`
+- 健康检查：`http://localhost:4173/api/health`
+
+前端热更新模式需要两个终端：
 
 ```bash
+PORT=4174 npm run dev
 npm run showcase
 ```
 
-比赛展示端：
+展示端地址为 `http://localhost:5173/`，Vite 会把 `/api/*` 代理到 `4174`。
 
-```text
-http://localhost:5173/
-```
+## 生产运行
 
-旧展示/兜底页：
-
-```text
-http://localhost:4174/
-```
-
-开发检验台：
-
-```text
-http://localhost:4174/dev.html
-```
-
-## 目录结构
-
-```text
-demo/
-  agent/                 轻量 Agent 模块
-    fridgeVisionAgent.mjs
-    dinnerPlannerAgent.mjs
-    modelClient.mjs
-    schemas.mjs
-  server.mjs             本地 API 服务
-  profile-store.js       用户画像 MVP，读取本地用户文件并提供浏览器兜底
-  speech-input.js        本地录音输入实验链路，不作为比赛主流程
-  index.html             旧展示/兜底界面
-  dev.html               开发检验台
-  app.js / dev.js        前端交互
-
-frontend/
-  src/                   Vite + React 比赛展示端
-
-scripts/
-  mac-speech-transcribe.swift  macOS Speech 本机转写辅助脚本
-
-assets/
-  fridge-images/          演示冰箱图片
-
-data/
-  demo-users/             可提交的假用户种子
-  demo-cache/vision/      可提交的演示图片预分析缓存
-  local-users/            本机运行时用户记忆和冰箱缓存，已 gitignore
-  local-cache/            本机运行时视觉缓存，已 gitignore
-
-docs/
-  demo/                   测试演示和 Demo 方案
-  fridge-agent/           冰箱晚餐 Agent MVP 规划
-  submission/             作品说明、路演稿、海报文案
-  strategy/               赛事分析与选题策略
-  archive/                历史讨论和备选方案
-
-AGENTS.md                 项目级长期记忆和协作规范
-```
-
-## 当前 Agent 架构
-
-当前没有引入 LangChain / LangGraph / Dify，而是使用轻量两段式 Agent：
-
-```text
-视觉识别 Agent
-  -> 识别冰箱图片中的可见食材、不确定项和安全边界
-  -> 用户人工确认库存
-
-目标菜图识别 Agent
-  -> 识别用户想复刻的菜图
-  -> 输出菜名猜测、关键材料、工具、耗时和难度
-
-晚餐规划 Agent
-  -> 读取确认库存 + 用户上下文 + 用户画像 traits
-  -> 输出晚餐决策、保底方案、进阶方案、缺料补买和兜底建议
-
-目标菜复刻规划 Agent
-  -> 读取确认库存 + 目标菜文字 + 用户画像 traits
-  -> 输出尽量复刻路线、难点提醒、缺料补买和抖音商城/本地生活模拟卡
-```
-
-保留轻量架构的原因：
-
-- 比赛 demo 更需要稳定、可解释、容易兜底。
-- 当前只有两个核心 Agent，重框架会增加现场不确定性。
-- JSON Schema 合约已经清楚，后续迁移 LangGraph 或 OpenAI Agents SDK 时可以复用。
-
-## 抖音场景亮点
-
-新增故事链：
-
-```text
-刷到想吃的，拍下冰箱，AI 判断今晚能不能复刻。
-```
-
-目标菜复刻不展示分数，而是给出可执行路线：能做就尽量做，难度较高时提醒风险，并提供简化版本、明日准备路线和抖音商城/本地生活模拟补齐卡。结果页还保留饭后「拍成品，发抖音」入口，用来表达做完饭后的生活记录闭环；当前是展示 CTA，不做真实发布。
-
-当前 V2 采用两个明确上传区：一个上传冰箱照片，一个上传想复刻的菜图。多图自动分类暂不进入主流程，后续再做。
-
-演示图片有本地预分析缓存：后端仍然先调用模型；如果超过约 4.5 秒还没返回，并且命中 `data/demo-cache/vision/`，才切到缓存。开发检验台可通过接口返回的 `source` 区分 `model`、`model-timeout-cache` 和 `model-error-cache`。
-
-语音输入保留为实验链路，不进入比赛主演示流程。当前 Right Code `/codex/v1` 未配置常见 ASR 模型，macOS Speech 也容易超时，现场统一使用手动输入目标菜，避免影响主链路稳定性。
-
-## 本地用户记忆
-
-项目内置 3 个演示用户：
-
-```text
-data/demo-users/xiaolin.json
-data/demo-users/night-coder.json
-data/demo-users/fitness-student.json
-```
-
-运行时会把用户画像、反馈事件和上次冰箱识别缓存写入：
-
-```text
-data/local-users/<userId>/profile.json
-data/local-users/<userId>/vision-cache.json
-```
-
-`data/local-users/` 已加入 `.gitignore`，用于本机演示和调试，不上传真实用户数据。
-
-这里的“浏览器本地”指 `localStorage`，它属于浏览器站点存储，不是项目目录里的文件；换浏览器、换端口或清理站点数据都可能丢失。因此当前主存储放在 `data/local-users/<userId>/`，`localStorage` 只保存当前选中的演示用户，并在本地服务不可用时作为兜底缓存。
-
-## 关键文档
-
-- [测试演示操作手册](docs/demo/测试演示操作手册.md)
-- [双路线演示操作文档](docs/demo/双路线演示操作文档.md)
-- [MVP 规划与执行清单](docs/fridge-agent/MVP规划与执行清单.md)
-- [作品说明文档](docs/submission/作品说明文档.md)
-- [项目长期记忆](AGENTS.md)
-
-## GitHub 上传
+生产模式由一个 Node 进程同时提供 React H5 和 API：
 
 ```bash
-npm run push -- "提交说明"
+npm run build
+PORT=4173 npm start
 ```
 
-脚本会运行检查并阻止 `.env.local` 等本地密钥文件进入提交。
+也可使用仓库根目录的 `Dockerfile`：
+
+```bash
+docker build -t fridge-dinner-agent .
+docker run --rm -p 4173:4173 --env-file .env.local fridge-dinner-agent
+```
+
+部署平台至少配置：
+
+```env
+OPENAI_API_KEY=真实的 Right Code 或 OpenAI 兼容 API Key
+OPENAI_BASE_URL=https://right.codes/codex/v1
+MODEL_PROVIDER=rightcode_responses_stream
+OPENAI_MODEL=gpt-5.6-terra
+VISION_MODEL=gpt-5.6-terra
+PLANNING_MODEL=gpt-5.6-terra
+LIFE_LOG_MODEL=gpt-5.6-terra
+DISABLE_RESPONSE_STORAGE=true
+CASE_RETRIEVAL_MODE=off
+API_RATE_LIMIT_MAX=80
+MODEL_RATE_LIMIT_MAX=30
+AGENT_APP_VERSION=011
+AGENT_RUNS_ENABLED=true
+AGENT_RUNS_BACKEND=cloudbase
+AGENT_RUNS_CAPTURE_CONTENT=true
+# AGENT_RUNS_ADMIN_TOKEN 只放平台 Secret，不写入代码或文档。
+# 公网真实语音可选；凭据只放平台 Secret。
+# TENCENTCLOUD_SECRET_ID=你的 SecretId
+# TENCENTCLOUD_SECRET_KEY=你的 SecretKey
+TENCENT_ASR_ENABLED=true
+AUDIO_TRANSCRIPTION_ENABLED=false
+# 可选：DATA_DIR=/data/fridge-agent
+```
+
+Codex Pro 中可用的模型不等于部署应用自动拥有 API 权限；公网 H5 仍需要服务端 API Key。Key 只能放在平台 Secret 或本机 `.env.local`，不能写入前端和 Git。
+
+上述 `AGENT_APP_VERSION=011` 只用于下一次 011 部署；当前公网仍是 010。011 发布失败时优先保持或切回已验证的 010 服务版本，009 仅作为次级回滚点；不在生产容器内手工改代码或密钥。
+
+## 稳定性
+
+- 主展示端提供 Feed/冰箱双入口、示例冰箱和示例菜图，非现场评委无需准备图片即可走完任一路线。
+- 目标菜和冰箱均提供手机直接拍摄与相册选择；Feed 截图可手动框选菜品区域，结果页五类反馈可约束下一轮规划。
+- 视觉、规划和生活记录可独立配置模型；健康检查和开发台会显示当前任务路由。
+- 视觉识别先调用模型，命中演示图片且模型超时/失败时才使用预分析缓存。
+- 语音采用浏览器实时识别优先、腾讯云一句话识别服务端兜底；文本框始终可修改。Right Code 当前只承担视觉和规划，不作为已验证 ASR。
+- 无有效 Key 时，示例视觉链路仍可用缓存演示；任意新图片和真实规划需要有效 Key。
+- 开发检验台会显示 `model`、`model-timeout-cache` 或 `model-error-cache`，避免把缓存误当真实模型结果。
+- 服务端包含 12MB 请求体上限、分组限流、生产错误脱敏、安全头、request ID 和阶段 trace。
+- `agent_runs` 记录诊断编号、来源、阶段耗时、token 和白名单结构化输入输出；原始照片、原始音频、API Key、管理员令牌和鉴权头不进入运行记录。
+
+## 评测
+
+项目内置 30 例评测集：11 例视觉识别和 19 例规划/安全案例。
+
+当前三任务 `gpt-5.6-terra` 配置下，固定 30 例真实模型回归为 30/30。该数字只说明当前固定回归集通过，不代表真实用户准确率或线上分布。历史 Case 的 V0/正例/正反例真实消融已完成，小样本未测得规划质量增益且增加 token，因此公网保持 `CASE_RETRIEVAL_MODE=off`。
+
+```bash
+npm run eval:validate
+npm run eval:retrieval
+npm run eval:speech-provider
+npm run eval -- --base-url http://localhost:4173
+npm run eval -- --base-url http://localhost:4173 --suite planning --limit 3
+```
+
+可用 `--output data/eval-results/report.json` 保存报告；该目录不会提交 Git。`eval:retrieval` 只验证 24 条参考 Case 和 8 条检索标签，不能替代已经完成的真实规划消融，也不能外推为真实用户指标。
+
+## Skill 提交物
+
+Skill 源文件位于 `submission/skill/fridge-dinner-visual-search/`。生成官方上传文件：
+
+```bash
+npm run skill:package
+```
+
+输出：`dist/submission/fridge-dinner-visual-search.skill`。
+
+## 主要目录
+
+```text
+frontend/                  React 评委展示端
+demo/                      Node API、旧展示页和开发检验台
+demo/agent/                视觉与规划 Agent、Schema、模型客户端
+data/demo-cache/vision/    演示视觉缓存
+data/eval/                 评测集
+data/case-memory/          独立历史参考 Case 与检索标签
+submission/skill/          官方 Skill 源文件
+scripts/run-evals.mjs      评测脚本
+scripts/run-retrieval-evals.mjs  检索回归脚本
+Dockerfile                 单容器生产部署
+docs/                      比赛原文、方案、演示和项目记忆
+```
+
+长期约束和当前状态见 [AGENTS.md](AGENTS.md) 与 [docs/AGENT_STATE.md](docs/AGENT_STATE.md)。

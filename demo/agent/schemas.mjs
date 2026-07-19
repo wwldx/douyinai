@@ -60,6 +60,75 @@ export const targetDishVisionSchema = {
   },
 };
 
+export const lifeLogDraftSchema = {
+  type: "object",
+  additionalProperties: false,
+  required: ["dishName", "confidence", "visualSummary", "titleOptions", "coverText", "voiceoverDraft", "suggestedShots", "tags", "warnings"],
+  properties: {
+    dishName: { type: "string" },
+    confidence: { type: "number", minimum: 0, maximum: 1 },
+    visualSummary: { type: "string" },
+    titleOptions: { type: "array", minItems: 1, maxItems: 3, items: { type: "string" } },
+    coverText: { type: "string" },
+    voiceoverDraft: { type: "string" },
+    suggestedShots: {
+      type: "array",
+      minItems: 1,
+      maxItems: 5,
+      items: {
+        type: "object",
+        additionalProperties: false,
+        required: ["shot", "onScreenText"],
+        properties: {
+          shot: { type: "string" },
+          onScreenText: { type: "string" },
+        },
+      },
+    },
+    tags: { type: "array", minItems: 1, maxItems: 8, items: { type: "string" } },
+    warnings: { type: "array", maxItems: 5, items: { type: "string" } },
+  },
+};
+
+export const dishRescueSchema = {
+  type: "object",
+  additionalProperties: false,
+  required: ["headline", "visualObservations", "assessment", "actions", "nextStep", "askUser", "boundaryReminder"],
+  properties: {
+    headline: { type: "string" },
+    visualObservations: { type: "array", maxItems: 4, items: { type: "string" } },
+    assessment: {
+      type: "object",
+      additionalProperties: false,
+      required: ["category", "likelyIssue", "confidence", "needsConfirmation"],
+      properties: {
+        category: { type: "string", enum: ["state", "taste", "seasoning", "next_step"] },
+        likelyIssue: { type: "string" },
+        confidence: { type: "string", enum: ["low", "medium", "high"] },
+        needsConfirmation: { type: "boolean" },
+      },
+    },
+    actions: {
+      type: "array",
+      minItems: 1,
+      maxItems: 3,
+      items: {
+        type: "object",
+        additionalProperties: false,
+        required: ["title", "instruction", "check"],
+        properties: {
+          title: { type: "string" },
+          instruction: { type: "string" },
+          check: { type: "string" },
+        },
+      },
+    },
+    nextStep: { type: "string" },
+    askUser: { type: "string" },
+    boundaryReminder: { type: "string" },
+  },
+};
+
 export const dinnerPlanSchema = {
   type: "object",
   additionalProperties: false,
@@ -136,7 +205,7 @@ export const dinnerPlanSchema = {
 export const targetDishPlanSchema = {
   type: "object",
   additionalProperties: false,
-  required: ["targetDish", "verdict", "inventoryMatch", "executionPlan", "userFit", "commerceCards", "talkTrack"],
+  required: ["targetDish", "verdict", "inventoryMatch", "shoppingPlan", "executionPlan", "userFit", "commerceCards", "talkTrack"],
   properties: {
     targetDish: {
       type: "object",
@@ -182,6 +251,28 @@ export const targetDishPlanSchema = {
             },
           },
         },
+      },
+    },
+    shoppingPlan: {
+      type: "object",
+      additionalProperties: false,
+      required: ["mustBuy", "confirmAtHome", "optionalUpgrades"],
+      properties: {
+        mustBuy: {
+          type: "array",
+          maxItems: 8,
+          items: {
+            type: "object",
+            additionalProperties: false,
+            required: ["item", "reason"],
+            properties: {
+              item: { type: "string" },
+              reason: { type: "string" },
+            },
+          },
+        },
+        confirmAtHome: { type: "array", maxItems: 6, items: { type: "string" } },
+        optionalUpgrades: { type: "array", maxItems: 6, items: { type: "string" } },
       },
     },
     executionPlan: {

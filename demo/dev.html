@@ -40,6 +40,7 @@
           <div class="agent-actions">
             <button class="primary-button" id="analyzeButton" type="button" disabled>调用视觉识别</button>
             <button class="primary-button secondary" id="planButton" type="button" disabled>调用晚餐规划</button>
+            <button class="primary-button tertiary" id="organizationButton" type="button" disabled>检查粗分区</button>
             <button class="primary-button tertiary" id="cacheVisionButton" type="button" disabled>加载上次识别</button>
           </div>
           <section class="target-dish-card" aria-label="目标菜复刻规划">
@@ -62,6 +63,12 @@
               <button class="voice-button" id="targetVoiceButton" type="button">语音输入</button>
               <span id="targetVoiceStatus">可说出想吃的菜或补充要求。</span>
             </div>
+            <label class="target-focus-row">
+              <span>画面关键食材</span>
+              <select id="targetIngredientFocus" aria-label="画面关键食材" disabled>
+                <option value="">识别目标菜后选择</option>
+              </select>
+            </label>
             <div class="target-controls">
               <select id="targetDishTime" aria-label="目标时间">
                 <option value="tonight">今晚</option>
@@ -79,6 +86,24 @@
               <span>演示用户</span>
               <select id="userSelect"></select>
             </label>
+            <div class="dev-retrieval-row">
+              <label>
+                <span>检索模式</span>
+                <select id="retrievalMode">
+                  <option value="off">V0 无检索</option>
+                  <option value="positive">V1 仅正例</option>
+                  <option value="contrast" selected>V1.1 正反例</option>
+                </select>
+              </label>
+              <label>
+                <span>预览路线</span>
+                <select id="retrievalRoute">
+                  <option value="target" selected>目标菜路线</option>
+                  <option value="dinner">自由晚餐路线</option>
+                </select>
+              </label>
+              <button class="small-button" id="retrievalPreviewButton" type="button">只看 Top-K</button>
+            </div>
             <div class="trait-list" id="profileTraits"></div>
             <div class="feedback-actions" id="feedbackActions"></div>
           </div>
@@ -97,6 +122,33 @@
           </div>
         </section>
 
+        <section class="dev-panel wide review-console" aria-label="本机评审数据台">
+          <div class="dev-section-heading">
+            <div>
+              <p class="section-kicker">Local review only</p>
+              <h2>评审数据台</h2>
+            </div>
+            <button class="small-button" id="reviewRefreshButton" type="button">刷新画像数据</button>
+          </div>
+          <p class="review-boundary">只展示内置演示画像与本机会话事件；生产环境不提供此页面、用户列表或画像读取接口。
+          </p>
+          <div class="review-summary" id="reviewSummary">正在读取本机演示数据。</div>
+          <div class="review-layout">
+            <section class="review-users" aria-label="演示用户列表">
+              <h3>演示画像</h3>
+              <div id="reviewUserList"></div>
+            </section>
+            <section class="review-provenance" aria-label="当前画像来源">
+              <h3>当前画像与证据来源</h3>
+              <div id="reviewProfileDetails"></div>
+            </section>
+          </div>
+          <details class="review-raw">
+            <summary>查看当前画像原始 JSON</summary>
+            <pre class="json-view" id="reviewProfileRaw">暂无。</pre>
+          </details>
+        </section>
+
         <section class="dev-panel wide">
           <div class="dev-section-heading">
             <div>
@@ -106,6 +158,17 @@
             <button class="small-button" data-copy-target="visionRaw" type="button">复制 JSON</button>
           </div>
           <pre class="json-view" id="visionRaw">暂无。</pre>
+        </section>
+
+        <section class="dev-panel wide">
+          <div class="dev-section-heading">
+            <div>
+              <p class="section-kicker">Rule evidence</p>
+              <h2>粗分区与移动规则原始返回</h2>
+            </div>
+            <button class="small-button" data-copy-target="organizationRaw" type="button">复制 JSON</button>
+          </div>
+          <pre class="json-view" id="organizationRaw">暂无。先完成视觉识别或加载上次识别，再点击「检查粗分区」。</pre>
         </section>
 
         <section class="dev-panel wide">
@@ -128,6 +191,35 @@
             <button class="small-button" data-copy-target="targetRaw" type="button">复制 JSON</button>
           </div>
           <pre class="json-view" id="targetRaw">暂无。</pre>
+        </section>
+
+        <section class="dev-panel wide">
+          <div class="dev-section-heading">
+            <div>
+              <p class="section-kicker">Step 6</p>
+              <h2>成品图生活记录草稿原始返回</h2>
+            </div>
+            <button class="small-button" data-copy-target="lifeLogRaw" type="button">复制 JSON</button>
+          </div>
+          <div class="life-log-dev-layout">
+            <div class="life-log-dev-inputs">
+              <label>
+                <span>成品图</span>
+                <input id="lifeLogUpload" type="file" accept="image/*" />
+              </label>
+              <label>
+                <span>用户确认菜名</span>
+                <input id="lifeLogMealName" type="text" value="黄焖鸡" maxlength="40" />
+              </label>
+              <img id="lifeLogPreview" alt="成品图预览" />
+              <div class="agent-actions">
+                <button class="primary-button tertiary" id="lifeLogSampleButton" type="button">加载示例黄焖鸡</button>
+                <button class="primary-button" id="lifeLogGenerateButton" type="button" disabled>调用生活记录 Agent</button>
+              </div>
+              <p>只生成待确认草稿；不会自动发布，也不把口感、营养、制作过程或播放量写成事实。</p>
+            </div>
+            <pre class="json-view life-log-json" id="lifeLogRaw">暂无。上传成品图或加载示例后调用。</pre>
+          </div>
         </section>
       </section>
     </main>
