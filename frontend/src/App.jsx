@@ -316,7 +316,7 @@ function mapIntentTime(mealSlot) {
 function loadingPhase(label, seconds) {
   if (/识别冰箱|识别你想吃的菜/.test(label)) {
     if (seconds < 3) return "正在压缩并发送图片";
-    if (seconds < 18) return "视觉模型正在理解画面";
+    if (seconds < 18) return "正在理解画面里的食物";
     if (seconds < 45) return "仍在识别，可继续等待";
     return "网络较慢，固定示例会自动使用可审计缓存";
   }
@@ -1112,6 +1112,11 @@ export default function App() {
     return () => window.clearInterval(timer);
   }, [loading]);
 
+  useEffect(() => {
+    const main = document.querySelector(".app-main");
+    if (main) main.scrollTop = 0;
+  }, [stage]);
+
   function setMode(nextModeId) {
     const nextMode = modeCards.find((mode) => mode.id === nextModeId) || modeCards[0];
     setModeId(nextModeId);
@@ -1805,14 +1810,14 @@ export default function App() {
 
   const journeyProgress = entryMode === "feed"
     ? {
-        "feed-target": "Feed 路线 · 1/3",
-        "fridge-upload": "Feed 路线 · 2/3",
-        inventory: "Feed 路线 · 3/3",
+        "feed-target": "第 1 步 · 想吃的菜",
+        "fridge-upload": "第 2 步 · 拍冰箱",
+        inventory: "第 3 步 · 确认食材",
         result: "今晚方案",
       }[stage]
     : {
-        "fridge-upload": "冰箱路线 · 1/2",
-        inventory: "冰箱路线 · 2/2",
+        "fridge-upload": "第 1 步 · 拍冰箱",
+        inventory: "第 2 步 · 确认食材",
         result: "今晚方案",
       }[stage];
 
@@ -1827,16 +1832,15 @@ export default function App() {
           <span className="brand-dot" />
           <strong>今晚开饭</strong>
         </button>
-        <span className="topbar-note">{journeyProgress || "视觉搜索"}</span>
+        <span className="topbar-note">{journeyProgress || "选一种开始方式"}</span>
       </header>
 
       <main className="app-main">
         {stage === "entry" && (
           <section className="screen entry-screen" aria-label="选择开始场景">
             <div className="entry-copy">
-              <p className="eyebrow">抖音视觉晚餐助手</p>
-              <h1>从眼前这一口，决定今晚这一餐</h1>
-              <p className="lead">可以从刷到的菜开始，也可以直接打开冰箱。最后只回答一个问题：现在最值得做什么。</p>
+              <h1>今晚吃什么？</h1>
+              <p className="lead">拍一下想吃的菜或家里的冰箱，告诉你现在能做什么、还差什么。</p>
             </div>
 
             <div className="journey-grid">
@@ -1844,9 +1848,8 @@ export default function App() {
                 <img src="/demo-assets/菜/黄焖鸡-示例.png" alt="短视频中刷到的一道黄焖鸡" />
                 <span className="journey-shade" aria-hidden="true" />
                 <span className="journey-content">
-                  <small>来自抖音 Feed</small>
-                  <strong>刷到想吃的</strong>
-                  <span>先看菜，再拍冰箱判断今晚能不能做</span>
+                  <strong>想吃这道菜</strong>
+                  <span>拍张菜图，看看家里够不够做</span>
                   <b>从这道菜开始</b>
                 </span>
               </button>
@@ -1855,9 +1858,8 @@ export default function App() {
                 <img src="/demo-assets/fridge-images/f63de1c0794c76a412b9f06f0d919044.png" alt="打开的家用冰箱" />
                 <span className="journey-shade" aria-hidden="true" />
                 <span className="journey-content">
-                  <small>从相机开始</small>
-                  <strong>打开冰箱没想法</strong>
-                  <span>先确认现有食材，再决定吃什么</span>
+                  <strong>看看冰箱</strong>
+                  <span>拍下现有食材，帮你定一顿饭</span>
                   <b>看看家里有什么</b>
                 </span>
               </button>
@@ -1868,9 +1870,8 @@ export default function App() {
 
         {stage === "feed-target" && (
           <section className="screen target-first-screen" aria-label="表达想吃的菜">
-            <p className="eyebrow">先看刷到的内容</p>
-            <h1>刚刚让你停下来的，是哪一道菜？</h1>
-            <p className="lead">放入暂停帧、截图或菜图，也可以直接说出菜名和今晚的要求。</p>
+            <h1>你想吃哪道菜？</h1>
+            <p className="lead">拍菜图、说菜名、打字都行，选一种就够了。</p>
 
             <input ref={targetInputRef} type="file" accept="image/*" onChange={handleTargetFile} hidden />
             <input ref={targetCameraInputRef} type="file" accept="image/*" capture="environment" onChange={handleTargetFile} hidden />
@@ -1892,15 +1893,15 @@ export default function App() {
               <button className="secondary-upload" type="button" onClick={() => targetInputRef.current?.click()}>
                 {targetImage ? "选择其他图片" : "选择已有图片"}
               </button>
-              <button className="sample-action compact" type="button" onClick={loadDemoTargetDish} disabled={Boolean(loading)}>
-                用示例黄焖鸡
-              </button>
             </div>
+            <button className="sample-action compact sample-link" type="button" onClick={loadDemoTargetDish} disabled={Boolean(loading)}>
+              没有图？用示例黄焖鸡
+            </button>
 
             {targetImage && (
               <div className="image-focus-toolbar">
                 <button type="button" onClick={() => setTargetFocusOpen((current) => !current)} disabled={Boolean(loading)}>
-                  {targetFocusOpen ? "收起框选" : "框选画面重点"}
+                  {targetFocusOpen ? "收起框选" : "没识别准？只看这部分"}
                 </button>
                 {targetOriginalImage && targetImage !== targetOriginalImage && (
                   <button type="button" onClick={restoreTargetImage} disabled={Boolean(loading)}>恢复整张图</button>
@@ -1947,12 +1948,11 @@ export default function App() {
 
         {stage === "fridge-upload" && (
           <section className="screen screen-upload" aria-label="添加冰箱照片">
-            <p className="eyebrow">{entryMode === "feed" ? "再看现实库存" : "先看手上的食材"}</p>
-            <h1>{entryMode === "feed" ? "家里够不够做这道菜？" : "先看冰箱，再决定这顿饭"}</h1>
+            <h1>{entryMode === "feed" ? "家里够不够做？" : "看看冰箱里有什么"}</h1>
             <p className="lead">
               {entryMode === "feed"
-                ? "拍下冰箱并确认今晚的时间，我会把想吃的和家里现有的放在一起判断。"
-                : "拍下冰箱，确认这一餐和可支配时间，再决定由 AI 推荐还是照着某道菜做。"}
+                ? "拍下冰箱，再选今晚愿意花多少时间。"
+                : "拍下冰箱，确认这一餐和可支配时间。"}
             </p>
 
             {entryMode === "feed" && (
@@ -1972,6 +1972,7 @@ export default function App() {
                   key={mode.id}
                   className={`mode-card ${modeId === mode.id ? "selected" : ""}`}
                   type="button"
+                  aria-pressed={modeId === mode.id}
                   onClick={() => setMode(mode.id)}
                 >
                   <strong>{mode.title}</strong>
@@ -1989,6 +1990,7 @@ export default function App() {
                       key={slot.id}
                       type="button"
                       className={mealSlot === slot.id ? "active" : ""}
+                      aria-pressed={mealSlot === slot.id}
                       onClick={() => setMealSlot(slot.id)}
                     >
                       {slot.label}
@@ -2005,6 +2007,7 @@ export default function App() {
                       key={time}
                       type="button"
                       className={availableTime === time ? "active" : ""}
+                      aria-pressed={availableTime === time}
                       onClick={() => setAvailableTime(time)}
                     >
                       {time}
@@ -2015,20 +2018,25 @@ export default function App() {
             </div>
 
             {confirmedInventorySnapshot?.items?.length > 0 && (
-              <section className="inventory-snapshot" aria-label="上次确认的冰箱库存">
-                <div>
-                  <strong>继续用上次确认的库存</strong>
-                  <small>
-                    {inventorySnapshotTime(confirmedInventorySnapshot.confirmedAt)} 确认 · {confirmedInventorySnapshot.items.length} 种
-                  </small>
-                  <span>{namesOf(confirmedInventorySnapshot.items, 5).join("、")}</span>
-                </div>
-                <div className="inventory-snapshot-actions">
-                  <button className="secondary-action" type="button" onClick={useConfirmedInventorySnapshot}>使用这份库存</button>
-                  <button className="text-link" type="button" onClick={clearConfirmedInventorySnapshot}>清除</button>
-                </div>
-                <p>这是本设备上次人工确认的记录，不代表食材现在仍然存在。</p>
-              </section>
+              <details className="secondary-group inventory-snapshot-group">
+                <summary>
+                  继续用上次确认的库存 · {confirmedInventorySnapshot.items.length} 种（不代表现在仍有）
+                </summary>
+                <section className="inventory-snapshot" aria-label="上次确认的冰箱库存">
+                  <div>
+                    <strong>继续用上次确认的库存</strong>
+                    <small>
+                      {inventorySnapshotTime(confirmedInventorySnapshot.confirmedAt)} 确认 · {confirmedInventorySnapshot.items.length} 种
+                    </small>
+                    <span>{namesOf(confirmedInventorySnapshot.items, 5).join("、")}</span>
+                  </div>
+                  <div className="inventory-snapshot-actions">
+                    <button className="secondary-action" type="button" onClick={useConfirmedInventorySnapshot}>使用这份库存</button>
+                    <button className="text-link" type="button" onClick={clearConfirmedInventorySnapshot}>清除</button>
+                  </div>
+                  <p>这是本设备上次人工确认的记录，不代表食材现在仍然存在。</p>
+                </section>
+              </details>
             )}
 
             <input ref={fridgeInputRef} type="file" accept="image/*" onChange={handleFridgeFile} hidden />
@@ -2048,16 +2056,15 @@ export default function App() {
               <button className="secondary-upload" type="button" onClick={() => fridgeInputRef.current?.click()}>
                 {fridgeImage ? "选择其他图片" : "选择已有图片"}
               </button>
-              <button className="sample-action compact" type="button" onClick={loadDemoFridge} disabled={Boolean(loading)}>用示例体验</button>
             </div>
+            <button className="sample-action compact sample-link" type="button" onClick={loadDemoFridge} disabled={Boolean(loading)}>没有图？用示例体验</button>
           </section>
         )}
 
         {stage === "inventory" && (
           <section className="screen inventory-screen" aria-label="确认食材并选择规划方式">
-            <p className="eyebrow">确认视觉识别结果</p>
-            <h1>{entryMode === "feed" ? "最后确认，家里到底有什么" : "确认食材，再决定吃什么"}</h1>
-            <p className="lead">点掉识别不准或现在不能用的食材，规划只会使用你确认留下的内容。</p>
+            <h1>这些食材现在都能用吗？</h1>
+            <p className="lead">点掉识别不准或现在不能用的，规划只会用你确认留下的。</p>
 
             <div className="ingredient-strip" aria-label="可用食材确认">
               {visibleIngredients.map((item) => (
@@ -2065,6 +2072,7 @@ export default function App() {
                   key={item.name}
                   type="button"
                   className={confirmedNames.includes(item.name) ? "ingredient active" : "ingredient"}
+                  aria-pressed={confirmedNames.includes(item.name)}
                   onClick={() => toggleIngredient(item.name)}
                 >
                   {ingredientIconUrl(item.name) && (
@@ -2173,6 +2181,7 @@ export default function App() {
                 <button
                   type="button"
                   className={`choice ${intent === "recommend" ? "active" : ""}`}
+                  aria-pressed={intent === "recommend"}
                   onClick={() => setIntent("recommend")}
                 >
                   <strong>帮我决定</strong>
@@ -2181,6 +2190,7 @@ export default function App() {
                 <button
                   type="button"
                   className={`choice ${intent === "target" ? "active" : ""}`}
+                  aria-pressed={intent === "target"}
                   onClick={() => setIntent("target")}
                 >
                   <strong>我有想吃的</strong>
@@ -2218,14 +2228,14 @@ export default function App() {
                   <button className="secondary-upload" type="button" onClick={() => targetInputRef.current?.click()}>
                     {targetImage ? "选择其他图片" : "选择已有图片"}
                   </button>
-                  <button className="sample-action compact" type="button" onClick={loadDemoTargetDish} disabled={Boolean(loading)}>
-                    用示例菜图
-                  </button>
                 </div>
+                <button className="sample-action compact sample-link" type="button" onClick={loadDemoTargetDish} disabled={Boolean(loading)}>
+                  没有图？用示例菜图
+                </button>
                 {targetImage && (
                   <div className="image-focus-toolbar">
                     <button type="button" onClick={() => setTargetFocusOpen((current) => !current)} disabled={Boolean(loading)}>
-                      {targetFocusOpen ? "收起框选" : "框选画面重点"}
+                      {targetFocusOpen ? "收起框选" : "没识别准？只看这部分"}
                     </button>
                     {targetOriginalImage && targetImage !== targetOriginalImage && (
                       <button type="button" onClick={restoreTargetImage} disabled={Boolean(loading)}>恢复整张图</button>
@@ -2315,7 +2325,7 @@ export default function App() {
       )}
 
       {loading && (
-        <div className="loading-mask">
+        <div className="loading-mask" role="status" aria-live="polite" aria-busy="true">
           <span className="spinner" />
           <p>{loading}</p>
           <span className="loading-detail">已用时 {loadingElapsed}s · {loadingPhase(loading, loadingElapsed)}</span>
@@ -2350,28 +2360,27 @@ function ResultView({ result, modeId, mealSlot, onReplan, onRestart, onAction, o
 
     return (
       <>
-        <p className="eyebrow">今晚的可执行方案</p>
         <h1>{plan.targetDish.name}</h1>
         <p className="lead">{userText(plan.verdict.summary)}</p>
         <PlanGenerationNotice generation={result.generation} />
 
-        <section className="result-hero">
-          <span>{formatMealSlot(mealSlot)}路线</span>
+        <section className="result-conclusion">
           <strong>{userText(plan.executionPlan.recommendedVersion)}</strong>
+          <div className="result-meta">
+            <span>{plan.targetDish.estimatedTime}</span>
+            <span>{plan.targetDish.difficulty}</span>
+            <span className={missing.length ? "warn" : coverageStatus === "unresolved" ? "pending" : "ok"}>
+              {missing.length ? `还差 ${missing.length} 样关键材料` : missingLabel}
+            </span>
+          </div>
         </section>
-
-        <PlanHistory plans={planHistory} currentPlan={result} onSelect={onSelectPlan} />
 
         {result.shoppingPreview?.acceptedItems?.length > 0 && (
           <section className="shopping-preview-note">
             <strong>补齐后方案 · 模拟</strong>
-            <span>本轮已把 {result.shoppingPreview.acceptedItems.join("、")} 作为可用材料重新交给 Planner；没有发生真实下单。</span>
+            <span>本轮已把 {result.shoppingPreview.acceptedItems.join("、")} 当作可用材料重新规划；没有发生真实下单。</span>
           </section>
         )}
-
-        {result.eatFirst && <EatFirstCard eatFirst={result.eatFirst} />}
-
-        {result.organization && <FridgeOrganizationCard organization={result.organization} />}
 
         <section className="compact-section">
           <h2>今晚怎么做</h2>
@@ -2382,20 +2391,57 @@ function ResultView({ result, modeId, mealSlot, onReplan, onRestart, onAction, o
           </ol>
         </section>
 
-        <section className="two-column">
-          <div>
-            <h2>{coverageStatus === "unresolved" ? "已核对" : "已有"}</h2>
-            <div className="pill-list">
-              {available.length ? available.map((item) => <span key={item}>{item}</span>) : <span>暂无匹配主料</span>}
-            </div>
-          </div>
-          <div>
-            <h2>{coverageStatus === "unresolved" ? "待确认" : "还差"}</h2>
+        <section className="materials-summary" aria-label="材料摘要">
+          <div className={`materials-group ${missing.length ? "warn" : coverageStatus === "unresolved" ? "pending" : ""}`}>
+            <strong>{coverageStatus === "unresolved" ? "待确认" : "还差"}</strong>
             <div className="pill-list warn">
               {missing.length ? missing.map((item) => <span key={item}>{item}</span>) : <span>{missingLabel}</span>}
             </div>
           </div>
+          <div className="materials-group">
+            <strong>{coverageStatus === "unresolved" ? "已核对" : "已有"}</strong>
+            <div className="pill-list">
+              {available.length ? available.map((item) => <span key={item}>{item}</span>) : <span>暂无匹配主料</span>}
+            </div>
+          </div>
+          {coverageStatus === "unresolved" && needsConfirmation.length > 0 && (
+            <div className="materials-group pending">
+              <strong>可优先确认</strong>
+              <div className="pill-list">
+                {needsConfirmation.map((item) => <span key={item}>{item}</span>)}
+              </div>
+            </div>
+          )}
+          {optionalUpgrades.length > 0 && (
+            <div className="materials-group optional">
+              <strong>可选升级，不买也能做</strong>
+              <div className="pill-list">
+                {optionalUpgrades.map((item) => <span key={item}>{item}</span>)}
+              </div>
+            </div>
+          )}
         </section>
+
+        {planHistory.length >= 2 && (
+          <details className="secondary-group">
+            <summary>本次方案记录 · {planHistory.length} 个</summary>
+            <PlanHistory plans={planHistory} currentPlan={result} onSelect={onSelectPlan} />
+          </details>
+        )}
+
+        {result.eatFirst && (
+          <details className="secondary-group">
+            <summary>先吃清单 · 按你确认的状态</summary>
+            <EatFirstCard eatFirst={result.eatFirst} />
+          </details>
+        )}
+
+        {result.organization && (
+          <details className="secondary-group">
+            <summary>冰箱整理建议 · 最多 3 条</summary>
+            <FridgeOrganizationCard organization={result.organization} />
+          </details>
+        )}
 
         {coverageStatus === "unresolved" && (
           <section className="quiet-note">
@@ -2414,13 +2460,7 @@ function ResultView({ result, modeId, mealSlot, onReplan, onRestart, onAction, o
           </section>
         )}
 
-        <DishRescueCard
-          mealName={plan.targetDish.name}
-          mealSummary={plan.verdict.summary}
-          steps={plan.executionPlan.steps}
-        />
-
-        {(mustBuy.length > 0 || confirmAtHome.length > 0 || optionalUpgrades.length > 0) && (
+        {(mustBuy.length > 0 || confirmAtHome.length > 0) && (
           <section className="compact-section shopping-plan-card">
             <div className="shopping-plan-heading">
               <h2>{shoppingHeading}</h2>
@@ -2438,16 +2478,10 @@ function ResultView({ result, modeId, mealSlot, onReplan, onRestart, onAction, o
                 <div className="pill-list">{confirmAtHome.map((item) => <span key={item}>{item}</span>)}</div>
               </div>
             )}
-            {optionalUpgrades.length > 0 && (
-              <div className="shopping-plan-group optional">
-                <strong>可选升级，不买也能做</strong>
-                <div className="pill-list">{optionalUpgrades.map((item) => <span key={item}>{item}</span>)}</div>
-              </div>
-            )}
             {mustBuy.length > 0 && (
               <>
                 <button className="ecosystem-action" type="button" onClick={() => onShopAndReplan(mustBuy)}>
-                  加入模拟购物车，并按补齐后重新规划
+                  补齐后重算
                 </button>
                 <small className="shopping-plan-boundary">这里只预览补购如何改变方案，不会真实下单或扣款。</small>
               </>
@@ -2455,13 +2489,20 @@ function ResultView({ result, modeId, mealSlot, onReplan, onRestart, onAction, o
           </section>
         )}
 
-        <FeedbackPanel mealName={plan.targetDish.name} onFeedback={onFeedback} saving={feedbackSaving} />
-
-        <LifeLogCard
-          mealName={plan.targetDish.name}
-          mealSummary={plan.verdict.summary}
-          onAction={onAction}
-        />
+        <div className="result-secondary">
+          <h2>做饭中和做完之后</h2>
+          <DishRescueCard
+            mealName={plan.targetDish.name}
+            mealSummary={plan.verdict.summary}
+            steps={plan.executionPlan.steps}
+          />
+          <FeedbackPanel mealName={plan.targetDish.name} onFeedback={onFeedback} saving={feedbackSaving} />
+          <LifeLogCard
+            mealName={plan.targetDish.name}
+            mealSummary={plan.verdict.summary}
+            onAction={onAction}
+          />
+        </div>
 
         <ResultActions onReplan={onReplan} onGenerateAlternative={onGenerateAlternative} onRestart={onRestart} />
       </>
@@ -2474,21 +2515,17 @@ function ResultView({ result, modeId, mealSlot, onReplan, onRestart, onAction, o
 
   return (
     <>
-      <p className="eyebrow">今晚的可执行方案</p>
       <h1>{plan.baseMeal.name}</h1>
       <p className="lead">{plan.summary || plan.baseMeal.why}</p>
       <PlanGenerationNotice generation={result.generation} />
 
-      <section className="result-hero">
-        <span>{plan.baseMeal.timeCost || "约 25 分钟"} · {plan.baseMeal.difficulty || "新手可做"}</span>
-        <strong>{plan.baseMeal.why}</strong>
+      <section className="result-conclusion">
+        {plan.summary && plan.baseMeal.why ? <strong>{plan.baseMeal.why}</strong> : null}
+        <div className="result-meta">
+          <span>{plan.baseMeal.timeCost || "约 25 分钟"}</span>
+          <span>{plan.baseMeal.difficulty || "新手可做"}</span>
+        </div>
       </section>
-
-      <PlanHistory plans={planHistory} currentPlan={result} onSelect={onSelectPlan} />
-
-      {result.eatFirst && <EatFirstCard eatFirst={result.eatFirst} />}
-
-      {result.organization && <FridgeOrganizationCard organization={result.organization} />}
 
       <section className="compact-section">
         <h2>现在就做</h2>
@@ -2503,6 +2540,27 @@ function ResultView({ result, modeId, mealSlot, onReplan, onRestart, onAction, o
         <h2>会用到</h2>
         <div className="pill-list">{needed.map((item) => <span key={item}>{item}</span>)}</div>
       </section>
+
+      {planHistory.length >= 2 && (
+        <details className="secondary-group">
+          <summary>本次方案记录 · {planHistory.length} 个</summary>
+          <PlanHistory plans={planHistory} currentPlan={result} onSelect={onSelectPlan} />
+        </details>
+      )}
+
+      {result.eatFirst && (
+        <details className="secondary-group">
+          <summary>先吃清单 · 按你确认的状态</summary>
+          <EatFirstCard eatFirst={result.eatFirst} />
+        </details>
+      )}
+
+      {result.organization && (
+        <details className="secondary-group">
+          <summary>冰箱整理建议 · 最多 3 条</summary>
+          <FridgeOrganizationCard organization={result.organization} />
+        </details>
+      )}
 
       {plan.shoppingUpgrade?.neededItems?.filter((item) => item !== "无").length > 0 && (
         <section className="quiet-note">
@@ -2521,19 +2579,20 @@ function ResultView({ result, modeId, mealSlot, onReplan, onRestart, onAction, o
         </section>
       )}
 
-      <DishRescueCard
-        mealName={plan.baseMeal.name}
-        mealSummary={plan.summary || plan.baseMeal.why}
-        steps={plan.baseMeal.steps}
-      />
-
-      <FeedbackPanel mealName={plan.baseMeal.name} onFeedback={onFeedback} saving={feedbackSaving} />
-
-      <LifeLogCard
-        mealName={plan.baseMeal.name}
-        mealSummary={plan.summary || plan.baseMeal.why}
-        onAction={onAction}
-      />
+      <div className="result-secondary">
+        <h2>做饭中和做完之后</h2>
+        <DishRescueCard
+          mealName={plan.baseMeal.name}
+          mealSummary={plan.summary || plan.baseMeal.why}
+          steps={plan.baseMeal.steps}
+        />
+        <FeedbackPanel mealName={plan.baseMeal.name} onFeedback={onFeedback} saving={feedbackSaving} />
+        <LifeLogCard
+          mealName={plan.baseMeal.name}
+          mealSummary={plan.summary || plan.baseMeal.why}
+          onAction={onAction}
+        />
+      </div>
 
       <ResultActions onReplan={onReplan} onGenerateAlternative={onGenerateAlternative} onRestart={onRestart} />
     </>
@@ -2554,16 +2613,22 @@ function PlanGenerationNotice({ generation }) {
       : isCacheFallback
         ? "网络较慢，已载入固定演示方案"
         : "已根据本次库存生成";
-  const diagnosticId = isFallback && generation.requestId ? ` 诊断编号 ${generation.requestId.slice(0, 8)}。` : "";
+  const diagnosticId = isFallback && generation.requestId ? generation.requestId.slice(0, 8) : "";
   const detail = isTimeoutFallback || isErrorFallback
-    ? `你仍可继续操作，网络恢复后可以再生成一次。${diagnosticId}`
+    ? "你仍可继续操作，网络恢复后可以再生成一次。"
     : isCacheFallback
-      ? `当前结果来自已审查的演示兜底，不会冒充实时识别。${diagnosticId}`
+      ? "当前结果来自已审查的演示兜底，不会冒充实时识别。"
       : `本次生成耗时约 ${elapsedSeconds} 秒。`;
   return (
     <div className={`plan-generation-notice ${isFallback ? "fallback" : "model"}`}>
       <strong>{title}</strong>
       <span>{detail}</span>
+      {diagnosticId && (
+        <details className="generation-diagnostic">
+          <summary>查看详情</summary>
+          <span>诊断编号 {diagnosticId}</span>
+        </details>
+      )}
     </div>
   );
 }
@@ -2617,9 +2682,9 @@ function FridgeOrganizationCard({ organization }) {
     : [];
 
   return (
-    <section className="fridge-organization-card" aria-label="粗粒度冰箱整理建议">
+    <section className="fridge-organization-card" aria-label="冰箱整理建议">
       <div className="fridge-organization-heading">
-        <span>粗分区整理</span>
+        <span>整理建议</span>
         <small>最多 3 条</small>
       </div>
       <h2>把这顿饭会用到的食材放得更顺手</h2>
@@ -2630,7 +2695,7 @@ function FridgeOrganizationCard({ organization }) {
               <button type="button" role="tab" aria-selected={layoutMode === "before"} onClick={() => setLayoutMode("before")}>现在</button>
               <button type="button" role="tab" aria-selected={layoutMode === "after"} onClick={() => setLayoutMode("after")}>建议后</button>
             </div>
-            <small>{layoutMode === "after" ? "规则预览，不代表已完成" : "来自视觉粗分区"}</small>
+            <small>{layoutMode === "after" ? "位置预览，不代表已完成" : "根据照片中的大致位置"}</small>
           </div>
           <div className="fridge-layout-zones">
             {currentLayout.map((group) => (
@@ -2669,7 +2734,7 @@ function FridgeOrganizationCard({ organization }) {
           );
         })}
       </div>
-      <p className="fridge-organization-boundary">只识别门架、层架、抽屉等粗分区，不判断过期、新鲜度或是否可以安全食用。</p>
+      <p className="fridge-organization-boundary">只区分门架、层架、抽屉等大致位置，不判断过期、新鲜度或是否可以安全食用。</p>
     </section>
   );
 }
@@ -2890,8 +2955,8 @@ function DishRescueCard({ mealName, mealSummary, steps = [] }) {
 
       {expanded && (
         <div className="dish-rescue-workspace">
-          <div className="dish-rescue-demo-row" aria-label="固定演示素材">
-            <span>固定演示素材 · AI 生成，不作为真实用户评测</span>
+          <div className="dish-rescue-demo-row" aria-label="做饭救援示例">
+            <span>没有现场图片？可以先用两个常见问题示例体验</span>
             <div>
               {dishRescueDemoSamples.map((sample) => (
                 <button key={sample.id} type="button" onClick={() => loadDemoSample(sample)} disabled={submitting}>
@@ -3110,7 +3175,7 @@ function LifeLogCard({ mealName, mealSummary, onAction }) {
       setStatus("草稿已生成，可逐项修改");
     } catch {
       applyDraft(fallbackLifeLogDraft(mealName));
-      setStatus("模型暂不可用，已生成可编辑兜底草稿");
+      setStatus("服务暂不可用，已生成可编辑兜底草稿");
     } finally {
       setGenerating(false);
     }

@@ -1,21 +1,24 @@
 :root {
   color-scheme: light;
-  --bg: #edf0ee;
-  --surface: #ffffff;
-  --ink: #171c19;
-  --muted: #66706b;
-  --soft: #f3f5f4;
-  --line: #dce2df;
-  --green: #216b56;
-  --green-deep: #163c31;
-  --mint: #e0f1e9;
-  --coral: #d85f3f;
-  --coral-soft: #fbe8e1;
-  --yellow: #e0a72f;
+  --bg: #f7f4ee;
+  --surface: #fffcf7;
+  --ink: #1b1d1a;
+  --muted: #686e68;
+  --soft: #f3f1ea;
+  --line: #e4ded2;
+  --green: #176b55;
+  --green-deep: #0f4a3a;
+  --mint: #e2f0e9;
+  --coral: #e85d3f;
+  --coral-soft: #fdeae3;
+  --yellow: #d99a1f;
   --yellow-soft: #fbf0d5;
   --blue: #356fb4;
   --blue-soft: #e7f0fb;
-  --shadow: 0 18px 48px rgba(24, 33, 29, 0.1);
+  --radius-control: 12px;
+  --radius-card: 16px;
+  --radius-hero: 22px;
+  --shadow: 0 18px 48px rgba(27, 29, 26, 0.08);
 }
 
 *,
@@ -2547,4 +2550,364 @@ h1 {
   .mode-card {
     padding: 9px 8px;
   }
+}
+
+/* ===== 012 展示层视觉收敛（2026-07-20） ===== */
+
+/* 统一字重：正文 500，强调 700，标签 600 */
+body {
+  font-weight: 500;
+}
+
+button,
+strong,
+b,
+h1,
+h2,
+h3,
+summary,
+.eyebrow,
+.field-label {
+  font-weight: 700;
+}
+
+.screen h1,
+.screen .lead {
+  margin-top: 0;
+}
+
+/* 统一键盘焦点 */
+:focus-visible {
+  outline: 2px solid var(--green);
+  outline-offset: 2px;
+}
+
+/* 减少动态效果 */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* iOS safe area */
+.app-topbar {
+  flex-basis: calc(58px + env(safe-area-inset-top));
+  height: calc(58px + env(safe-area-inset-top));
+  padding-top: env(safe-area-inset-top);
+  background: rgba(255, 252, 247, 0.92);
+}
+
+.bottom-action {
+  background: rgba(255, 252, 247, 0.94);
+}
+
+.toast {
+  bottom: calc(86px + env(safe-area-inset-bottom));
+  max-width: calc(100vw - 32px);
+  white-space: normal;
+  text-align: center;
+}
+
+/* 圆角：控件 12、内容 16、主图 20-24 */
+.mode-card,
+.segmented button,
+.ingredient,
+.choice,
+.target-panel textarea,
+.speech-action,
+.sample-action,
+.secondary-upload,
+.camera-upload,
+.ghost-action,
+.text-link,
+.primary-action,
+.secondary-action,
+.ecosystem-action,
+.image-focus-toolbar button,
+.topbar-note {
+  border-radius: var(--radius-control);
+}
+
+.confirm-panel,
+.ingredient-strip,
+.inventory-snapshot,
+.eat-first-tool,
+.compact-section,
+.quiet-note,
+.eat-first-card,
+.fridge-organization-card,
+.feedback-panel,
+.plan-history,
+.dish-rescue-card,
+.life-log-card,
+.target-status,
+.result-conclusion,
+.materials-summary,
+.secondary-group {
+  border-radius: var(--radius-card);
+}
+
+.journey-card {
+  border-radius: var(--radius-hero);
+}
+
+.journey-card::after {
+  border-radius: var(--radius-hero);
+}
+
+.upload-tile,
+.target-capture {
+  border-radius: 20px;
+}
+
+.journey-card img {
+  transition: transform 0.2s ease;
+}
+
+/* 关键触控不低于 44px */
+.segmented button,
+.ingredient,
+.speech-action,
+.sample-action,
+.secondary-upload,
+.camera-upload,
+.ghost-action,
+.text-link,
+.image-focus-toolbar button,
+.inventory-snapshot-actions .secondary-action,
+.fridge-layout-tabs button,
+.dish-rescue-symptoms button,
+.dish-rescue-upload-row button,
+.dish-rescue-demo-row button,
+.dish-rescue-heading > button,
+.dish-rescue-followup-actions button,
+.feedback-options button,
+.life-log-card .life-log-title-options button,
+.life-log-upload-actions button {
+  min-height: 44px;
+}
+
+/* 食材确认态：不只依赖颜色 */
+.ingredient.active span::after {
+  content: " ✓";
+}
+
+/* 正常成功只展示业务结果；网络慢、缓存或错误兜底仍保留说明。 */
+.plan-generation-notice.model {
+  display: none;
+}
+
+.generation-diagnostic {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.generation-diagnostic summary {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.generation-diagnostic span {
+  display: block;
+  padding-bottom: 4px;
+}
+
+/* 上传与补拍按钮行：最多两个同排，示例降为次级入口 */
+.target-image-actions,
+.fridge-image-actions {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.sample-link {
+  justify-self: center;
+  width: 100%;
+  border-style: dashed;
+  background: transparent;
+}
+
+.uncertainty-reshoot-actions {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.uncertainty-reshoot-actions .text-link {
+  grid-column: 1 / -1;
+  justify-self: center;
+  width: 100%;
+}
+
+.life-log-upload-actions {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.life-log-upload-actions button:last-child {
+  grid-column: 1 / -1;
+}
+
+.dish-rescue-followup-actions {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.dish-rescue-followup-actions button.resolved {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 700px) {
+  .mode-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .mode-grid > :last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+  }
+}
+
+/* 结果页首屏：结论 + 时间/难度/关键缺口 */
+.result-conclusion {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.result-conclusion > strong {
+  font-size: 16px;
+  line-height: 1.55;
+}
+
+.result-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.result-meta span {
+  min-height: 30px;
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  background: var(--soft);
+  color: var(--muted);
+  padding: 5px 12px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.result-meta span.ok {
+  background: var(--mint);
+  color: var(--green-deep);
+}
+
+.result-meta span.warn {
+  background: var(--coral-soft);
+  color: var(--coral);
+}
+
+.result-meta span.pending {
+  background: var(--yellow-soft);
+  color: #89620d;
+}
+
+/* 材料摘要：先突出关键缺口 */
+.materials-summary {
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.materials-group {
+  display: grid;
+  gap: 8px;
+}
+
+.materials-group > strong {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.materials-group.warn > strong {
+  color: var(--coral);
+}
+
+.materials-group.pending > strong {
+  color: #89620d;
+}
+
+.materials-group + .materials-group {
+  border-top: 1px solid var(--line);
+  padding-top: 14px;
+}
+
+/* 次级分组：历史、先吃、整理折叠；救援、反馈、饭后记录降权 */
+.secondary-group {
+  border: 1px solid var(--line);
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.secondary-group > summary {
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  color: var(--ink);
+  font-size: 14px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.secondary-group > summary::after {
+  content: "展开";
+  margin-left: auto;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.secondary-group[open] > summary::after {
+  content: "收起";
+}
+
+.secondary-group > summary::-webkit-details-marker {
+  display: none;
+}
+
+.secondary-group .eat-first-card,
+.secondary-group .fridge-organization-card,
+.secondary-group .plan-history,
+.secondary-group .inventory-snapshot {
+  border: none;
+  border-radius: 0;
+  background: transparent;
+}
+
+.inventory-snapshot-group > summary {
+  color: var(--muted);
+}
+
+.result-secondary {
+  display: grid;
+  gap: 14px;
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+}
+
+.result-secondary > h2 {
+  margin: 0;
+  color: var(--muted);
+  font-size: 15px;
+  font-weight: 600;
 }
