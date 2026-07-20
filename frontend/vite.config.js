@@ -14,6 +14,10 @@ export default defineConfig({
         target: process.env.BACKEND_ORIGIN || "http://localhost:4174",
         changeOrigin: true,
       },
+      "/demo-assets": {
+        target: process.env.BACKEND_ORIGIN || "http://localhost:4174",
+        changeOrigin: true,
+      },
     },
   },
 });
