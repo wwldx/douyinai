@@ -1116,7 +1116,7 @@ export default function App() {
   useEffect(() => {
     const main = document.querySelector(".app-main");
     if (main) main.scrollTop = 0;
-  }, [stage]);
+  }, [stage, result?.sessionPlan?.id]);
 
   function setMode(nextModeId) {
     const nextMode = modeCards.find((mode) => mode.id === nextModeId) || modeCards[0];
@@ -1641,7 +1641,7 @@ export default function App() {
     const acceptedItems = namesOf(items.map((item) => item?.item || item), 8);
     if (!acceptedItems.length || result?.type !== "target") return;
 
-    const baseInventory = confirmedInventory.length ? confirmedInventory : normalizeVision(modeSample(modeId).vision).items;
+    const baseInventory = confirmedInventory;
     const existingNames = new Set(namesOf(baseInventory, 32));
     const simulatedInventory = [
       ...baseInventory,
@@ -2362,6 +2362,9 @@ function ResultView({ result, modeId, mealSlot, onReplan, onRestart, onAction, o
     const optionalUpgrades = namesOf(plan.shoppingPlan?.optionalUpgrades, 6);
     const coverageStatus = plan.inventoryMatch?.coverageStatus || (missing.length ? "missing" : "unresolved");
     const needsConfirmation = namesOf(plan.inventoryMatch?.needsConfirmationItems, 6);
+    const simulatedItems = namesOf(result.shoppingPreview?.acceptedItems || [], 8);
+    const simulatedAvailable = available.filter((item) => ingredientMatches(item, simulatedItems));
+    const homeAvailable = available.filter((item) => !ingredientMatches(item, simulatedItems));
     const missingLabel = coverageStatus === "enough"
       ? "主要材料够了"
       : coverageStatus === "unresolved"
@@ -2377,7 +2380,18 @@ function ResultView({ result, modeId, mealSlot, onReplan, onRestart, onAction, o
       <>
         <h1>{plan.targetDish.name}</h1>
         <p className="lead">{userText(plan.verdict.summary)}</p>
-        <PlanGenerationNotice generation={result.generation} />
+
+        {result.shoppingPreview?.acceptedItems?.length > 0 && (
+          <section className="shopping-preview-note" aria-live="polite">
+            <strong>补齐后的新方案已生成</strong>
+            <span>
+              本轮临时加入 {result.shoppingPreview.acceptedItems.join("、")}；下方结论、做法和材料清单均已重新规划。
+            </span>
+            <small>仅用于预览，没有真实下单或扣款；可在“本次方案记录”中切回补齐前方案对比。</small>
+          </section>
+        )}
+
+        <PlanGenerationNotice generation={result.generation} shoppingPreview={result.shoppingPreview} />
 
         <section className="result-conclusion">
           <strong>{userText(plan.executionPlan.recommendedVersion)}</strong>
@@ -2390,19 +2404,12 @@ function ResultView({ result, modeId, mealSlot, onReplan, onRestart, onAction, o
           </div>
         </section>
 
-        {result.shoppingPreview?.acceptedItems?.length > 0 && (
-          <section className="shopping-preview-note">
-            <strong>补齐后方案 · 模拟</strong>
-            <span>本轮已把 {result.shoppingPreview.acceptedItems.join("、")} 当作可用材料重新规划；没有发生真实下单。</span>
-          </section>
-        )}
-
         {mustBuy.length > 0 && (
           <div className="cta-block">
             <button className="btn btn-accent btn-block" type="button" onClick={() => onShopAndReplan(mustBuy)}>
-              <Icon name="basket" size={17} />去抖音商城补齐
+              <Icon name="basket" size={17} />模拟补齐这 {mustBuy.length} 样并生成新方案
             </button>
-            <p className="hint">模拟加入购物车并重新规划，不会真实下单或扣款。</p>
+            <p className="hint">预览从抖音商城补齐缺料后的规划结果，不会真实下单或扣款。</p>
           </div>
         )}
 
@@ -2416,18 +2423,32 @@ function ResultView({ result, modeId, mealSlot, onReplan, onRestart, onAction, o
         </section>
 
         <section className="materials-summary" aria-label="材料摘要">
-          <div className={`materials-group ${missing.length ? "warn" : coverageStatus === "unresolved" ? "pending" : ""}`}>
-            <strong>{coverageStatus === "unresolved" ? "待确认" : "还差"}</strong>
-            <div className="pill-list warn">
-              {missing.length ? missing.map((item) => <span key={item}>{item}</span>) : <span>{missingLabel}</span>}
+          {(missing.length > 0 || coverageStatus === "unresolved") && (
+            <div className={`materials-group ${missing.length ? "warn" : "pending"}`}>
+              <strong>{coverageStatus === "unresolved" ? "待确认" : "还差"}</strong>
+              <div className={missing.length ? "pill-list warn" : "pill-list"}>
+                {missing.length
+                  ? missing.map((item) => <span key={item}>{item}</span>)
+                  : <span>{missingLabel}</span>}
+              </div>
             </div>
-          </div>
+          )}
           <div className="materials-group">
-            <strong>{coverageStatus === "unresolved" ? "已核对" : "已有"}</strong>
+            <strong>{coverageStatus === "unresolved" ? "已核对" : simulatedItems.length ? "家里已有" : "已有"}</strong>
             <div className="pill-list">
-              {available.length ? available.map((item) => <span key={item}>{item}</span>) : <span>暂无匹配主料</span>}
+              {homeAvailable.length
+                ? homeAvailable.map((item) => <span key={item}>{item}</span>)
+                : <span>暂无匹配主料</span>}
             </div>
           </div>
+          {simulatedItems.length > 0 && (
+            <div className="materials-group simulated">
+              <strong>本次模拟补入 · 尚未购买</strong>
+              <div className="pill-list">
+                {(simulatedAvailable.length ? simulatedAvailable : simulatedItems).map((item) => <span key={item}>{item}</span>)}
+              </div>
+            </div>
+          )}
           {coverageStatus === "unresolved" && needsConfirmation.length > 0 && (
             <div className="materials-group pending">
               <strong>可优先确认</strong>
@@ -2615,26 +2636,29 @@ function ResultView({ result, modeId, mealSlot, onReplan, onRestart, onAction, o
   );
 }
 
-function PlanGenerationNotice({ generation }) {
+function PlanGenerationNotice({ generation, shoppingPreview = null }) {
   if (!generation?.source) return null;
   const elapsedSeconds = Math.max(1, Math.round((generation.elapsedMs || 0) / 1000));
   const isTimeoutFallback = generation.source === "timeout-rules";
   const isErrorFallback = generation.source === "error-rules";
   const isCacheFallback = generation.source.includes("cache");
   const isFallback = isTimeoutFallback || isErrorFallback || isCacheFallback;
+  const isShoppingPreview = Boolean(shoppingPreview?.simulated && shoppingPreview?.acceptedItems?.length);
   const title = isTimeoutFallback
     ? "等待较久，已切换稳定方案"
     : isErrorFallback
       ? "服务波动，已切换稳定方案"
       : isCacheFallback
         ? "网络较慢，已载入固定演示方案"
-        : "已根据本次库存生成";
+        : isShoppingPreview
+          ? "已按模拟补齐后的材料生成"
+          : "已根据本次库存生成";
   const diagnosticId = isFallback && generation.requestId ? generation.requestId.slice(0, 8) : "";
   const detail = isTimeoutFallback || isErrorFallback
     ? "你仍可继续操作，网络恢复后可以再生成一次。"
     : isCacheFallback
       ? "当前结果来自已审查的演示兜底，不会冒充实时识别。"
-      : `本次生成耗时约 ${elapsedSeconds} 秒。`;
+      : `${isShoppingPreview ? "本次重新规划" : "本次生成"}耗时约 ${elapsedSeconds} 秒。`;
   return (
     <div className={`plan-generation-notice ${isFallback ? "fallback" : "model"}`}>
       <strong>{title}</strong>

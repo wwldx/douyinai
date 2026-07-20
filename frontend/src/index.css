@@ -1447,22 +1447,28 @@ img {
 
 .shopping-preview-note {
   display: grid;
-  gap: 4px;
-  padding: 12px 16px;
+  gap: 6px;
+  padding: 14px 16px;
   border-radius: var(--radius-card);
-  background: var(--coral-soft);
-  border: 1px solid rgba(232, 93, 63, 0.24);
+  background: var(--mint);
+  border: 1px solid rgba(22, 112, 82, 0.24);
   font-size: 13px;
   line-height: 1.55;
 }
 
 .shopping-preview-note strong {
-  color: var(--coral-deep);
-  font-size: 14px;
+  color: var(--green-deep);
+  font-size: 15px;
 }
 
 .shopping-preview-note span {
+  color: var(--ink);
+}
+
+.shopping-preview-note small {
   color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
 }
 
 .compact-section {
@@ -1563,6 +1569,15 @@ img {
 
 .materials-group.pending > strong {
   color: var(--yellow-deep);
+}
+
+.materials-group.simulated > strong {
+  color: var(--green-deep);
+}
+
+.materials-group.simulated .pill-list span {
+  background: var(--mint);
+  color: var(--green-deep);
 }
 
 .materials-group.optional > strong {
