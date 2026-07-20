@@ -1,7 +1,7 @@
 # Agent State
 
 更新时间：2026-07-20
-状态：012 前端重构已完成本地 V2 验收并建立 Git 检查点；CloudBase 公网仍为 011，未部署、未切流量
+状态：012 第二轮前端重构已完成本地 V2 验收并建立 Git 检查点；CloudBase 公网仍为 011，未部署、未切流量
 
 ## 当前目标
 
@@ -13,7 +13,8 @@
 
 - 当前公网：CloudBase 011，`https://fridge-dinner-agent-281751-9-1304313771.sh.run.tcloudbase.com/`，三任务均为 `gpt-5.6-terra`，Case 检索 `off`，011→010→011 回滚彩排已通过。
 - 011 本地 Git 检查点：`00ee820 Checkpoint CloudBase 011 release candidate`。
-- 012 工作分支：`codex/frontend-012`；不推送、不部署，直到用户决定进入 CloudBase 012 发布流程。
+- 012 第一轮 Git 检查点：`00e5fc3 Refactor showcase frontend for release 012`。
+- 012 第二轮 Git 检查点：`fb4062f Checkpoint Kimi API frontend redesign`；工作分支仍为 `codex/frontend-012`，不推送、不部署，直到用户决定进入 CloudBase 012 发布流程。
 - 011 部署包、Skill、海报和备用视频继续作为当前正式制品；012 尚未重新打包这些资产。
 
 ## 012 已完成
@@ -26,6 +27,7 @@
 6. 视觉收敛为暖白、品牌绿和强调橙；关键触控至少 44px，加入 `focus-visible`、`prefers-reduced-motion` 和 iOS safe area。
 7. 实际浏览器验收发现跨步骤保留旧滚动位置，已定向修复为阶段切换后回到页首。
 8. Kimi Code K3 High 在 VS Code 中完成纯展示层第一版；Codex 随后审计交互合约、修复条件渲染、内部措辞、移动布局和滚动问题。
+9. 第二轮改用 Kimi Platform API 的 `moonshot-cn/kimi-k3` High，新建干净会话重建 `index.css` 视觉系统，并统一入口、菜图、冰箱、库存、结果、救援、反馈和生活记录。Codex 随后恢复抖音商城闭环文案、去掉重复步骤提示并修正强调色对比度；未改变业务状态、API 或降级合约。
 
 实施约束见 `docs/frontend/012前端重构实施约束-2026-07-20.md`。
 
@@ -38,19 +40,26 @@
 
 ## 本地 V2 证据
 
-- `npm run showcase:build` 通过；`git diff --check` 通过。
+- 第二轮最终 `npm run showcase:build` 通过；`git diff --check` 通过。
 - 使用 `AGENT_APP_VERSION=012-local` 的无密钥生产服务验收：`hasApiKey=false`、语音云 provider 关闭、`agentRuns=false`、Case 检索 `off`、演示视觉缓存开启；没有触发外部模型。
-- Chrome 桌面固定 Feed 路线通过：黄焖鸡示例 → ROI 入口 → 示例冰箱 → 8 项库存 → 目标菜稳定结果。
-- Chrome DevTools 精确 `390×844`：首页、冰箱页、库存页、目标菜结果均无可见横向溢出；三个状态选项为 2+1，补拍最多两个同排，底部操作未遮挡内容。
-- 固定冰箱路线通过：示例冰箱 → 8 项库存 → 番茄鸡蛋面稳定结果；“调整条件 → 查看当前方案”保留库存。
+- Codex in-app Browser 桌面固定 Feed 路线通过：黄焖鸡示例 → 示例冰箱 → 8 项库存 → 目标菜稳定结果；入口和结果首屏无横向溢出，当前视口可见按钮至少 48px。
+- 精确 `390×844` 固定 Feed 路线通过：首页、菜图、冰箱、库存和目标菜结果均无横向溢出；库存按钮至少 44px，补拍两按钮同排，底部操作未遮挡内容。
+- 精确 `390×844` 固定冰箱路线通过：示例冰箱 → 8 项库存 → “帮我决定” → 一锅番茄土豆蛋花汤稳定结果；无横向溢出。
 - 目标菜结果点击“补齐后重算”后出现“补齐后方案 · 模拟”和“本次方案记录 · 2 个”。
 - 控制台仅有无密钥测试预期的本地 `/api/plan-target-dish` 与 `/api/plan-dinner` 503；前端均正确进入确定性 fallback，无页面运行时异常。
-- Browser Use 插件因运行时 `process` 冲突无法初始化，已按技能允许降级为 Computer Use；该故障未触及应用代码。
+- 两条路径最终页面控制台无 error/warn；Browser 控制层自身的 Statsig 网络超时不属于应用页面错误。
 - 本轮严格按 V2：未跑 30 例模型回归、未跑无关后端全量、未打包、未部署、未做公网调用。
+
+## Kimi API 接力
+
+- 官方 Kimi Code CLI `0.28.0` 已安装到 `~/.kimi-code/bin/kimi`，配置与 VS Code 插件共享 `~/.kimi-code`；不得同时运行同一会话。
+- 第二轮 API 会话：`session_05893447-db3a-4575-8a13-6ca2e792a8b1`。恢复命令：`kimi -r session_05893447-db3a-4575-8a13-6ca2e792a8b1`。
+- 若开放平台余额耗尽，先用 `/login` 切换 Kimi Platform API Key，再恢复该会话；项目进度以 Git 检查点和工作区文件为准，不依赖模型隐藏状态。
+- 本轮会话记录为 24 次请求、99,070 uncached input tokens、2,528,512 cached-read tokens、29,668 output tokens；费用只以 Kimi Platform 账单为准。API Key 不写入项目或聊天记录。
 
 ## 下一步
 
-1. 用户确认 012 本地视觉方向后，再决定是否生成 CloudBase 012 部署包；不要自动部署或推送。
+1. 用户查看 `http://127.0.0.1:4173/` 并确认第二轮 012 本地视觉方向；确认前不继续消耗 Kimi API，也不生成 CloudBase 012 部署包。
 2. 若进入 012 发布：只做一次发布级 build/check/smoke、包完整性与 CloudBase 严格 health，再定向验证两条固定路径。
 3. 012 上公网后再做 iPhone 真机：相机、相册、ROI、局部补拍、麦克风允许/拒绝、文本兜底、safe area、键盘和二维码。
 4. 只有真机或评委试用暴露明确问题时再定向修正；不重新讨论框架，不扩展模型、检索或隐私工程。
