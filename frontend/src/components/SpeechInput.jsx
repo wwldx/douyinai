@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { agentSessionHeaders } from "../lib/agentSession";
+import Icon from "./Icon";
 
 const MAX_RECORDING_MS = 10000;
 
@@ -225,17 +226,18 @@ export default function SpeechInput({ disabled = false, onTranscript }) {
   const buttonLabel = phase === "transcribing" ? "转写中" : active ? "结束语音" : "语音输入";
 
   return (
-    <div className="speech-input">
+    <div className="speech-row">
       <button
-        className={`speech-action ${active ? "active" : ""}`}
+        className={`speech-btn ${active ? "is-live" : ""}`}
         type="button"
         onClick={handleClick}
         disabled={disabled || phase === "transcribing"}
       >
-        <span className="speech-mark" aria-hidden="true" />
+        <Icon name="mic" size={16} />
         {buttonLabel}
+        {active && <i className="speech-pulse" aria-hidden="true" />}
       </button>
-      {status && <span className="speech-status" aria-live="polite">{status}</span>}
+      {status && <span className="speech-hint" aria-live="polite">{status}</span>}
     </div>
   );
 }

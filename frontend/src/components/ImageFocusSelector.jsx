@@ -96,19 +96,19 @@ export default function ImageFocusSelector({ imageDataUrl, onApply, onCancel }) 
   }
 
   return (
-    <section className="image-focus-selector" aria-label="框选画面重点">
-      <div className="image-focus-heading">
+    <section className="ifs" aria-label="框选画面重点">
+      <div className="ifs-head">
         <div>
           <strong>框选画面重点</strong>
           <span>在图上拖出矩形，只识别你关心的菜品区域</span>
         </div>
-        <button type="button" onClick={() => setSelection({ x: 0, y: 0, width: 100, height: 100 })}>
+        <button className="ifs-whole" type="button" onClick={() => setSelection({ x: 0, y: 0, width: 100, height: 100 })}>
           选整张
         </button>
       </div>
 
       <div
-        className="image-focus-stage"
+        className="ifs-stage"
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerEnd}
@@ -116,7 +116,7 @@ export default function ImageFocusSelector({ imageDataUrl, onApply, onCancel }) 
       >
         <img src={imageDataUrl} alt="待框选的暂停帧" draggable="false" />
         <span
-          className="image-focus-selection"
+          className="ifs-sel"
           style={{
             left: `${selection.x}%`,
             top: `${selection.y}%`,
@@ -127,11 +127,11 @@ export default function ImageFocusSelector({ imageDataUrl, onApply, onCancel }) 
         />
       </div>
 
-      {errorMessage && <p className="image-focus-error" role="alert">{errorMessage}</p>}
+      {errorMessage && <p className="ifs-error" role="alert">{errorMessage}</p>}
 
-      <div className="image-focus-actions">
-        <button className="ghost-action" type="button" onClick={onCancel} disabled={cropping}>取消</button>
-        <button className="primary-action" type="button" onClick={applySelection} disabled={cropping || selection.width < 8 || selection.height < 8}>
+      <div className="ifs-actions">
+        <button className="btn btn-ghost" type="button" onClick={onCancel} disabled={cropping}>取消</button>
+        <button className="btn btn-accent" type="button" onClick={applySelection} disabled={cropping || selection.width < 8 || selection.height < 8}>
           {cropping ? "正在裁剪" : "用选区重新识别"}
         </button>
       </div>

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import ImageFocusSelector from "./components/ImageFocusSelector";
 import SpeechInput from "./components/SpeechInput";
 import Toast from "./components/Toast";
+import Icon from "./components/Icon";
 import { fallbackUploadPlan, normalizePlan, normalizeVision, samples } from "./data/samples";
 import { agentSessionHeaders, createAgentRequestId } from "./lib/agentSession";
 import { deriveUnknownCoverageStatus, findIngredientMatch, resolveRequiredCoverage } from "./lib/targetCoverage";
@@ -1808,16 +1809,20 @@ export default function App() {
     showToast(`已记下“${option.label}”，下一版会按这个调整`);
   }
 
-  const journeyProgress = entryMode === "feed"
+  const journeySteps = entryMode === "feed" ? ["feed-target", "fridge-upload", "inventory"] : ["fridge-upload", "inventory"];
+  const journeyIndex = Math.max(0, journeySteps.indexOf(stage));
+  const journeyTotal = journeySteps.length;
+  const journeyFraction = stage === "result" ? 1 : (journeyIndex + 1) / journeyTotal;
+  const journeyStepName = entryMode === "feed"
     ? {
-        "feed-target": "第 1 步 · 想吃的菜",
-        "fridge-upload": "第 2 步 · 拍冰箱",
-        inventory: "第 3 步 · 确认食材",
+        "feed-target": "想吃的菜",
+        "fridge-upload": "拍冰箱",
+        inventory: "确认食材",
         result: "今晚方案",
       }[stage]
     : {
-        "fridge-upload": "第 1 步 · 拍冰箱",
-        inventory: "第 2 步 · 确认食材",
+        "fridge-upload": "拍冰箱",
+        inventory: "确认食材",
         result: "今晚方案",
       }[stage];
 
@@ -1826,85 +1831,102 @@ export default function App() {
   const reshootTarget = (vision?.uncertainItems || []).find((item) => !dismissedUncertaintyKeys.includes(uncertaintyKey(item))) || null;
 
   return (
-    <div className="showcase-shell">
-      <header className="app-topbar">
-        <button className="brand-home" type="button" onClick={resetAll} aria-label="返回场景选择">
-          <span className="brand-dot" />
+    <div className="shell">
+      <header className="masthead">
+        <button className="masthead-brand" type="button" onClick={resetAll} aria-label="返回场景选择">
+          <Icon name="plate" size={20} />
           <strong>今晚开饭</strong>
         </button>
-        <span className="topbar-note">{journeyProgress || "选一种开始方式"}</span>
+        {stage !== "entry" && journeyStepName && (
+          stage === "result" ? (
+            <span className="masthead-step is-done">
+              <Icon name="check" size={14} />
+              <span>{journeyStepName}</span>
+            </span>
+          ) : (
+            <span className="masthead-step">
+              <em>{String(journeyIndex + 1).padStart(2, "0")}</em>
+              <span>/ {String(journeyTotal).padStart(2, "0")} · {journeyStepName}</span>
+            </span>
+          )
+        )}
       </header>
+      {stage !== "entry" && (
+        <div className="progress" aria-hidden="true"><i style={{ width: `${Math.round(journeyFraction * 100)}%` }} /></div>
+      )}
 
       <main className="app-main">
         {stage === "entry" && (
-          <section className="screen entry-screen" aria-label="选择开始场景">
+          <section className="scr entry" aria-label="选择开始场景">
             <div className="entry-copy">
-              <h1>今晚吃什么？</h1>
-              <p className="lead">拍一下想吃的菜或家里的冰箱，告诉你现在能做什么、还差什么。</p>
+              <h1>今晚吃<mark>什么</mark>？</h1>
+              <p>拍一下想吃的菜，或直接拍冰箱。看清家里有什么，再决定今晚最可行的一顿。</p>
             </div>
 
-            <div className="journey-grid">
-              <button className="journey-card feed-card" type="button" data-testid="entry-feed" onClick={() => startJourney("feed")}>
+            <div className="entry-grid">
+              <button className="entry-panel is-primary" type="button" data-testid="entry-feed" onClick={() => startJourney("feed")}>
                 <img src="/demo-assets/菜/黄焖鸡-示例.png" alt="短视频中刷到的一道黄焖鸡" />
-                <span className="journey-shade" aria-hidden="true" />
-                <span className="journey-content">
+                <span className="entry-veil" aria-hidden="true" />
+                <span className="entry-text">
+                  <em>刷到想吃的</em>
                   <strong>想吃这道菜</strong>
-                  <span>拍张菜图，看看家里够不够做</span>
-                  <b>从这道菜开始</b>
+                  <span className="entry-go">从这道菜开始<Icon name="arrowRight" size={15} /></span>
                 </span>
               </button>
 
-              <button className="journey-card fridge-card" type="button" data-testid="entry-fridge" onClick={() => startJourney("fridge")}>
+              <button className="entry-panel" type="button" data-testid="entry-fridge" onClick={() => startJourney("fridge")}>
                 <img src="/demo-assets/fridge-images/f63de1c0794c76a412b9f06f0d919044.png" alt="打开的家用冰箱" />
-                <span className="journey-shade" aria-hidden="true" />
-                <span className="journey-content">
+                <span className="entry-veil" aria-hidden="true" />
+                <span className="entry-text">
+                  <em>打开冰箱没想法</em>
                   <strong>看看冰箱</strong>
-                  <span>拍下现有食材，帮你定一顿饭</span>
-                  <b>看看家里有什么</b>
+                  <span className="entry-go">看看家里有什么<Icon name="arrowRight" size={15} /></span>
                 </span>
               </button>
             </div>
 
+            <p className="entry-foot">每一步都由你确认 · 缺料可模拟补齐 · 做完可生成生活记录草稿</p>
           </section>
         )}
 
         {stage === "feed-target" && (
-          <section className="screen target-first-screen" aria-label="表达想吃的菜">
-            <h1>你想吃哪道菜？</h1>
-            <p className="lead">拍菜图、说菜名、打字都行，选一种就够了。</p>
+          <section className="scr" aria-label="表达想吃的菜">
+            <h1 className="display">你想吃哪道菜？</h1>
+            <p className="sub">拍菜图、说菜名、打字都行，选一种就够了。</p>
 
             <input ref={targetInputRef} type="file" accept="image/*" onChange={handleTargetFile} hidden />
             <input ref={targetCameraInputRef} type="file" accept="image/*" capture="environment" onChange={handleTargetFile} hidden />
-            <div className={`target-capture ${targetImage ? "has-image" : ""}`} aria-label="目标菜图片预览区">
+            <div className={`photo ${targetImage ? "is-filled" : ""}`} aria-label="目标菜图片预览区">
               {targetImage ? (
                 <img src={targetImage} alt="目标菜图片预览" />
               ) : (
-                <span>
-                  <strong>菜图预览区</strong>
-                  <small>还未添加画面</small>
+                <span className="photo-empty">
+                  <Icon name="camera" size={30} />
+                  <strong>还没有画面</strong>
+                  <small>拍一张刷到的菜，或从相册选</small>
                 </span>
               )}
             </div>
 
-            <div className="target-image-actions">
-              <button className="camera-upload" type="button" onClick={() => targetCameraInputRef.current?.click()}>
-                直接拍菜图
+            <div className="btn-row">
+              <button className="btn btn-accent" type="button" onClick={() => targetCameraInputRef.current?.click()}>
+                <Icon name="camera" size={17} />直接拍菜图
               </button>
-              <button className="secondary-upload" type="button" onClick={() => targetInputRef.current?.click()}>
-                {targetImage ? "选择其他图片" : "选择已有图片"}
+              <button className="btn btn-ghost" type="button" onClick={() => targetInputRef.current?.click()}>
+                <Icon name="image" size={17} />{targetImage ? "选择其他图片" : "选择已有图片"}
               </button>
             </div>
-            <button className="sample-action compact sample-link" type="button" onClick={loadDemoTargetDish} disabled={Boolean(loading)}>
+            <button className="link-btn" type="button" onClick={loadDemoTargetDish} disabled={Boolean(loading)}>
               没有图？用示例黄焖鸡
             </button>
 
             {targetImage && (
-              <div className="image-focus-toolbar">
-                <button type="button" onClick={() => setTargetFocusOpen((current) => !current)} disabled={Boolean(loading)}>
+              <div className="tool-row">
+                <button className="chip-btn" type="button" onClick={() => setTargetFocusOpen((current) => !current)} disabled={Boolean(loading)}>
                   {targetFocusOpen ? "收起框选" : "没识别准？只看这部分"}
                 </button>
                 {targetOriginalImage && targetImage !== targetOriginalImage && (
-                  <button type="button" onClick={restoreTargetImage} disabled={Boolean(loading)}>恢复整张图</button>
+                  <button className="chip-btn" type="button" onClick={restoreTargetImage} disabled={Boolean(loading)}>恢复整张图</button>
                 )}
               </div>
             )}
@@ -1917,7 +1939,7 @@ export default function App() {
               />
             )}
 
-            <div className="target-panel">
+            <div className="field">
               <label className="field-label" htmlFor="feed-target-text">确认菜名，补充你的要求</label>
               <textarea
                 id="feed-target-text"
@@ -1937,59 +1959,88 @@ export default function App() {
                 }}
               />
               {targetImageStatus && (
-                <div className="target-status">
-                  <strong>菜名确认</strong>
-                  <span>{targetImageStatus}</span>
-                </div>
+                <p className="note"><strong>菜名确认</strong>{targetImageStatus}</p>
               )}
+            </div>
+
+            <div className="cta-block">
+              <button className="btn btn-ink btn-block" type="button" onClick={continueFromFeedTarget} disabled={Boolean(loading)}>
+                下一步，看冰箱<Icon name="arrowRight" size={17} />
+              </button>
+              <button className="link-btn" type="button" onClick={() => setStage("entry")}>返回</button>
             </div>
           </section>
         )}
 
         {stage === "fridge-upload" && (
-          <section className="screen screen-upload" aria-label="添加冰箱照片">
-            <h1>{entryMode === "feed" ? "家里够不够做？" : "看看冰箱里有什么"}</h1>
-            <p className="lead">
+          <section className="scr" aria-label="添加冰箱照片">
+            <h1 className="display">{entryMode === "feed" ? "家里够不够做这道菜？" : "家里现在有哪些能用的食材？"}</h1>
+            <p className="sub">
               {entryMode === "feed"
                 ? "拍下冰箱，再选今晚愿意花多少时间。"
                 : "拍下冰箱，确认这一餐和可支配时间。"}
             </p>
 
             {entryMode === "feed" && (
-              <button className="target-context" type="button" onClick={() => setStage("feed-target")}>
+              <button className="context-bar" type="button" onClick={() => setStage("feed-target")}>
                 {targetImage && <img src={targetImage} alt="已选择的目标菜" />}
                 <span>
                   <small>今晚想吃</small>
                   <strong>{targetText || targetImageDishName || "已选择的菜"}</strong>
                 </span>
-                <b>修改</b>
+                <em>修改</em>
               </button>
             )}
 
-            <div className="mode-grid" aria-label="状态选择">
-              {modeCards.map((mode) => (
-                <button
-                  key={mode.id}
-                  className={`mode-card ${modeId === mode.id ? "selected" : ""}`}
-                  type="button"
-                  aria-pressed={modeId === mode.id}
-                  onClick={() => setMode(mode.id)}
-                >
-                  <strong>{mode.title}</strong>
-                  <span>{mode.subtitle}</span>
-                </button>
-              ))}
+            <input ref={fridgeInputRef} type="file" accept="image/*" onChange={handleFridgeFile} hidden />
+            <input ref={fridgeCameraInputRef} type="file" accept="image/*" capture="environment" onChange={handleFridgeFile} hidden />
+            <div className={`photo ${fridgeImage ? "is-filled" : ""}`} aria-label="冰箱照片预览区">
+              {fridgeImage ? (
+                <img src={fridgeImage} alt="冰箱照片预览" />
+              ) : (
+                <span className="photo-empty">
+                  <Icon name="camera" size={30} />
+                  <strong>还没有冰箱照片</strong>
+                  <small>拍一张打开冰箱的画面，或从相册选</small>
+                </span>
+              )}
             </div>
+            <div className="btn-row">
+              <button className="btn btn-accent" type="button" onClick={() => fridgeCameraInputRef.current?.click()}>
+                <Icon name="camera" size={17} />直接拍冰箱
+              </button>
+              <button className="btn btn-ghost" type="button" onClick={() => fridgeInputRef.current?.click()}>
+                <Icon name="image" size={17} />{fridgeImage ? "选择其他图片" : "选择已有图片"}
+              </button>
+            </div>
+            <button className="link-btn" type="button" onClick={loadDemoFridge} disabled={Boolean(loading)}>没有图？用示例体验</button>
 
-            <div className="confirm-panel">
-              <div>
-                <div className="field-label">餐次</div>
-                <div className="segmented">
+            <div className="ctl">
+              <div className="ctl-group">
+                <span className="field-label">今晚状态</span>
+                <div className="mode-cards" aria-label="状态选择">
+                  {modeCards.map((mode) => (
+                    <button
+                      key={mode.id}
+                      className={`mode-card ${modeId === mode.id ? "is-on" : ""}`}
+                      type="button"
+                      aria-pressed={modeId === mode.id}
+                      onClick={() => setMode(mode.id)}
+                    >
+                      <strong>{mode.title}</strong>
+                      <span>{mode.subtitle}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="ctl-group">
+                <span className="field-label">餐次</span>
+                <div className="seg">
                   {mealSlots.map((slot) => (
                     <button
                       key={slot.id}
                       type="button"
-                      className={mealSlot === slot.id ? "active" : ""}
+                      className={mealSlot === slot.id ? "is-on" : ""}
                       aria-pressed={mealSlot === slot.id}
                       onClick={() => setMealSlot(slot.id)}
                     >
@@ -1997,16 +2048,16 @@ export default function App() {
                     </button>
                   ))}
                 </div>
-                <p className="field-hint">{mealSlotHint(mealSlot)}</p>
+                <p className="hint">{mealSlotHint(mealSlot)}</p>
               </div>
-              <div>
-                <div className="field-label">你愿意花多久</div>
-                <div className="segmented">
+              <div className="ctl-group">
+                <span className="field-label">你愿意花多久</span>
+                <div className="seg">
                   {["15 分钟", "25 分钟", "40 分钟"].map((time) => (
                     <button
                       key={time}
                       type="button"
-                      className={availableTime === time ? "active" : ""}
+                      className={availableTime === time ? "is-on" : ""}
                       aria-pressed={availableTime === time}
                       onClick={() => setAvailableTime(time)}
                     >
@@ -2018,53 +2069,34 @@ export default function App() {
             </div>
 
             {confirmedInventorySnapshot?.items?.length > 0 && (
-              <details className="secondary-group inventory-snapshot-group">
-                <summary>
-                  继续用上次确认的库存 · {confirmedInventorySnapshot.items.length} 种（不代表现在仍有）
-                </summary>
-                <section className="inventory-snapshot" aria-label="上次确认的冰箱库存">
-                  <div>
-                    <strong>继续用上次确认的库存</strong>
-                    <small>
-                      {inventorySnapshotTime(confirmedInventorySnapshot.confirmedAt)} 确认 · {confirmedInventorySnapshot.items.length} 种
-                    </small>
-                    <span>{namesOf(confirmedInventorySnapshot.items, 5).join("、")}</span>
+              <details className="acc">
+                <summary>继续用上次确认的库存 · {confirmedInventorySnapshot.items.length} 种</summary>
+                <div className="acc-body">
+                  <p className="acc-line">
+                    {inventorySnapshotTime(confirmedInventorySnapshot.confirmedAt)} 确认：{namesOf(confirmedInventorySnapshot.items, 5).join("、")}
+                  </p>
+                  <div className="btn-row">
+                    <button className="btn btn-ghost" type="button" onClick={useConfirmedInventorySnapshot}>使用这份库存</button>
+                    <button className="link-btn" type="button" onClick={clearConfirmedInventorySnapshot}>清除</button>
                   </div>
-                  <div className="inventory-snapshot-actions">
-                    <button className="secondary-action" type="button" onClick={useConfirmedInventorySnapshot}>使用这份库存</button>
-                    <button className="text-link" type="button" onClick={clearConfirmedInventorySnapshot}>清除</button>
-                  </div>
-                  <p>这是本设备上次人工确认的记录，不代表食材现在仍然存在。</p>
-                </section>
+                  <p className="hint">这是本设备上次人工确认的记录，不代表食材现在仍然存在。</p>
+                </div>
               </details>
             )}
 
-            <input ref={fridgeInputRef} type="file" accept="image/*" onChange={handleFridgeFile} hidden />
-            <input ref={fridgeCameraInputRef} type="file" accept="image/*" capture="environment" onChange={handleFridgeFile} hidden />
-            <div className={`upload-tile ${fridgeImage ? "has-image" : ""}`} aria-label="冰箱照片预览区">
-              {fridgeImage ? (
-                <img src={fridgeImage} alt="冰箱照片预览" />
-              ) : (
-                <span>
-                  <strong>冰箱照片预览区</strong>
-                  <small>还未添加照片</small>
-                </span>
-              )}
-            </div>
-            <div className="fridge-image-actions">
-              <button className="camera-upload" type="button" onClick={() => fridgeCameraInputRef.current?.click()}>直接拍冰箱</button>
-              <button className="secondary-upload" type="button" onClick={() => fridgeInputRef.current?.click()}>
-                {fridgeImage ? "选择其他图片" : "选择已有图片"}
+            <div className="cta-block">
+              <button className="btn btn-ink btn-block" type="button" onClick={analyzeFridge} disabled={!fridgeImage || Boolean(loading)}>
+                {loading || "识别冰箱"}
               </button>
+              <button className="link-btn" type="button" onClick={backFromFridge}>上一步</button>
             </div>
-            <button className="sample-action compact sample-link" type="button" onClick={loadDemoFridge} disabled={Boolean(loading)}>没有图？用示例体验</button>
           </section>
         )}
 
         {stage === "inventory" && (
-          <section className="screen inventory-screen" aria-label="确认食材并选择规划方式">
-            <h1>这些食材现在都能用吗？</h1>
-            <p className="lead">点掉识别不准或现在不能用的，规划只会用你确认留下的。</p>
+          <section className="scr" aria-label="确认食材并选择规划方式">
+            <h1 className="display">这些食材现在都能用吗？</h1>
+            <p className="sub">点掉识别不准或现在不能用的，规划只会用你确认留下的。</p>
 
             <div className="ingredient-strip" aria-label="可用食材确认">
               {visibleIngredients.map((item) => (
@@ -2100,10 +2132,14 @@ export default function App() {
                 <input ref={reshootInputRef} type="file" accept="image/*" onChange={handleFridgeReshootFile} hidden />
                 <input ref={reshootCameraInputRef} type="file" accept="image/*" capture="environment" onChange={handleFridgeReshootFile} hidden />
                 <div className="uncertainty-reshoot-actions">
-                  <button className="camera-upload" type="button" onClick={() => reshootCameraInputRef.current?.click()} disabled={Boolean(loading)}>补拍这个区域</button>
-                  <button className="secondary-upload" type="button" onClick={() => reshootInputRef.current?.click()} disabled={Boolean(loading)}>选择补拍图片</button>
+                  <button className="btn btn-accent" type="button" onClick={() => reshootCameraInputRef.current?.click()} disabled={Boolean(loading)}>
+                    <Icon name="camera" size={17} />补拍这个区域
+                  </button>
+                  <button className="btn btn-ghost" type="button" onClick={() => reshootInputRef.current?.click()} disabled={Boolean(loading)}>
+                    <Icon name="image" size={17} />选择补拍图片
+                  </button>
                   <button
-                    className="text-link"
+                    className="link-btn"
                     type="button"
                     onClick={() => setDismissedUncertaintyKeys((current) => [...new Set([...current, uncertaintyKey(reshootTarget)])])}
                   >
@@ -2168,13 +2204,13 @@ export default function App() {
             )}
 
             {entryMode === "feed" ? (
-              <button className="target-context inventory-target" type="button" onClick={() => setStage("feed-target")}>
+              <button className="context-bar" type="button" onClick={() => setStage("feed-target")}>
                 {targetImage && <img src={targetImage} alt="已选择的目标菜" />}
                 <span>
                   <small>正在判断</small>
                   <strong>{targetText || targetImageDishName || "目标菜"}</strong>
                 </span>
-                <b>修改</b>
+                <em>修改</em>
               </button>
             ) : (
               <div className="choice-grid">
@@ -2200,7 +2236,7 @@ export default function App() {
             )}
 
             {entryMode === "fridge" && intent === "target" && (
-              <div className="target-panel">
+              <div className="field">
                 <label className="field-label" htmlFor="fridge-target-text">想吃的菜</label>
                 <textarea
                   id="fridge-target-text"
@@ -2221,24 +2257,24 @@ export default function App() {
                 />
                 <input ref={targetInputRef} type="file" accept="image/*" onChange={handleTargetFile} hidden />
                 <input ref={targetCameraInputRef} type="file" accept="image/*" capture="environment" onChange={handleTargetFile} hidden />
-                <div className="target-image-actions">
-                  <button className="camera-upload" type="button" onClick={() => targetCameraInputRef.current?.click()}>
-                    直接拍菜图
+                <div className="btn-row">
+                  <button className="btn btn-accent" type="button" onClick={() => targetCameraInputRef.current?.click()}>
+                    <Icon name="camera" size={17} />直接拍菜图
                   </button>
-                  <button className="secondary-upload" type="button" onClick={() => targetInputRef.current?.click()}>
-                    {targetImage ? "选择其他图片" : "选择已有图片"}
+                  <button className="btn btn-ghost" type="button" onClick={() => targetInputRef.current?.click()}>
+                    <Icon name="image" size={17} />{targetImage ? "选择其他图片" : "选择已有图片"}
                   </button>
                 </div>
-                <button className="sample-action compact sample-link" type="button" onClick={loadDemoTargetDish} disabled={Boolean(loading)}>
+                <button className="link-btn" type="button" onClick={loadDemoTargetDish} disabled={Boolean(loading)}>
                   没有图？用示例菜图
                 </button>
                 {targetImage && (
-                  <div className="image-focus-toolbar">
-                    <button type="button" onClick={() => setTargetFocusOpen((current) => !current)} disabled={Boolean(loading)}>
+                  <div className="tool-row">
+                    <button className="chip-btn" type="button" onClick={() => setTargetFocusOpen((current) => !current)} disabled={Boolean(loading)}>
                       {targetFocusOpen ? "收起框选" : "没识别准？只看这部分"}
                     </button>
                     {targetOriginalImage && targetImage !== targetOriginalImage && (
-                      <button type="button" onClick={restoreTargetImage} disabled={Boolean(loading)}>恢复整张图</button>
+                      <button className="chip-btn" type="button" onClick={restoreTargetImage} disabled={Boolean(loading)}>恢复整张图</button>
                     )}
                   </div>
                 )}
@@ -2250,14 +2286,11 @@ export default function App() {
                   />
                 )}
                 {targetImageStatus && (
-                  <div className="target-status">
-                    <strong>菜名确认</strong>
-                    <span>{targetImageStatus}</span>
-                  </div>
+                  <p className="note"><strong>菜名确认</strong>{targetImageStatus}</p>
                 )}
                 {targetImage && (
                   <button
-                    className="ghost-action"
+                    className="btn btn-ghost btn-block"
                     type="button"
                     onClick={() => analyzeTargetImage({ shouldOverwriteText: true })}
                     disabled={Boolean(loading)}
@@ -2291,36 +2324,18 @@ export default function App() {
         )}
       </main>
 
-      {stage !== "entry" && stage !== "result" && (
+      {stage === "inventory" && (
         <footer className="bottom-action">
-          {stage === "feed-target" && (
-            <div className="footer-row">
-              <button className="ghost-action" type="button" onClick={() => setStage("entry")}>返回</button>
-              <button className="primary-action" type="button" onClick={continueFromFeedTarget} disabled={Boolean(loading)}>
-                下一步，看冰箱
-              </button>
-            </div>
-          )}
-          {stage === "fridge-upload" && (
-            <div className="footer-row">
-              <button className="ghost-action" type="button" onClick={backFromFridge}>上一步</button>
-              <button className="primary-action" type="button" onClick={analyzeFridge} disabled={!fridgeImage || Boolean(loading)}>
-                {loading || "识别冰箱"}
-              </button>
-            </div>
-          )}
-          {stage === "inventory" && (
           <div className="footer-row">
             {result ? (
-              <button className="secondary-action" type="button" onClick={() => openSavedPlan()}>查看当前方案</button>
+              <button className="btn btn-ghost" type="button" onClick={() => openSavedPlan()}>查看当前方案</button>
             ) : (
-              <button className="ghost-action" type="button" onClick={() => setStage("fridge-upload")}>上一步</button>
+              <button className="btn btn-ghost" type="button" onClick={() => setStage("fridge-upload")}>上一步</button>
             )}
-            <button className="primary-action" type="button" onClick={() => createPlan()} disabled={Boolean(loading)}>
+            <button className="btn btn-ink" type="button" onClick={() => createPlan()} disabled={Boolean(loading)}>
               {loading || (result ? "生成新方案" : intent === "target" ? "看看家里够不够做" : "生成这一餐")}
             </button>
           </div>
-          )}
         </footer>
       )}
 
@@ -2380,6 +2395,15 @@ function ResultView({ result, modeId, mealSlot, onReplan, onRestart, onAction, o
             <strong>补齐后方案 · 模拟</strong>
             <span>本轮已把 {result.shoppingPreview.acceptedItems.join("、")} 当作可用材料重新规划；没有发生真实下单。</span>
           </section>
+        )}
+
+        {mustBuy.length > 0 && (
+          <div className="cta-block">
+            <button className="btn btn-accent btn-block" type="button" onClick={() => onShopAndReplan(mustBuy)}>
+              <Icon name="basket" size={17} />去抖音商城补齐
+            </button>
+            <p className="hint">模拟加入购物车并重新规划，不会真实下单或扣款。</p>
+          </div>
         )}
 
         <section className="compact-section">
@@ -2477,14 +2501,6 @@ function ResultView({ result, modeId, mealSlot, onReplan, onRestart, onAction, o
                 <strong>家里可能有，做之前确认</strong>
                 <div className="pill-list">{confirmAtHome.map((item) => <span key={item}>{item}</span>)}</div>
               </div>
-            )}
-            {mustBuy.length > 0 && (
-              <>
-                <button className="ecosystem-action" type="button" onClick={() => onShopAndReplan(mustBuy)}>
-                  补齐后重算
-                </button>
-                <small className="shopping-plan-boundary">这里只预览补购如何改变方案，不会真实下单或扣款。</small>
-              </>
             )}
           </section>
         )}
@@ -2793,9 +2809,9 @@ function PlanHistory({ plans = [], currentPlan, onSelect }) {
 function ResultActions({ onReplan, onGenerateAlternative, onRestart }) {
   return (
     <div className="result-actions">
-      <button className="secondary-action" type="button" onClick={onReplan}>调整条件</button>
-      <button className="primary-action" type="button" onClick={onGenerateAlternative}>再生成一个方案</button>
-      <button className="text-link" type="button" onClick={onRestart}>换一种开始方式</button>
+      <button className="btn btn-ghost" type="button" onClick={onReplan}>调整条件</button>
+      <button className="btn btn-ink" type="button" onClick={onGenerateAlternative}>再生成一个方案</button>
+      <button className="link-btn" type="button" onClick={onRestart}>换一种开始方式</button>
     </div>
   );
 }
