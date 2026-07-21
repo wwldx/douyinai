@@ -27,19 +27,27 @@ export function createDemoVisionCache(dataRoot, options = {}) {
     if (!enabled) return null;
     const registry = await loadRegistry(kind);
     const fileName = normalizeFileName(request?.sourceFileName);
+    const demoKey = normalizeFileName(request?.demoKey);
     const imageHash = hashDataUrl(request?.imageDataUrl);
     const signature = requestSignature(kind, request);
 
     for (const entry of registry.entries) {
       if (kind === "dishRescue" && (!signature || normalizeSignature(entry.requestSignature) !== signature)) continue;
-      const names = normalizeList([entry.fileName, ...(entry.fileNames || []), ...(entry.cacheKeys || [])]);
-      if (fileName && names.includes(fileName)) {
-        return { entry, matchedBy: "fileName", key: fileName };
-      }
-
       const hashes = normalizeList([entry.imageHash, ...(entry.imageHashes || [])]);
       if (imageHash && hashes.includes(imageHash)) {
         return { entry, matchedBy: "imageHash", key: imageHash };
+      }
+
+      const cacheKeys = normalizeList(entry.cacheKeys || []);
+      if (demoKey && cacheKeys.includes(demoKey)) {
+        return { entry, matchedBy: "demoKey", key: demoKey };
+      }
+
+      if (request?.allowFileNameMatch === true || !["fridge", "targetDish"].includes(kind)) {
+        const names = normalizeList([entry.fileName, ...(entry.fileNames || [])]);
+        if (fileName && names.includes(fileName)) {
+          return { entry, matchedBy: "fileName", key: fileName };
+        }
       }
     }
 

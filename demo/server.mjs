@@ -1160,8 +1160,8 @@ const server = createServer(async (req, res) => {
       const visionStartedAt = performance.now();
       const outcome = await demoVisionCache.race(
         "fridge",
-        { imageDataUrl: body.imageDataUrl, sourceFileName: body.sourceFileName },
-        () => analyzeFridge(body.imageDataUrl, modelClients.vision),
+        { imageDataUrl: body.imageDataUrl, demoKey: body.demoKey },
+        () => analyzeFridge(body.imageDataUrl, modelClients.vision, { analysisMode: body.analysisMode }),
       );
       const visionMs = performance.now() - visionStartedAt;
       const modelMeta = readModelResponseMeta(outcome.result);
@@ -1215,7 +1215,7 @@ const server = createServer(async (req, res) => {
       const visionStartedAt = performance.now();
       const outcome = await demoVisionCache.race(
         "targetDish",
-        { imageDataUrl: body.imageDataUrl, sourceFileName: body.sourceFileName },
+        { imageDataUrl: body.imageDataUrl, demoKey: body.demoKey },
         () => analyzeTargetDish(body.imageDataUrl, modelClients.vision),
       );
       const visionMs = performance.now() - visionStartedAt;

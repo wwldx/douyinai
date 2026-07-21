@@ -7,6 +7,7 @@ export async function planDinner({ inventory, userContext, retrievedCases = [] }
     "不要只给菜谱，要先判断今晚适不适合自己做。",
     "新手用户不要推荐高风险动作，例如油炸、复杂刀工、处理整鱼整鸡。",
     "必须考虑时间、精力和安全边界；如果时间太晚或食材风险高，优先速食或外卖兜底。",
+    "userContext.context.timeBudgetId 是用户亲选的时间语义档；flexible 表示今晚不赶时间，不等于无限时长。做饭耗时只计算从备菜到出锅，补购或配送耗时另计。",
     "如果 userContext.profile.traits 中出现低洗锅、深夜热食、快手饭、清淡偏好等标签，需要在 personalizationNotes 中用中性语言说明参考依据。",
     "不要把推断标签说成人格评价；例如说“近期深夜用餐请求较多”，不要说“你是夜猫子”。",
     "至少输出一个保底方案；缺料只推荐 0 到 3 个关键补买项。",

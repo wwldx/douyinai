@@ -8,6 +8,7 @@
       "sourcePath": "assets/fridge-images/330d23dcca05ea8e54bbe6bace6677e7.png",
       "cachedAt": "2026-07-18",
       "vision": {
+        "sceneAssessment": { "kind": "fridge", "reason": "画面可见冰箱冷藏室层架与内部食材。" },
         "items": [
           { "name": "圆白菜", "category": "蔬菜", "quantityEstimate": "约 1 颗", "confidence": 0.86, "state": "需要确认新鲜度", "notes": "中层左侧" },
           { "name": "花菜", "category": "蔬菜", "quantityEstimate": "约 1 颗", "confidence": 0.8, "state": "看起来可用", "notes": "中层左下" },
@@ -30,9 +31,11 @@
     {
       "id": "real-fridge-f63de1",
       "fileName": "f63de1c0794c76a412b9f06f0d919044.png",
+      "cacheKeys": ["sample-fridge-01"],
       "sourcePath": "assets/fridge-images/f63de1c0794c76a412b9f06f0d919044.png",
       "cachedAt": "2026-05-23",
       "vision": {
+        "sceneAssessment": { "kind": "fridge", "reason": "画面可见打开的冰箱内部、层架与抽屉。" },
         "items": [
           { "name": "土豆", "category": "蔬菜", "quantityEstimate": "一袋", "confidence": 0.94, "state": "看起来可用", "notes": "中层左侧网袋" },
           { "name": "玉米", "category": "蔬菜", "quantityEstimate": "2 根", "confidence": 0.88, "state": "看起来可用", "notes": "中层右侧" },
@@ -57,6 +60,7 @@
       "sourcePath": "assets/imgs-ai/day1.png",
       "cachedAt": "2026-05-23",
       "vision": {
+        "sceneAssessment": { "kind": "fridge", "reason": "画面可见冰箱内部层架与食材。" },
         "items": [
           { "name": "鸡蛋", "category": "蛋奶", "quantityEstimate": "约 12 个以上", "confidence": 0.94, "state": "需确认保质期", "notes": "上层和中层蛋盒" },
           { "name": "西兰花", "category": "蔬菜", "quantityEstimate": "1 颗", "confidence": 0.93, "state": "看起来可用", "notes": "下层中间" },
@@ -80,6 +84,7 @@
       "sourcePath": "assets/imgs-ai/day2.png",
       "cachedAt": "2026-05-23",
       "vision": {
+        "sceneAssessment": { "kind": "fridge", "reason": "画面可见冰箱内部层架与食材。" },
         "items": [
           { "name": "鸡蛋", "category": "蛋奶", "quantityEstimate": "3 个", "confidence": 0.94, "state": "需确认保质期", "notes": "上层左侧" },
           { "name": "酸奶", "category": "蛋奶", "quantityEstimate": "1 杯", "confidence": 0.83, "state": "需确认保质期", "notes": "上层中间" },
@@ -102,6 +107,7 @@
       "sourcePath": "assets/imgs-ai/day3.png",
       "cachedAt": "2026-05-23",
       "vision": {
+        "sceneAssessment": { "kind": "fridge", "reason": "画面可见冰箱内部层架与食材。" },
         "items": [
           { "name": "鸡蛋", "category": "蛋奶", "quantityEstimate": "1 个", "confidence": 0.94, "state": "需确认保质期", "notes": "上层左侧" },
           { "name": "酱料杯", "category": "调味", "quantityEstimate": "3 杯", "confidence": 0.78, "state": "需确认内容和存放时间", "notes": "上层右侧" },
@@ -121,6 +127,7 @@
       "sourcePath": "assets/imgs-ai/day4.png",
       "cachedAt": "2026-05-23",
       "vision": {
+        "sceneAssessment": { "kind": "fridge", "reason": "画面可见冰箱内部层架与食材。" },
         "items": [
           { "name": "饮料", "category": "饮料", "quantityEstimate": "多瓶", "confidence": 0.86, "state": "包装可见", "notes": "门架和上层" },
           { "name": "鸡蛋", "category": "蛋奶", "quantityEstimate": "约 5 个", "confidence": 0.92, "state": "需确认保质期", "notes": "上层蛋盒" },
@@ -148,6 +155,7 @@
       "sourcePath": "assets/imgs-ai/day5.png",
       "cachedAt": "2026-05-23",
       "vision": {
+        "sceneAssessment": { "kind": "fridge", "reason": "画面可见冰箱内部层架与食材。" },
         "items": [
           { "name": "饮料", "category": "饮料", "quantityEstimate": "2 杯", "confidence": 0.92, "state": "需确认放置时间", "notes": "上层左侧两只无标签玻璃杯" },
           { "name": "鸡蛋", "category": "蛋奶", "quantityEstimate": "3 个", "confidence": 0.96, "state": "需确认保质期", "notes": "上层右侧蛋盒" },
@@ -168,6 +176,7 @@
       "sourcePath": "assets/imgs-ai/day6.png",
       "cachedAt": "2026-05-23",
       "vision": {
+        "sceneAssessment": { "kind": "fridge", "reason": "画面可见冰箱内部层架与食材。" },
         "items": [
           { "name": "鸡蛋", "category": "蛋奶", "quantityEstimate": "约 6 个", "confidence": 0.94, "state": "需确认保质期", "notes": "上层左侧" },
           { "name": "果汁", "category": "饮料", "quantityEstimate": "2 瓶", "confidence": 0.88, "state": "包装可见", "notes": "上层右侧" },
@@ -186,6 +195,7 @@
       "sourcePath": "assets/imgs-ai/day7.png",
       "cachedAt": "2026-05-23",
       "vision": {
+        "sceneAssessment": { "kind": "fridge", "reason": "画面可见冰箱内部层架与食材。" },
         "items": [
           { "name": "饮料", "category": "饮料", "quantityEstimate": "多瓶", "confidence": 0.86, "state": "包装可见", "notes": "上层左侧" },
           { "name": "鸡蛋", "category": "蛋奶", "quantityEstimate": "约 4 个", "confidence": 0.92, "state": "需确认保质期", "notes": "上层中间" },

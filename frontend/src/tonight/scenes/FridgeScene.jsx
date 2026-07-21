@@ -1,249 +1,480 @@
-import { useMemo, useRef, useState } from "react";
-import { DISH_SAMPLE, FRIDGE_SAMPLE, itemInInventory } from "../flagshipData";
-import { fileToDataUrl, urlToDataUrl } from "../imageData";
+import { useEffect, useMemo, useRef, useState } from "react";
+import SpeechInput from "../../components/SpeechInput";
+import { SourceBadge, TimeBudgetPicker, UnsurePanel } from "../bits";
+import { imageSourceLabel, itemDisplayName, loadInventorySnapshot, namesMatch, snapshotAgeLabel } from "../model";
 
-export default function FridgeScene({ dishName, initialImage, initialIsSample, initialItems, onBack, onConfirm }) {
+function Dots({ steps, current }) {
+  return (
+    <ol className="tn-dots" aria-label="进度">
+      {steps.map((label, i) => (
+        <li key={label} className={i === current ? "is-now" : i < current ? "is-done" : ""} aria-current={i === current ? "step" : undefined}>
+          <span className="tn-dots-dot" aria-hidden="true" />
+          <span className="tn-dots-label">{label}</span>
+        </li>
+      ))}
+    </ol>
+  );
+}
+
+export default function FridgeScene({
+  route, dishName, dishAnalysis, fridge, fixedDemo,
+  inventory, inventoryMode, inventoryConfirmed, timeBudgetId, setTimeBudgetId, note, setNote,
+  reshootResult, onCapture, onSampleFridge, onUseLast, onReshoot,
+  onClearReshoot, onResetCapture, onConfirmInventory, onBenchConfirm, onBack,
+}) {
   const cameraRef = useRef(null);
   const albumRef = useRef(null);
-  const [image, setImage] = useState(initialImage);
-  const [isSample, setIsSample] = useState(initialIsSample);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const isFeed = route === "feed";
+  const steps = isFeed ? ["这道菜", "现实", "决定"] : ["冰箱", "盘点", "决定"];
 
-  // 已看到的食材：默认全选；返回时按上次确认结果还原
-  const [excluded, setExcluded] = useState(() =>
-    initialImage
-      ? FRIDGE_SAMPLE.seen.filter((s) => !initialItems.includes(s.name)).map((s) => s.name)
-      : [],
-  );
-  // 人工修正对照结果：needId -> "have" | "missing"
+  const [step, setStep] = useState(() => (inventoryConfirmed || fridge?.vision || inventory.length ? "confirm" : "capture"));
+  const [excluded, setExcluded] = useState([]);
+  const [manualAdds, setManualAdds] = useState([]);
   const [overrides, setOverrides] = useState({});
-  // 人工补登的食材（包括看清了的遮挡物）
-  const [manualAdds, setManualAdds] = useState(() =>
-    initialItems.filter((n) => !FRIDGE_SAMPLE.seen.some((s) => s.name === n)),
-  );
-  const [unsureState, setUnsureState] = useState({}); // id -> "ignored" | "naming" | "added"
-  const [unsureNames, setUnsureNames] = useState({});
   const [addingName, setAddingName] = useState("");
+  const [manualMode, setManualMode] = useState(false);
+  const [emptyDeclared, setEmptyDeclared] = useState(false);
+  const [benchDish, setBenchDish] = useState("");
 
-  const includedSeen = useMemo(
-    () => FRIDGE_SAMPLE.seen.filter((s) => !excluded.includes(s.name)),
-    [excluded],
+  const visionItems = useMemo(() => (fridge?.vision?.items || []), [fridge]);
+  const baseItems = useMemo(
+    () => (inventoryConfirmed || (inventoryMode === "last" && !fridge?.vision) ? inventory : visionItems),
+    [inventoryConfirmed, inventoryMode, fridge, inventory, visionItems],
   );
 
-  const baseNames = useMemo(
-    () => [...includedSeen.map((s) => s.name), ...manualAdds],
-    [includedSeen, manualAdds],
+  // 识别完成且有效后自动进入确认步骤（失败三态停留在拍摄步骤展示横幅）
+  useEffect(() => {
+    if (fridge?.vision && fridge?.status === "ok" && step === "capture" && !manualMode) setStep("confirm");
+  }, [fridge, step, manualMode]);
+
+  useEffect(() => {
+    if (inventoryMode === "last" && !fridge && step === "capture") setStep("confirm");
+  }, [inventoryMode, fridge, step]);
+
+  useEffect(() => {
+    if (!inventoryConfirmed) return;
+    setExcluded([]);
+    setManualAdds([]);
+    setOverrides({});
+  }, [inventoryConfirmed]);
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+  }, [step]);
+
+  const includedNames = useMemo(() => {
+    const names = [
+      ...baseItems.map(itemDisplayName).filter((n) => n && !excluded.includes(n)),
+      ...manualAdds,
+    ];
+    return [...new Set(names)];
+  }, [baseItems, excluded, manualAdds]);
+  const standaloneManualAdds = useMemo(
+    () => manualAdds.filter((name) => !baseItems.some((item) => !excluded.includes(itemDisplayName(item)) && namesMatch(name, itemDisplayName(item)))),
+    [manualAdds, baseItems, excluded],
   );
 
-  function needStatus(need) {
-    const forced = overrides[need.id];
+  // Feed 对照：目标菜关键材料 vs 已确认库存
+  const needNames = useMemo(() => {
+    if (!isFeed) return [];
+    const raw = dishAnalysis?.likelyIngredients;
+    if (!Array.isArray(raw)) return [];
+    return raw.map(itemDisplayName).filter(Boolean).slice(0, 8);
+  }, [isFeed, dishAnalysis]);
+
+  function needStatus(name) {
+    const forced = overrides[name];
     if (forced) return forced;
-    return itemInInventory(need, baseNames) ? "have" : "missing";
-  }
-
-  const neededList = DISH_SAMPLE.needed.filter((n) => !n.staple);
-  const matchedNames = new Set(
-    neededList.filter((n) => needStatus(n) === "have").map((n) => n.name),
-  );
-
-  function toggleSeen(name) {
-    setExcluded((cur) => (cur.includes(name) ? cur.filter((n) => n !== name) : [...cur, name]));
+    return includedNames.some((held) => namesMatch(held, name)) ? "have" : "missing";
   }
 
   function addManual(name) {
-    const clean = name.trim();
-    if (!clean) return false;
+    const clean = String(name || "").trim();
+    if (!clean) return;
     setManualAdds((cur) => (cur.includes(clean) ? cur : [...cur, clean]));
     setAddingName("");
-    return true;
   }
 
-  async function loadSample() {
-    setError("");
-    setLoading(true);
-    try {
-      setImage(await urlToDataUrl(FRIDGE_SAMPLE.imageUrl));
-      setIsSample(true);
-    } catch (err) {
-      setError(err.message || "示例冰箱加载失败");
-    } finally {
-      setLoading(false);
-    }
+  function confirmedItems() {
+    const fromVision = baseItems
+      .filter((item) => !excluded.includes(itemDisplayName(item)))
+      .map((item) => ({
+        name: itemDisplayName(item),
+        category: String(item?.category || "").trim(),
+        quantityEstimate: String(item?.quantityEstimate || "").trim(),
+        state: String(item?.state || "用户确认可用").trim(),
+        notes: String(item?.notes || "").trim(),
+      }));
+    const fromManual = standaloneManualAdds.map((name) => ({ name, category: "", quantityEstimate: "", state: "用户手动确认", notes: "" }));
+    const fromOverrides = needNames
+      .filter((name) => overrides[name] === "have" && !includedNames.some((held) => namesMatch(held, name)))
+      .map((name) => ({ name, category: "", quantityEstimate: "", state: "用户确认家里有", notes: "" }));
+    const explicitlyMissing = Object.entries(overrides)
+      .filter(([, value]) => value === "missing")
+      .map(([name]) => name);
+    const withoutMissing = [...fromVision, ...fromManual, ...fromOverrides]
+      .filter((item) => !explicitlyMissing.some((name) => namesMatch(name, item.name)));
+    const seen = new Set();
+    return withoutMissing.filter((item) => {
+      if (!item.name || seen.has(item.name)) return false;
+      seen.add(item.name);
+      return true;
+    });
   }
 
-  async function handleFile(event) {
+  function handleFile(event) {
     const file = event.target.files?.[0];
     event.target.value = "";
     if (!file) return;
-    setError("");
-    try {
-      setImage(await fileToDataUrl(file));
-      setIsSample(false);
-    } catch (err) {
-      setError(err.message || "图片读取失败");
-    }
+    setManualMode(false);
+    setEmptyDeclared(false);
+    setExcluded([]);
+    setManualAdds([]);
+    setOverrides({});
+    onClearReshoot();
+    onCapture(file, event.target.dataset.source || "album");
   }
 
-  function confirm() {
-    const names = new Set(baseNames);
-    for (const need of neededList) {
-      const status = needStatus(need);
-      if (status === "have") names.add(need.name);
-      if (status === "missing") names.delete(need.name);
-    }
-    onConfirm({ image, isSample, items: [...names] });
+  function resetToCapture() {
+    onResetCapture();
+    setStep("capture");
+    setManualMode(false);
+    setEmptyDeclared(false);
+    setExcluded([]);
+    setManualAdds([]);
+    setOverrides({});
   }
 
-  return (
-    <section className="tn-scene tn-fridge" aria-label="对照现实冰箱">
-      <header className="tn-scene-head">
-        <button type="button" className="tn-back" onClick={onBack} aria-label="返回确认菜名">‹</button>
-        <p className="tn-scene-kicker">再看看家里的现实</p>
-      </header>
+  const status = fridge?.status || "";
+  const snapshot = loadInventorySnapshot();
 
-      {!image ? (
+  // ---------- 失败三态横幅 ----------
+
+  function FailureBanner() {
+    if (status === "not_fridge") {
+      return (
+        <div className="tn-failbox" role="alert">
+          <p className="tn-failbox-title">这看起来不像是冰箱内部</p>
+          <p className="tn-failbox-detail">换一张正对冰箱内部的照片，或者改用其他方式。</p>
+          <FailureActions />
+        </div>
+      );
+    }
+    if (status === "unusable") {
+      return (
+        <div className="tn-failbox" role="alert">
+          <p className="tn-failbox-title">画面太模糊或遮挡严重，无法判断</p>
+          <p className="tn-failbox-detail">补一张光线好一点、能看清层架的照片。</p>
+          <FailureActions />
+        </div>
+      );
+    }
+    if (status === "failed") {
+      return (
+        <div className="tn-failbox" role="alert">
+          <p className="tn-failbox-title">这次识别没有完成</p>
+          <p className="tn-failbox-detail">网络或模型暂时不可用，识别已停止，不会用空库存冒充结果。</p>
+          <FailureActions />
+        </div>
+      );
+    }
+    if (status === "unknown") {
+      return (
+        <div className="tn-failbox" role="alert">
+          <p className="tn-failbox-title">这张图还不能作为冰箱库存依据</p>
+          <p className="tn-failbox-detail">画面类型没有可靠确认；请重拍、手动填写，或重新核对上次库存。</p>
+          <FailureActions />
+        </div>
+      );
+    }
+    return null;
+  }
+
+  function FailureActions() {
+    return (
+      <div className="tn-failbox-actions">
+        <button type="button" className="tn-btn tn-btn-quiet" onClick={() => cameraRef.current?.click()}>重新拍摄</button>
+        <button type="button" className="tn-btn tn-btn-quiet" onClick={() => albumRef.current?.click()}>更换图片</button>
+        <button type="button" className="tn-btn tn-btn-quiet" onClick={() => { setManualMode(true); setStep("confirm"); }}>手动填写</button>
+        {snapshot && (
+          <button type="button" className="tn-btn tn-btn-quiet" onClick={onUseLast}>
+            用上次库存（{snapshotAgeLabel(snapshot.confirmedAt)}）重新核对
+          </button>
+        )}
+      </div>
+    );
+  }
+
+  // ---------- 尚未拍摄 ----------
+
+  if (step === "capture") {
+    return (
+      <section className="tn-scene tn-fridge" aria-label="拍冰箱">
+        <header className="tn-scene-head">
+          <button type="button" className="tn-back" onClick={onBack} aria-label="返回">‹</button>
+          <Dots steps={steps} current={isFeed ? 1 : 0} />
+        </header>
+
+        <FailureBanner />
+
         <div className="tn-fridge-empty">
-          <p className="tn-fridge-ask">打开冰箱，拍一张</p>
-          <p className="tn-fridge-sub">不用收拾，原样拍就行。AI 看完会请你逐项确认。</p>
+          <p className="tn-fridge-ask">{isFeed ? "再看看家里的现实" : "打开冰箱，拍一张"}</p>
+          <p className="tn-fridge-sub">不用收拾，原样拍就行。AI 看完会请你逐项确认，看不清的不会替你猜。</p>
           <div className="tn-fridge-capture">
             <button type="button" className="tn-btn tn-btn-primary tn-btn-xl" onClick={() => cameraRef.current?.click()}>
               拍冰箱
             </button>
             <div className="tn-feed-alt">
               <button type="button" className="tn-btn tn-btn-quiet" onClick={() => albumRef.current?.click()}>从相册选</button>
-              <button type="button" className="tn-btn tn-btn-quiet" onClick={loadSample} disabled={loading}>
-                {loading ? "载入中…" : "用示例冰箱"}
+              <button type="button" className="tn-btn tn-btn-quiet" onClick={onSampleFridge}>用示例冰箱</button>
+            </div>
+            {snapshot && (
+              <button type="button" className="tn-link" onClick={onUseLast}>
+                用上次确认的库存（{snapshotAgeLabel(snapshot.confirmedAt)}）重新核对——不代表这些食材现在仍在
               </button>
-            </div>
-          </div>
-          {error && <p className="tn-error" role="alert">{error}</p>}
-        </div>
-      ) : (
-        <>
-          <div className="tn-fridge-media">
-            <img src={image} alt="冰箱内部照片" />
-            {isSample
-              ? <span className="tn-badge tn-badge-sample">示例识别</span>
-              : <span className="tn-badge tn-badge-demo">演示数据 · 真实识别接入前</span>}
-            <button type="button" className="tn-btn tn-btn-glass tn-fridge-rebtn" onClick={() => setImage(null)}>重拍</button>
-          </div>
-
-          <div className="tn-compare" aria-label="这道菜需要 vs 冰箱里看到的">
-            <p className="tn-compare-title">做「{dishName}」，对一遍</p>
-            <ul className="tn-compare-list">
-              {neededList.map((need) => {
-                const status = needStatus(need);
-                return (
-                  <li key={need.id} className={`tn-need is-${status}`}>
-                    <span className="tn-need-mark" aria-hidden="true">{status === "have" ? "✓" : "✗"}</span>
-                    <span className="tn-need-name">{need.name}</span>
-                    <span className="tn-need-detail">{need.detail}</span>
-                    <button
-                      type="button"
-                      className="tn-need-toggle"
-                      onClick={() =>
-                        setOverrides((cur) => ({ ...cur, [need.id]: status === "have" ? "missing" : "have" }))
-                      }
-                    >
-                      {status === "have" ? "其实没有" : "其实有"}
-                    </button>
-                    <span className="tn-sronly">{status === "have" ? "家里有" : "没看到"}</span>
-                  </li>
-                );
-              })}
-            </ul>
-            <p className="tn-compare-note">
-              酱油、料酒、姜按家里常备算；不匹配可在下一步结果里再改。
-              {matchedNames.size > 0 && ` 已对上 ${matchedNames.size} 样。`}
-            </p>
-          </div>
-
-          <div className="tn-field">
-            <p className="tn-field-label">冰箱还看到（点掉家里没有的）</p>
-            <div className="tn-chips">
-              {FRIDGE_SAMPLE.seen.map((s) => (
-                <button
-                  key={s.name}
-                  type="button"
-                  aria-pressed={!excluded.includes(s.name)}
-                  className={`tn-chip ${excluded.includes(s.name) ? "" : "is-on"}`}
-                  onClick={() => toggleSeen(s.name)}
-                >
-                  {s.name}
-                  <small>{s.detail}</small>
-                </button>
-              ))}
-            </div>
-            <div className="tn-addrow">
-              <input
-                className="tn-note-input"
-                value={addingName}
-                onChange={(e) => setAddingName(e.target.value)}
-                placeholder="还有没认出来的？手动加上"
-                aria-label="手动添加食材"
-                onKeyDown={(e) => { if (e.key === "Enter") addManual(addingName); }}
-              />
-              <button type="button" className="tn-btn tn-btn-quiet" onClick={() => addManual(addingName)}>加上</button>
-            </div>
-            {manualAdds.length > 0 && (
-              <div className="tn-chips">
-                {manualAdds.map((n) => (
-                  <button key={n} type="button" className="tn-chip is-on" onClick={() => setManualAdds((cur) => cur.filter((x) => x !== n))}>
-                    {n}<small>手动加的 · 点按移除</small>
-                  </button>
-                ))}
-              </div>
             )}
           </div>
+        </div>
 
-          <div className="tn-unsure">
-            <p className="tn-field-label">这几处 AI 看不清，不会替你猜</p>
-            {FRIDGE_SAMPLE.unsure.map((u) => {
-              const state = unsureState[u.id] || "pending";
-              return (
-                <div key={u.id} className="tn-unsure-item">
-                  <p><strong>{u.description}</strong><span>{u.reason}</span></p>
-                  {state === "pending" && (
-                    <div className="tn-unsure-actions">
-                      <button type="button" className="tn-chip tn-chip-mini" onClick={() => setUnsureState((c) => ({ ...c, [u.id]: "naming" }))}>我知道是什么</button>
-                      <button type="button" className="tn-chip tn-chip-mini" onClick={() => setUnsureState((c) => ({ ...c, [u.id]: "ignored" }))}>忽略</button>
-                    </div>
-                  )}
-                  {state === "naming" && (
-                    <div className="tn-addrow">
-                      <input
-                        className="tn-note-input"
-                        value={unsureNames[u.id] || ""}
-                        onChange={(e) => setUnsureNames((c) => ({ ...c, [u.id]: e.target.value }))}
-                        placeholder="它是什么"
-                        aria-label={`${u.description} 是什么`}
-                      />
-                      <button type="button" className="tn-btn tn-btn-quiet" onClick={() => {
-                        if (addManual(unsureNames[u.id] || "")) {
-                          setUnsureState((c) => ({ ...c, [u.id]: "added" }));
-                        }
-                      }}>加进库存</button>
-                    </div>
-                  )}
-                  {state === "added" && <span className="tn-unsure-done">已确认并加入库存</span>}
-                  {state === "ignored" && <span className="tn-unsure-done">已忽略，不进库存</span>}
-                </div>
-              );
-            })}
-            <p className="tn-warning" role="note">{FRIDGE_SAMPLE.warnings[0]}</p>
+        <input ref={cameraRef} data-source="camera" type="file" accept="image/*" capture="environment" hidden onChange={handleFile} />
+        <input ref={albumRef} data-source="album" type="file" accept="image/*" hidden onChange={handleFile} />
+      </section>
+    );
+  }
+
+  // ---------- 规划台（冰箱路线第二步） ----------
+
+  if (step === "bench") {
+    const canPlan = Boolean(timeBudgetId);
+    const benchDishName = benchDish.trim();
+    return (
+      <section className="tn-scene tn-bench" aria-label="规划台">
+        <header className="tn-scene-head">
+          <button type="button" className="tn-back" onClick={() => setStep("confirm")} aria-label="返回库存确认">‹</button>
+          <Dots steps={steps} current={1} />
+        </header>
+
+        <div className="tn-bench-summary">
+          <p className="tn-field-label">已确认 {inventory.length} 样</p>
+          <div className="tn-chips">
+            {inventory.slice(0, 10).map((item) => (
+              <span key={itemDisplayName(item)} className="tn-chip is-on">{itemDisplayName(item)}</span>
+            ))}
+            {inventory.length === 0 && <span className="tn-chip">空库存（你已确认）</span>}
+          </div>
+          <button type="button" className="tn-link" onClick={() => setStep("confirm")}>回去改库存</button>
+        </div>
+
+        <div className="tn-bench-intent">
+          <p className="tn-bench-ask">接下来怎么定？</p>
+          <div className="tn-field">
+            <p className="tn-field-label">可选：我也有想吃的菜</p>
+            <div className="tn-note">
+              <input
+                className="tn-note-input"
+                value={benchDish}
+                onChange={(e) => setBenchDish(e.target.value)}
+                placeholder="输入菜名，比如 番茄牛腩"
+                aria-label="想吃的菜（可选）"
+              />
+              <SpeechInput onTranscript={(text) => setBenchDish(text)} />
+            </div>
           </div>
 
-          <footer className="tn-scene-foot">
-            <button type="button" className="tn-btn tn-btn-primary tn-btn-xl" onClick={confirm}>
-              库存确认了，给我今晚的决定
+          <TimeBudgetPicker value={timeBudgetId} onChange={setTimeBudgetId} />
+
+          <div className="tn-field">
+            <p className="tn-field-label">还有什么要求？（可选）</p>
+            <input
+              className="tn-note-input"
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              placeholder="比如：少油、想吃点热乎的"
+              aria-label="补充要求"
+            />
+          </div>
+        </div>
+
+        <footer className="tn-scene-foot">
+          {benchDishName ? (
+            <button
+              type="button"
+              className="tn-btn tn-btn-primary tn-btn-xl"
+              disabled={!canPlan}
+              onClick={() => onBenchConfirm({ intentType: "target_dish", dishName: benchDishName, timeId: timeBudgetId, note })}
+            >
+              看看家里够不够做「{benchDishName}」
             </button>
-          </footer>
-        </>
+          ) : (
+            <button
+              type="button"
+              className="tn-btn tn-btn-primary tn-btn-xl"
+              disabled={!canPlan}
+              onClick={() => onBenchConfirm({ intentType: "inventory_driven", timeId: timeBudgetId, note })}
+            >
+              按现有库存帮我决定
+            </button>
+          )}
+          {!canPlan && <p className="tn-foot-hint">先选一下今晚愿意留多久</p>}
+        </footer>
+      </section>
+    );
+  }
+
+  // ---------- 确认（对照 / 盘点 / 手动 / 上次库存） ----------
+
+  const noRecognized = fridge?.status === "ok" && fridge?.vision && visionItems.length === 0 && !manualMode && !inventoryConfirmed;
+
+  return (
+    <section className="tn-scene tn-fridge" aria-label="确认库存">
+      <header className="tn-scene-head">
+        <button type="button" className="tn-back" onClick={isFeed ? onBack : resetToCapture} aria-label="返回">‹</button>
+        <Dots steps={steps} current={1} />
+      </header>
+
+      {fridge?.image && (
+        <div className="tn-fridge-media">
+          <img src={fridge.image} alt="冰箱内部照片" />
+          <SourceBadge label={imageSourceLabel(fridge.imageSource)} tone={fridge.imageSource === "sample" ? "sample" : "real"} />
+          {fixedDemo && <span className="tn-badge tn-badge-fixed">固定示例结果</span>}
+          <button type="button" className="tn-btn tn-btn-glass tn-fridge-rebtn" onClick={resetToCapture}>重拍</button>
+        </div>
+      )}
+      {!fridge?.image && inventoryMode === "last" && (
+        <p className="tn-warning" role="note">
+          这是 {snapshot ? snapshotAgeLabel(snapshot.confirmedAt) : "之前"}确认的库存，不代表这些食材现在仍然存在，请逐项核对。
+        </p>
+      )}
+      {!fridge?.image && inventoryConfirmed && inventoryMode === "vision" && (
+        <p className="tn-warning" role="note">原始照片未保存；你确认过的库存仍可继续使用。需要重新识别画面时请重拍。</p>
+      )}
+      {manualMode && (
+        <p className="tn-warning" role="note">手动填写模式：只把你确认家里有的食材加进来。</p>
       )}
 
-      <input ref={cameraRef} type="file" accept="image/*" capture="environment" hidden onChange={handleFile} />
-      <input ref={albumRef} type="file" accept="image/*" hidden onChange={handleFile} />
+      {noRecognized && !emptyDeclared && (
+        <div className="tn-failbox">
+          <p className="tn-failbox-title">没有认出可以确认的食材</p>
+          <p className="tn-failbox-detail">可能是画面里确实没有可用食材，也可能是没拍清。你可以重拍，或明确确认当前没有可用食材。</p>
+          <div className="tn-failbox-actions">
+            <button type="button" className="tn-btn tn-btn-quiet" onClick={resetToCapture}>重拍一张</button>
+            <button type="button" className="tn-btn tn-btn-quiet" onClick={() => setEmptyDeclared(true)}>我确认冰箱现在没有可用食材</button>
+          </div>
+        </div>
+      )}
+
+      {isFeed && needNames.length > 0 && !manualMode && (
+        <div className="tn-compare" aria-label="这道菜需要 vs 冰箱里看到的">
+          <p className="tn-compare-title">做「{dishName}」，对一遍</p>
+          <ul className="tn-compare-list">
+            {needNames.map((name) => {
+              const st = needStatus(name);
+              return (
+                <li key={name} className={`tn-need is-${st}`}>
+                  <span className="tn-need-mark" aria-hidden="true">{st === "have" ? "✓" : "✗"}</span>
+                  <span className="tn-need-name">{name}</span>
+                  <button
+                    type="button"
+                    className="tn-need-toggle"
+                    onClick={() => setOverrides((cur) => ({ ...cur, [name]: st === "have" ? "missing" : "have" }))}
+                  >
+                    {st === "have" ? "其实没有" : "其实有"}
+                  </button>
+                  <span className="tn-sronly">{st === "have" ? "家里有" : "没看到"}</span>
+                </li>
+              );
+            })}
+          </ul>
+          <p className="tn-compare-note">冰箱里没看到不代表家里一定没有；盐、油、酱油等常备调味会在行动单里请你确认。</p>
+        </div>
+      )}
+
+      {!noRecognized && (
+        <div className="tn-field">
+          <p className="tn-field-label">
+            {isFeed ? "冰箱还看到（点掉家里没有的）" : "确认你家里有的（点掉不对的）"}
+          </p>
+          <div className="tn-chips">
+            {baseItems.map((item) => {
+              const name = itemDisplayName(item);
+              const off = excluded.includes(name);
+              return (
+                <button
+                  key={name}
+                  type="button"
+                  aria-pressed={!off}
+                  className={`tn-chip ${off ? "" : "is-on"}`}
+                  onClick={() => setExcluded((cur) => (off ? cur.filter((n) => n !== name) : [...cur, name]))}
+                >
+                  {name}
+                  {item?.quantityEstimate ? <small>{item.quantityEstimate}</small> : null}
+                </button>
+              );
+            })}
+            {standaloneManualAdds.map((name) => (
+              <button key={name} type="button" className="tn-chip is-on" onClick={() => setManualAdds((cur) => cur.filter((x) => x !== name))}>
+                {name}<small>手动加的 · 点按移除</small>
+              </button>
+            ))}
+          </div>
+          <div className="tn-addrow">
+            <input
+              className="tn-note-input"
+              value={addingName}
+              onChange={(e) => setAddingName(e.target.value)}
+              placeholder="还有没认出来的？手动加上"
+              aria-label="手动添加食材"
+              onKeyDown={(e) => { if (e.key === "Enter") addManual(addingName); }}
+            />
+            <SpeechInput onTranscript={(text) => setAddingName(text)} />
+            <button type="button" className="tn-btn tn-btn-quiet" onClick={() => addManual(addingName)}>加上</button>
+          </div>
+        </div>
+      )}
+
+      {!manualMode && fridge?.vision?.uncertainItems?.length > 0 && (
+        <UnsurePanel
+          items={fridge.vision.uncertainItems}
+          onAddNamed={addManual}
+          onReshoot={onReshoot}
+          reshootResult={reshootResult}
+          onClearReshoot={onClearReshoot}
+        />
+      )}
+
+      {fridge?.vision?.warnings?.[0] && <p className="tn-warning" role="note">{fridge.vision.warnings[0]}</p>}
+      <p className="tn-warning" role="note">新鲜度、保质期和肉类状态以你自己检查为准，AI 不凭照片判断。</p>
+
+      <footer className="tn-scene-foot">
+        {emptyDeclared || includedNames.length === 0 ? (
+          <button
+            type="button"
+            className="tn-btn tn-btn-primary tn-btn-xl"
+            onClick={() => {
+              onConfirmInventory([], "empty");
+              if (!isFeed) setStep("bench");
+            }}
+          >
+            我确认冰箱现在没有可用食材，按空库存继续
+          </button>
+        ) : (
+          <button
+            type="button"
+            className="tn-btn tn-btn-primary tn-btn-xl"
+            disabled={includedNames.length === 0 && !manualMode}
+            onClick={() => {
+              const items = confirmedItems();
+              onConfirmInventory(items, manualMode ? "manual" : inventoryMode);
+              if (!isFeed) setStep("bench");
+            }}
+          >
+            {isFeed ? "库存确认了，给我今晚的决定" : `确认库存（${includedNames.length} 样），下一步`}
+          </button>
+        )}
+      </footer>
+
+      <input ref={cameraRef} data-source="camera" type="file" accept="image/*" capture="environment" hidden onChange={handleFile} />
+      <input ref={albumRef} data-source="album" type="file" accept="image/*" hidden onChange={handleFile} />
     </section>
   );
 }

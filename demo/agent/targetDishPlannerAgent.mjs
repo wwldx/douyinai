@@ -55,6 +55,7 @@ export async function planTargetDish({ inventory, targetDish, userContext, retri
     "必须尊重用户想吃这道菜的意愿，先尽量给出可执行路线；如果难度、时间、工具或食材不足，需要温和提醒，并给简化版本、明天准备路线或补买建议。",
     "用户是新手时，不要直接推荐高风险动作，例如油炸、长时间处理生肉、复杂刀工；但可以给低风险替代做法。",
     "inventory 只包含用户从冰箱画面中确认保留的食材；看不到某种调料不等于用户家里一定没有。",
+    "userContext.context.timeBudgetId 是用户亲选的时间语义档；flexible 表示今晚不赶时间，不等于无限时长。做饭耗时只计算从备菜到出锅，补购或配送耗时另计。",
     "shoppingPlan 必须覆盖当前目标菜完整的材料缺口，而不是只挑一个适合展示的商品。mustBuy 列出当前推荐版本不可缺少、且确认库存中没有的主料、辅料和专用调味料；常见但可能放在橱柜里的油、盐、酱油等放进 confirmAtHome；不影响成菜成立的材料放进 optionalUpgrades。",
     "shoppingPlan 的每个数组元素只能写一个简短材料名，不得把 JSON 引号、转义符或多个数组元素拼进同一字符串；锅具和厨具不得写进 confirmAtHome。",
     "inventoryMatch.missingCritical 与 shoppingPlan.mustBuy 的 item 必须一致；专用酱料、香料或主食如果是这道菜成立的必要条件，不能因为不在冰箱画面里就省略。",

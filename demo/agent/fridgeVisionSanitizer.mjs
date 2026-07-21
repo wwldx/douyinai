@@ -72,10 +72,22 @@ export function sanitizeFridgeVision(vision = {}) {
     warnings.push("已排除非食材物品；看不清内容的包装不会参与规划，需要补拍或人工确认。");
   }
 
+  const rawSceneKind = String(vision?.sceneAssessment?.kind || vision?.scene || "").trim();
+  const sceneKind = ["fridge", "not_fridge", "unusable"].includes(rawSceneKind)
+    ? rawSceneKind
+    : keptItems.length > 0
+      ? "fridge"
+      : "unknown";
+  const sceneReason = String(vision?.sceneAssessment?.reason || "").trim()
+    || (sceneKind === "fridge"
+      ? "兼容旧识别结果：存在可确认食材。"
+      : "旧识别结果缺少画面类型，不能据此确认空库存。");
+
   return {
     vision: {
       ...vision,
-      items: uniqueBy(keptItems, (item) => item?.name).slice(0, 16),
+      sceneAssessment: { kind: sceneKind, reason: sceneReason },
+      items: sceneKind === "fridge" ? uniqueBy(keptItems, (item) => item?.name).slice(0, 16) : [],
       uncertainItems,
       warnings: [...new Set(warnings.map((item) => String(item || "").trim()).filter(Boolean))].slice(0, 5),
     },

@@ -6,10 +6,12 @@
       "id": "dish-huangmenji",
       "fileName": "黄焖鸡-示例.png",
       "fileNames": ["huangmenji.png"],
+      "cacheKeys": ["sample-dish-huangmenji"],
       "sourcePath": "assets/菜/黄焖鸡-示例.png",
       "cachedAt": "2026-07-18",
       "targetVision": {
         "dishName": "黄焖鸡",
+        "dishNameCandidates": ["香菇焖鸡"],
         "confidence": 0.88,
         "dishType": "焖菜",
         "coreTaste": "咸香微甜、热乎下饭",
@@ -30,6 +32,7 @@
       "cachedAt": "2026-05-23",
       "targetVision": {
         "dishName": "回锅肉",
+        "dishNameCandidates": ["川味五花肉小炒"],
         "confidence": 0.9,
         "dishType": "川味小炒",
         "coreTaste": "咸香微辣、下饭",

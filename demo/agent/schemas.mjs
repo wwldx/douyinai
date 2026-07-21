@@ -1,8 +1,17 @@
 export const fridgeVisionSchema = {
   type: "object",
   additionalProperties: false,
-  required: ["items", "uncertainItems", "warnings"],
+  required: ["sceneAssessment", "items", "uncertainItems", "warnings"],
   properties: {
+    sceneAssessment: {
+      type: "object",
+      additionalProperties: false,
+      required: ["kind", "reason"],
+      properties: {
+        kind: { type: "string", enum: ["fridge", "not_fridge", "unusable"] },
+        reason: { type: "string" },
+      },
+    },
     items: {
       type: "array",
       maxItems: 16,
@@ -44,9 +53,10 @@ export const fridgeVisionSchema = {
 export const targetDishVisionSchema = {
   type: "object",
   additionalProperties: false,
-  required: ["dishName", "confidence", "dishType", "coreTaste", "likelyIngredients", "optionalIngredients", "requiredTools", "estimatedTime", "difficulty", "visualEvidence", "warnings"],
+  required: ["dishName", "dishNameCandidates", "confidence", "dishType", "coreTaste", "likelyIngredients", "optionalIngredients", "requiredTools", "estimatedTime", "difficulty", "visualEvidence", "warnings"],
   properties: {
     dishName: { type: "string" },
+    dishNameCandidates: { type: "array", maxItems: 3, items: { type: "string" } },
     confidence: { type: "number", minimum: 0, maximum: 1 },
     dishType: { type: "string" },
     coreTaste: { type: "string" },

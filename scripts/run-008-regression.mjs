@@ -21,6 +21,19 @@ assert.deepEqual(sanitized.diagnostics.filteredNonFood, ["保温水瓶", "黑色
 assert.deepEqual(sanitized.diagnostics.movedToUncertain, ["白色袋装食材", "袋装禽肉或肉类食材", "面包/饼类包装食品"]);
 assert.equal(sanitized.vision.uncertainItems[1].reason.includes("冷冻区下层"), true);
 assert.equal(sanitized.vision.uncertainItems[2].reason.includes("冷藏室门架"), true);
+assert.equal(sanitized.vision.sceneAssessment.kind, "fridge");
+
+const nonFridge = sanitizeFridgeVision({
+  sceneAssessment: { kind: "not_fridge", reason: "画面是成品菜" },
+  items: [{ name: "鸡蛋", category: "蛋奶" }],
+  uncertainItems: [],
+  warnings: [],
+});
+assert.equal(nonFridge.vision.sceneAssessment.kind, "not_fridge");
+assert.deepEqual(nonFridge.vision.items, []);
+
+const legacyEmpty = sanitizeFridgeVision({ items: [], uncertainItems: [], warnings: [] });
+assert.equal(legacyEmpty.vision.sceneAssessment.kind, "unknown");
 
 const lambNoodlesMissing = resolveRequiredCoverage(
   ["羊肉", "烩面片"],
@@ -38,4 +51,4 @@ assert.equal(deriveUnknownCoverageStatus([]), "unresolved");
 assert.equal(deriveUnknownCoverageStatus(["关键主料"]), "unresolved");
 assert.equal(deriveUnknownCoverageStatus(["牛肉"]), "missing");
 
-console.log("008 targeted regression: 9 assertions passed");
+console.log("008 targeted regression: 13 assertions passed");
