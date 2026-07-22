@@ -40,6 +40,7 @@ export default function TonightApp() {
   const [inventoryMode, setInventoryMode] = useState("vision"); // vision | last | manual | empty
   const [inventoryConfirmed, setInventoryConfirmed] = useState(false);
   const [eatFirstMarks, setEatFirstMarks] = useState({}); // { [name]: {opened, labelSoon, unsure} }
+  const [stepPositions, setStepPositions] = useState({}); // { [planId]: number } 仅用户显式标记
   const [intent, setIntent] = useState(null);
   const [plans, setPlans] = useState([]);
   const [activePlanId, setActivePlanId] = useState(null);
@@ -81,6 +82,7 @@ export default function TonightApp() {
       setInventoryMode(saved.inventoryMode || "vision");
       setInventoryConfirmed(Boolean(saved.inventoryConfirmed));
       setEatFirstMarks(saved.eatFirstMarks && typeof saved.eatFirstMarks === "object" ? saved.eatFirstMarks : {});
+      setStepPositions(saved.stepPositions && typeof saved.stepPositions === "object" ? saved.stepPositions : {});
       setIntent(saved.intent || null);
       const savedPlans = Array.isArray(saved.plans) ? saved.plans : [];
       setPlans(savedPlans);
@@ -107,12 +109,13 @@ export default function TonightApp() {
       inventoryMode,
       inventoryConfirmed,
       eatFirstMarks,
+      stepPositions,
       intent,
       plans,
       activePlanId,
       pendingKind: pending?.kind || null,
     });
-  }, [hydrated, route, scene, dish, timeBudgetId, timeBudgetAuto, note, fridge, inventory, inventoryMode, inventoryConfirmed, eatFirstMarks, intent, plans, activePlanId, pending]);
+  }, [hydrated, route, scene, dish, timeBudgetId, timeBudgetAuto, note, fridge, inventory, inventoryMode, inventoryConfirmed, eatFirstMarks, stepPositions, intent, plans, activePlanId, pending]);
 
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: "auto" });
@@ -692,6 +695,12 @@ export default function TonightApp() {
     });
   }, [plans, activePlanId, startPlanning, inventory, inventoryMode, timeBudgetId, note]);
 
+  // 步骤位置：仅用户在大字视图里显式点「我现在做到这一步」时写入，浏览不产生位置
+  const markStepPosition = useCallback((planId, stepIndex) => {
+    setStepPositions((cur) => ({ ...cur, [planId]: stepIndex }));
+    showNotice(`已记下：你做到第 ${stepIndex + 1} 步`);
+  }, [showNotice]);
+
   // ---------- 导航 ----------
 
   const restart = useCallback(() => {
@@ -709,6 +718,7 @@ export default function TonightApp() {
     setInventoryMode("vision");
     setInventoryConfirmed(false);
     setEatFirstMarks({});
+    setStepPositions({});
     setIntent(null);
     setPlans([]);
     setActivePlanId(null);
@@ -815,6 +825,8 @@ export default function TonightApp() {
             onSelectPlan={setActivePlanId}
             timeBudget={timeOptionById(activePlan.requestSnapshot?.timeBudgetId || timeBudgetId)}
             gotIt={activePlan.materialState?.acquiredItems || []}
+            stepPosition={typeof stepPositions[activePlan.id] === "number" ? stepPositions[activePlan.id] : null}
+            onMarkStep={(stepIndex) => markStepPosition(activePlan.id, stepIndex)}
             onFeedback={applyFeedback}
             onCartReplan={applyCartReplan}
             onGotIt={applyGotIt}

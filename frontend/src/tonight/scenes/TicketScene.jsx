@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
 import SpeechInput from "../../components/SpeechInput";
 import { VersionStepper } from "../bits";
+import BigStepsView from "./BigStepsView";
+import { getCookingContext } from "../steps";
 import { FEEDBACK_OPTIONS, isFixedDemoResult, namesMatch, parseMinutes, sessionSourceBadge } from "../model";
 
 export default function TicketScene({
-  plan, plans, onSelectPlan, timeBudget, gotIt,
+  plan, plans, onSelectPlan, timeBudget, gotIt, stepPosition, onMarkStep,
   onFeedback, onCartReplan, onGotIt, onAlternative, onAddTarget, onEditFridge, onRestart,
 }) {
   const [cartSel, setCartSel] = useState([]);
@@ -12,11 +14,13 @@ export default function TicketScene({
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [targetInput, setTargetInput] = useState("");
   const [busy, setBusy] = useState(false);
+  const [bigStepsOpen, setBigStepsOpen] = useState(false);
 
   useEffect(() => {
     setCartSel([]);
     setGotSel([]);
     setFeedbackOpen(false);
+    setBigStepsOpen(false);
   }, [plan?.id]);
 
   if (!plan) return null;
@@ -46,9 +50,8 @@ export default function TicketScene({
     : [];
   const optionalMissing = isTarget ? [...new Set(plan.plan?.inventoryMatch?.missingOptional || [])] : [];
   const materialNames = [...new Set([...missing, ...accepted, ...gotIt])];
-  const allRequiredAcquired = gotIt.length > 0 && accepted.length === 0 && missing.every(
-    (name) => gotIt.some((item) => namesMatch(item, name)),
-  );
+  // 有效步骤与「全部缺料已拿到」判断统一来自共享模块，与大字视图、做饭救援同源
+  const { steps: displaySteps, allRequiredAcquired } = getCookingContext(plan);
   const mustBuyReasons = new Map((plan.plan?.shoppingPlan?.mustBuy || []).map((b) => [b.item, b.reason]));
   const fridgeAvailable = (plan.plan?.inventoryMatch?.availableItems || []).filter(
     (name) => !accepted.some((item) => namesMatch(item, name)) && !gotIt.some((item) => namesMatch(item, name)),
@@ -63,12 +66,6 @@ export default function TicketScene({
     : "";
   const cookMinutes = parseMinutes(cookTimeText);
   const overBudget = Boolean(timeBudget?.minutes && cookMinutes && cookMinutes > timeBudget.minutes);
-  const rawSteps = isTarget ? plan.plan?.executionPlan?.steps || [] : plan.plan?.baseMeal?.steps || [];
-  const displaySteps = rawSteps.map((step, index) => {
-    if (!allRequiredAcquired || index !== 0 || !String(step).includes("补购")) return step;
-    const tail = String(step).split(/[；;]/).slice(1).join("；").trim();
-    return `确认本次已拿到的${gotIt.join("、")}与冰箱材料状态。${tail}`;
-  });
   const rawTips = isTarget ? plan.plan?.executionPlan?.difficultyWarnings || [] : plan.plan?.baseMeal?.safetyTips || [];
   const displayTips = rawTips
     .filter((tip) => !(allRequiredAcquired && /补购或配送时间/.test(String(tip))))
@@ -307,10 +304,20 @@ export default function TicketScene({
         )}
 
         <div className="tn-ticket-steps">
-          <p className="tn-ticket-coltitle">开火之后</p>
+          <div className="tn-ticket-stepshead">
+            <p className="tn-ticket-coltitle">开火之后</p>
+            {displaySteps.length > 0 && (
+              <button type="button" className="tn-bigsteps-open" onClick={() => setBigStepsOpen(true)}>
+                大字看
+              </button>
+            )}
+          </div>
           <ol>
             {displaySteps.map((step, i) => (
-              <li key={i}>{step}</li>
+              <li key={i} className={stepPosition === i ? "is-marked" : ""}>
+                {step}
+                {stepPosition === i && <span className="tn-step-tag">做到这一步</span>}
+              </li>
             ))}
           </ol>
         </div>
@@ -369,6 +376,16 @@ export default function TicketScene({
         <button type="button" className="tn-btn tn-btn-quiet" onClick={onEditFridge}>库存不对？回去改</button>
         <button type="button" className="tn-link" onClick={onRestart}>换一种开始</button>
       </footer>
+
+      {bigStepsOpen && displaySteps.length > 0 && (
+        <BigStepsView
+          mealName={mealName}
+          steps={displaySteps}
+          position={typeof stepPosition === "number" ? stepPosition : null}
+          onMark={(index) => onMarkStep?.(index)}
+          onClose={() => setBigStepsOpen(false)}
+        />
+      )}
     </section>
   );
 }

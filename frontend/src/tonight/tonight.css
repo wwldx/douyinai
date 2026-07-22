@@ -731,7 +731,139 @@ img { display: block; max-width: 100%; }
   border-top: 2px dashed rgba(43, 32, 26, 0.18);
 }
 
+.tn-ticket-stepshead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.tn-ticket-stepshead .tn-ticket-coltitle { margin: 0; }
+
+.tn-bigsteps-open {
+  border: 1.5px solid rgba(43, 32, 26, 0.55);
+  background: rgba(43, 32, 26, 0.05);
+  color: var(--tn-paper-ink);
+  border-radius: 999px;
+  min-height: 44px;
+  padding: 9px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.tn-bigsteps-open:hover { background: rgba(43, 32, 26, 0.1); }
+
+.tn-bigsteps-open:focus-visible { outline: 2px solid var(--tn-paper-ink); outline-offset: 2px; }
+
 .tn-ticket-steps ol { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 8px; font-size: 14px; }
+
+.tn-ticket-steps li.is-marked { font-weight: 600; }
+
+.tn-step-tag {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(180, 84, 36, 0.16);
+  color: #8a4416;
+  font-size: 11px;
+  font-weight: 600;
+  vertical-align: 2px;
+}
+
+/* ---------- 大字做法视图 ---------- */
+
+.tn-bigsteps {
+  position: fixed;
+  inset: 0;
+  z-index: 45;
+  background: var(--tn-bg);
+  display: flex;
+  flex-direction: column;
+  padding: calc(14px + env(safe-area-inset-top, 0px)) 20px calc(18px + env(safe-area-inset-bottom, 0px));
+  animation: tn-scene-in 0.25s ease both;
+  overscroll-behavior: contain;
+}
+
+.tn-bigsteps:focus { outline: none; }
+
+.tn-bigsteps-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.tn-bigsteps-dish {
+  margin: 0;
+  font-size: 15px;
+  color: var(--tn-dim);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tn-bigsteps-close {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--tn-line);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--tn-ink);
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.tn-bigsteps-close:focus-visible { outline: 2px solid var(--tn-ember); outline-offset: 2px; }
+
+.tn-bigsteps-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 14px;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.tn-bigsteps-count { margin: 0; font-size: 14px; color: var(--tn-ember); font-weight: 600; }
+
+.tn-bigsteps-text {
+  margin: 0;
+  font-family: var(--tn-serif);
+  font-size: clamp(24px, 6.4vw, 30px);
+  font-weight: 700;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.tn-bigsteps-marked { margin: 0; font-size: 14px; color: var(--tn-have, #3e6b2f); font-weight: 600; }
+
+.tn-bigsteps-elsewhere { margin: 0; font-size: 13px; color: var(--tn-faint); }
+
+.tn-bigsteps-foot { display: flex; flex-direction: column; gap: 10px; }
+
+.tn-bigsteps-nav { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+.tn-bigsteps-navbtn {
+  min-height: 56px;
+  border: 1px solid var(--tn-line);
+  border-radius: 16px;
+  background: var(--tn-panel);
+  color: var(--tn-ink);
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.tn-bigsteps-navbtn:disabled { opacity: 0.35; }
+
+.tn-bigsteps-navbtn:focus-visible { outline: 2px solid var(--tn-ember); outline-offset: 2px; }
+
 
 .tn-ticket-tips {
   margin-top: 16px;
