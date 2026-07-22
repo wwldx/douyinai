@@ -38,9 +38,9 @@ export default function TicketScene({
   const accepted = plan.materialState?.simulatedItems || plan.shoppingPreview?.acceptedItems || [];
   const eatFirst = plan.requestSnapshot?.eatFirst || null;
   const alternativeFrom = plan.requestSnapshot?.alternativeFrom || null;
-  const altSourceSeq = alternativeFrom?.sourcePlanId
-    ? plans.find((p) => p.id === alternativeFrom.sourcePlanId)?.sequence
-    : null;
+  // 优先用生成时冻结的来源序号；只有旧会话缺字段才回退运行时查找
+  const altSourceSeq = alternativeFrom?.sourceSequence
+    ?? (alternativeFrom?.sourcePlanId ? plans.find((p) => p.id === alternativeFrom.sourcePlanId)?.sequence : null);
 
   const missing = isTarget
     ? [...new Set([

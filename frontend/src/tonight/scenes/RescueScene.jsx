@@ -262,7 +262,7 @@ export default function RescueScene({
                 role="radio"
                 aria-checked={!draft.stepUnknown && draft.stepIndex === i}
                 className={`tn-chip ${!draft.stepUnknown && draft.stepIndex === i ? "is-on" : ""}`}
-                onClick={() => onUpdateDraft({ stepIndex: i, stepUnknown: false })}
+                onClick={() => onUpdateDraft({ stepIndex: i, stepUnknown: false, stepTouched: true })}
               >
                 第 {i + 1} 步
               </button>
@@ -272,7 +272,7 @@ export default function RescueScene({
               role="radio"
               aria-checked={Boolean(draft.stepUnknown)}
               className={`tn-chip ${draft.stepUnknown ? "is-on" : ""}`}
-              onClick={() => onUpdateDraft({ stepUnknown: true, stepIndex: null })}
+              onClick={() => onUpdateDraft({ stepUnknown: true, stepIndex: null, stepTouched: true })}
             >
               说不清
             </button>

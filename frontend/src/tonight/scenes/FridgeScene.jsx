@@ -34,7 +34,6 @@ export default function FridgeScene({
   const [overrides, setOverrides] = useState({});
   const [addingName, setAddingName] = useState("");
   const [manualMode, setManualMode] = useState(false);
-  const [emptyDeclared, setEmptyDeclared] = useState(false);
   const [benchDish, setBenchDish] = useState("");
   const [eatFirstOpen, setEatFirstOpen] = useState(false);
 
@@ -145,7 +144,6 @@ export default function FridgeScene({
     event.target.value = "";
     if (!file) return;
     setManualMode(false);
-    setEmptyDeclared(false);
     setExcluded([]);
     setManualAdds([]);
     setOverrides({});
@@ -157,7 +155,6 @@ export default function FridgeScene({
     onResetCapture();
     setStep("capture");
     setManualMode(false);
-    setEmptyDeclared(false);
     setExcluded([]);
     setManualAdds([]);
     setOverrides({});
@@ -370,13 +367,22 @@ export default function FridgeScene({
         <p className="tn-warning" role="note">手动填写模式：只把你确认家里有的食材加进来。</p>
       )}
 
-      {noRecognized && !emptyDeclared && (
+      {noRecognized && (
         <div className="tn-failbox">
           <p className="tn-failbox-title">没有认出可以确认的食材</p>
           <p className="tn-failbox-detail">可能是画面里确实没有可用食材，也可能是没拍清。你可以重拍，或明确确认当前没有可用食材。</p>
           <div className="tn-failbox-actions">
             <button type="button" className="tn-btn tn-btn-quiet" onClick={resetToCapture}>重拍一张</button>
-            <button type="button" className="tn-btn tn-btn-quiet" onClick={() => setEmptyDeclared(true)}>我确认冰箱现在没有可用食材</button>
+            <button
+              type="button"
+              className="tn-btn tn-btn-quiet"
+              onClick={() => {
+                onConfirmInventory([], "empty");
+                if (!isFeed) setStep("bench");
+              }}
+            >
+              我确认冰箱现在没有可用食材
+            </button>
           </div>
         </div>
       )}
@@ -523,7 +529,8 @@ export default function FridgeScene({
       <p className="tn-warning" role="note">新鲜度、保质期和肉类状态以你自己检查为准，AI 不凭照片判断。</p>
 
       <footer className="tn-scene-foot">
-        {emptyDeclared || effectiveNames.length === 0 ? (
+        {/* 零识别时唯一的空库存入口在横幅里，底部不再重复提交入口 */}
+        {!noRecognized && (effectiveNames.length === 0 ? (
           <button
             type="button"
             className="tn-btn tn-btn-primary tn-btn-xl"
@@ -545,7 +552,7 @@ export default function FridgeScene({
           >
             {isFeed ? "库存确认了，给我今晚的决定" : `确认库存（${effectiveNames.length} 样），下一步`}
           </button>
-        )}
+        ))}
       </footer>
 
       <input ref={cameraRef} data-source="camera" type="file" accept="image/*" capture="environment" hidden onChange={handleFile} />

@@ -466,8 +466,9 @@ img { display: block; max-width: 100%; }
   background: transparent;
   color: var(--tn-faint);
   border-radius: 999px;
-  padding: 6px 12px;
-  font-size: 12px;
+  min-height: 44px;
+  padding: 9px 14px;
+  font-size: 13px;
   white-space: nowrap;
 }
 
@@ -683,8 +684,9 @@ img { display: block; max-width: 100%; }
   background: transparent;
   color: var(--tn-ember-deep);
   border-radius: 999px;
-  padding: 6px 14px;
-  font-size: 12px;
+  min-height: 44px;
+  padding: 9px 14px;
+  font-size: 13px;
   font-weight: 600;
 }
 
@@ -1551,14 +1553,15 @@ img { display: block; max-width: 100%; }
 }
 
 .tn-versions-btn {
-  width: 30px;
-  height: 30px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   border: 1px solid var(--tn-line);
   background: transparent;
   color: var(--tn-dim);
   font-size: 16px;
   line-height: 1;
+  flex-shrink: 0;
 }
 
 .tn-versions-btn:disabled { opacity: 0.35; }

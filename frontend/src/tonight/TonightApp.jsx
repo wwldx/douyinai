@@ -78,7 +78,21 @@ export default function TonightApp() {
     restoredRef.current = true;
     const saved = loadSessionState();
     if (saved) {
-      if (saved.pendingKind) setInterrupted({ kind: saved.pendingKind });
+      // 旧会话中断归属：dish-rescue 必须同时有 planId 与严格 scope；life-log 只要求 planId；
+      // 两者缺归属字段都丢弃；规划类全局中断维持原规则
+      if (saved.pendingKind) {
+        if (saved.pendingKind === "dish-rescue") {
+          if (saved.pendingPlanId && (saved.pendingScope === "plan" || saved.pendingScope === "demo")) {
+            setInterrupted({ kind: saved.pendingKind, planId: saved.pendingPlanId, scope: saved.pendingScope });
+          }
+        } else if (saved.pendingKind === "life-log") {
+          if (saved.pendingPlanId) {
+            setInterrupted({ kind: saved.pendingKind, planId: saved.pendingPlanId, scope: saved.pendingScope || null });
+          }
+        } else {
+          setInterrupted({ kind: saved.pendingKind, planId: saved.pendingPlanId || null, scope: saved.pendingScope || null });
+        }
+      }
       setRoute(saved.route || null);
       setDish(saved.dish ? { ...saved.dish, image: null, analysis: saved.dish.analysis || null } : null);
       setTimeBudgetId(saved.timeBudgetId || null);
@@ -130,6 +144,8 @@ export default function TonightApp() {
       plans,
       activePlanId,
       pendingKind: pending?.kind || null,
+      pendingPlanId: pending?.planId || null,
+      pendingScope: pending?.scope || null,
     });
   }, [hydrated, route, scene, dish, timeBudgetId, timeBudgetAuto, note, fridge, inventory, inventoryMode, inventoryConfirmed, eatFirstMarks, stepPositions, rescue, lifeLog, lifeLogDrafts, intent, plans, activePlanId, pending]);
 
@@ -137,11 +153,26 @@ export default function TonightApp() {
     window.scrollTo({ top: 0, left: 0, behavior: "auto" });
   }, [scene, activePlanId]);
 
+  // 中断事实按方案归属：进入不匹配的救援/生活记录会话时清除陈旧中断；
+  // 救援还需同时匹配 planId 与 mode scope，真实救援与独立示例救援互不串提示
+  useEffect(() => {
+    if (!interrupted?.planId) return;
+    if (interrupted.kind === "dish-rescue" && scene === "rescue" && rescue) {
+      const planMismatch = interrupted.planId !== rescue.sourcePlanId;
+      const scopeMismatch = interrupted.scope !== rescue.mode; // 严格匹配，缺 scope 即不匹配
+      if (planMismatch || scopeMismatch) setInterrupted(null);
+    }
+    if (interrupted.kind === "life-log" && scene === "lifelog" && lifeLog && interrupted.planId !== lifeLog.planId) {
+      setInterrupted(null);
+    }
+  }, [interrupted, scene, rescue, lifeLog]);
+
   // ---------- 等待与中断 ----------
 
   function beginPending(kind, label, extra = null) {
     const controller = new AbortController();
     abortRef.current = controller;
+    setInterrupted(null); // 新请求开始后，旧中断事实不再相关
     setPending({ kind, label, startedAt: Date.now(), ...(extra || {}) });
     return controller.signal;
   }
@@ -700,7 +731,8 @@ export default function TonightApp() {
     if (!active || active.mode !== "free" || !candidateName) return;
     return startPlanning({
       mode: "free",
-      alternativeFrom: { sourcePlanId, candidateName, candidateWhy },
+      // 血缘在生成时冻结（含来源序号），来源版本被裁掉后仍能如实标注
+      alternativeFrom: { sourcePlanId, candidateName, candidateWhy, sourceSequence: active.sequence },
       inventorySnapshot: active.requestSnapshot?.inventory || inventory,
       inventoryModeSnapshot: active.requestSnapshot?.inventoryMode || inventoryMode,
       timeBudgetIdSnapshot: active.requestSnapshot?.timeBudgetId || timeBudgetId,
@@ -723,19 +755,43 @@ export default function TonightApp() {
     const active = plans.find((p) => p.id === activePlanId);
     if (!active) return; // 无方案版本不允许凭空进入真实救援
     setRescue((cur) => {
-      if (cur && cur.sourcePlanId === active.id) return cur; // 同方案：继续既有救援会话
       const { steps } = getCookingContext(active);
+      const baseSnapshot = {
+        dishName: active.mode === "target" ? active.plan?.targetDish?.name : active.plan?.baseMeal?.name,
+        steps,
+        versionLabel: active.snapshotLabel || "",
+        sequence: active.sequence,
+      };
+      const freshDraft = {
+        stepIndex: typeof stepPositions[active.id] === "number" ? stepPositions[active.id] : null,
+        stepUnknown: false,
+        stepTouched: false,
+        symptomKey: null,
+        description: "",
+        outcome: null,
+      };
+      // 已有轮次：完全冻结，不改历史上下文
+      if (cur && cur.mode === "plan" && cur.sourcePlanId === active.id && cur.rounds.length > 0) return cur;
+      // 空会话（同方案）：刷新有效步骤快照；用户主动选过的步骤保留，否则用最新位置标记
+      if (cur && cur.mode === "plan" && cur.sourcePlanId === active.id) {
+        // 新旧会话分开判断：有 stepTouched 字段只认严格 true；
+        // 没有该字段的旧草稿才按 stepUnknown 或有效 stepIndex 推断曾主动选择
+        const hasTouchedField = cur.draft ? Object.prototype.hasOwnProperty.call(cur.draft, "stepTouched") : false;
+        const draftTouched = hasTouchedField
+          ? cur.draft.stepTouched === true
+          : Boolean(cur.draft?.stepUnknown) || typeof cur.draft?.stepIndex === "number";
+        const draft = draftTouched
+          ? { ...cur.draft, stepTouched: true }
+          : { ...cur.draft, stepIndex: freshDraft.stepIndex, stepUnknown: false, stepTouched: false };
+        return { ...cur, planSnapshot: baseSnapshot, draft };
+      }
+      // 新会话（含从示例返回）：冻结当前查看版本
       return {
         mode: "plan",
         sourcePlanId: active.id,
-        planSnapshot: {
-          dishName: active.mode === "target" ? active.plan?.targetDish?.name : active.plan?.baseMeal?.name,
-          steps,
-          versionLabel: active.snapshotLabel || "",
-          sequence: active.sequence,
-        },
+        planSnapshot: baseSnapshot,
         demoAsset: null,
-        draft: { stepIndex: typeof stepPositions[active.id] === "number" ? stepPositions[active.id] : null, stepUnknown: false, symptomKey: null, description: "", outcome: null },
+        draft: freshDraft,
         rounds: [],
         status: "intake",
       };
@@ -749,7 +805,7 @@ export default function TonightApp() {
       ...cur,
       mode: "demo",
       demoAsset: sample,
-      draft: { stepIndex: null, stepUnknown: false, symptomKey: null, description: "", outcome: null },
+      draft: { stepIndex: null, stepUnknown: false, stepTouched: false, symptomKey: null, description: "", outcome: null },
       rounds: [],
       status: "intake",
     } : cur));
@@ -760,7 +816,7 @@ export default function TonightApp() {
       ...cur,
       mode: "plan",
       demoAsset: null,
-      draft: { stepIndex: typeof stepPositions[cur.sourcePlanId] === "number" ? stepPositions[cur.sourcePlanId] : null, stepUnknown: false, symptomKey: null, description: "", outcome: null },
+      draft: { stepIndex: typeof stepPositions[cur.sourcePlanId] === "number" ? stepPositions[cur.sourcePlanId] : null, stepUnknown: false, stepTouched: false, symptomKey: null, description: "", outcome: null },
       rounds: [],
       status: "intake",
     } : cur));
@@ -773,7 +829,7 @@ export default function TonightApp() {
   const resetRescueRounds = useCallback(() => {
     setRescue((cur) => (cur ? {
       ...cur,
-      draft: { stepIndex: cur.mode === "plan" && typeof stepPositions[cur.sourcePlanId] === "number" ? stepPositions[cur.sourcePlanId] : null, stepUnknown: false, symptomKey: null, description: "", outcome: null },
+      draft: { stepIndex: cur.mode === "plan" && typeof stepPositions[cur.sourcePlanId] === "number" ? stepPositions[cur.sourcePlanId] : null, stepUnknown: false, stepTouched: false, symptomKey: null, description: "", outcome: null },
       rounds: [],
       status: "intake",
     } : cur));
@@ -794,7 +850,7 @@ export default function TonightApp() {
     // 第二轮的「有好转 / 还是没好」必须由用户明确选择
     if (isRound2 && mode !== "demo" && draft.outcome !== "recheck" && draft.outcome !== "not_improved") return;
     const previous = isRound2 ? rounds[0].result : null;
-    const signal = beginPending("dish-rescue", mode === "demo" ? "正在看示例现场" : "正在看现场情况", { demo: mode === "demo" });
+    const signal = beginPending("dish-rescue", mode === "demo" ? "正在看示例现场" : "正在看现场情况", { demo: mode === "demo", planId: rescue.sourcePlanId, scope: mode });
     try {
       const data = await api.rescueDish({
         imageDataUrl: image,
@@ -852,7 +908,7 @@ export default function TonightApp() {
 
   const submitLifeLog = useCallback(async ({ image, dishName }) => {
     if (!lifeLog || !image || !dishName) return;
-    const signal = beginPending("life-log", "正在起草生活记录");
+    const signal = beginPending("life-log", "正在起草生活记录", { planId: lifeLog.planId });
     try {
       const data = await api.generateLifeLog({
         imageDataUrl: image,
@@ -1072,7 +1128,11 @@ export default function TonightApp() {
         {scene === "rescue" && rescue && (
           <RescueScene
             rescue={rescue}
-            interrupted={interrupted?.kind === "dish-rescue"}
+            interrupted={
+              interrupted?.kind === "dish-rescue"
+              && interrupted.planId === rescue.sourcePlanId
+              && interrupted.scope === rescue.mode
+            }
             onDismissInterrupted={() => setInterrupted(null)}
             onUpdateDraft={updateRescueDraft}
             onSubmit={submitRescue}
@@ -1091,7 +1151,7 @@ export default function TonightApp() {
           <LifeLogScene
             lifeLog={lifeLog}
             lastEditedAt={lifeLogDrafts[lifeLog.planId]?.lastEditedAt || null}
-            interrupted={interrupted?.kind === "life-log"}
+            interrupted={interrupted?.kind === "life-log" && interrupted.planId === lifeLog.planId}
             onDismissInterrupted={() => setInterrupted(null)}
             onUpdate={updateLifeLog}
             onUpdateResult={updateLifeLogResult}
