@@ -169,7 +169,7 @@ PORT=4174 npm run dev
 展示端本地启动需要两个终端：
 
 ```bash
-PORT=4174 npm run dev
+npm run dev
 ```
 
 ```bash
@@ -182,7 +182,7 @@ npm run showcase
 http://localhost:5173/
 ```
 
-`frontend/vite.config.js` 默认把 `/api/*` 代理到 `http://localhost:4174`。如果后端端口变化，需要设置 `BACKEND_ORIGIN` 或同步修改代理地址。
+`frontend/vite.config.js` 默认把 `/api/*`、`/sliced/*` 和 `/demo-assets/*` 代理到 `http://localhost:4173`。如果后端端口变化，启动展示端时设置 `BACKEND_ORIGIN`，例如 `BACKEND_ORIGIN=http://localhost:4174 npm run showcase`。
 
 生产模式只需要一个端口：
 

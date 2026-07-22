@@ -39,11 +39,11 @@ npm run dev
 前端热更新模式需要两个终端：
 
 ```bash
-PORT=4174 npm run dev
+npm run dev
 npm run showcase
 ```
 
-展示端地址为 `http://localhost:5173/`，Vite 会把 `/api/*` 代理到 `4174`。
+展示端地址为 `http://localhost:5173/`，Vite 默认把 `/api/*`、`/sliced/*` 和 `/demo-assets/*` 代理到 `4173`。若后端改用其他端口，启动展示端时通过 `BACKEND_ORIGIN` 覆盖。
 
 ## 生产运行
 

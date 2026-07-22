@@ -18,7 +18,8 @@ function Dots({ steps, current }) {
 
 export default function FridgeScene({
   route, dishName, dishAnalysis, fridge, fixedDemo,
-  inventory, inventoryMode, inventoryConfirmed, timeBudgetId, setTimeBudgetId, note, setNote,
+  inventory, inventoryMode, inventoryConfirmed, eatFirstMarks, onToggleEatFirst,
+  timeBudgetId, setTimeBudgetId, note, setNote,
   reshootResult, onCapture, onSampleFridge, onUseLast, onReshoot,
   onClearReshoot, onResetCapture, onConfirmInventory, onBenchConfirm, onBack,
 }) {
@@ -35,6 +36,7 @@ export default function FridgeScene({
   const [manualMode, setManualMode] = useState(false);
   const [emptyDeclared, setEmptyDeclared] = useState(false);
   const [benchDish, setBenchDish] = useState("");
+  const [eatFirstOpen, setEatFirstOpen] = useState(false);
 
   const visionItems = useMemo(() => (fridge?.vision?.items || []), [fridge]);
   const baseItems = useMemo(
@@ -121,6 +123,22 @@ export default function FridgeScene({
       return true;
     });
   }
+
+  // 有效确认库存：排除、手动添加与对照 overrides 全部应用后的结果；
+  // 先吃列表、计数与摘要统一以此为准
+  const effectiveItems = useMemo(
+    () => confirmedItems(),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [baseItems, excluded, standaloneManualAdds, needNames, overrides, includedNames],
+  );
+  const effectiveNames = useMemo(() => effectiveItems.map((item) => item.name), [effectiveItems]);
+  const markedNames = useMemo(
+    () => effectiveNames.filter((name) => {
+      const mark = eatFirstMarks?.[name];
+      return mark && (mark.opened || mark.labelSoon || mark.unsure);
+    }),
+    [effectiveNames, eatFirstMarks],
+  );
 
   function handleFile(event) {
     const file = event.target.files?.[0];
@@ -323,7 +341,7 @@ export default function FridgeScene({
 
   // ---------- 确认（对照 / 盘点 / 手动 / 上次库存） ----------
 
-  const noRecognized = fridge?.status === "ok" && fridge?.vision && visionItems.length === 0 && !manualMode && !inventoryConfirmed;
+  const noRecognized = fridge?.status === "ok" && fridge?.vision && visionItems.length === 0 && !manualMode && !inventoryConfirmed && effectiveNames.length === 0;
 
   return (
     <section className="tn-scene tn-fridge" aria-label="确认库存">
@@ -432,6 +450,65 @@ export default function FridgeScene({
         </div>
       )}
 
+      {!noRecognized && effectiveNames.length > 0 && (
+        <div className="tn-eatfirst">
+          <button
+            type="button"
+            className="tn-eatfirst-toggle"
+            aria-expanded={eatFirstOpen}
+            onClick={() => setEatFirstOpen((v) => !v)}
+          >
+            <span>有想先用掉的吗？（可选）</span>
+            <span className="tn-eatfirst-summary">
+              {markedNames.length > 0
+                ? `已标记 ${markedNames.length} 样：${markedNames.slice(0, 3).join("、")}${markedNames.length > 3 ? "…" : ""}`
+                : "标一下，今晚优先安排"}
+            </span>
+          </button>
+          {eatFirstOpen && (
+            <div className="tn-eatfirst-body">
+              <p className="tn-eatfirst-note">只按你确认的状态影响今晚安排；AI 不凭照片判断新鲜度、保质期或是否安全。</p>
+              <ul className="tn-eatfirst-list">
+                {effectiveNames.map((name) => {
+                  const mark = eatFirstMarks?.[name] || {};
+                  return (
+                    <li key={name} className="tn-eatfirst-row">
+                      <span className="tn-eatfirst-name">{name}</span>
+                      <span className="tn-eatfirst-opts" role="group" aria-label={`${name}的状态`}>
+                        <button
+                          type="button"
+                          className={`tn-eatfirst-opt ${mark.opened ? "is-on" : ""}`}
+                          aria-pressed={Boolean(mark.opened)}
+                          onClick={() => onToggleEatFirst(name, "opened")}
+                        >
+                          已开封
+                        </button>
+                        <button
+                          type="button"
+                          className={`tn-eatfirst-opt ${mark.labelSoon ? "is-on" : ""}`}
+                          aria-pressed={Boolean(mark.labelSoon)}
+                          onClick={() => onToggleEatFirst(name, "labelSoon")}
+                        >
+                          标签日期临近
+                        </button>
+                        <button
+                          type="button"
+                          className={`tn-eatfirst-opt ${mark.unsure ? "is-on" : ""}`}
+                          aria-pressed={Boolean(mark.unsure)}
+                          onClick={() => onToggleEatFirst(name, "unsure")}
+                        >
+                          状态不确定
+                        </button>
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          )}
+        </div>
+      )}
+
       {!manualMode && fridge?.vision?.uncertainItems?.length > 0 && (
         <UnsurePanel
           items={fridge.vision.uncertainItems}
@@ -446,7 +523,7 @@ export default function FridgeScene({
       <p className="tn-warning" role="note">新鲜度、保质期和肉类状态以你自己检查为准，AI 不凭照片判断。</p>
 
       <footer className="tn-scene-foot">
-        {emptyDeclared || includedNames.length === 0 ? (
+        {emptyDeclared || effectiveNames.length === 0 ? (
           <button
             type="button"
             className="tn-btn tn-btn-primary tn-btn-xl"
@@ -461,14 +538,12 @@ export default function FridgeScene({
           <button
             type="button"
             className="tn-btn tn-btn-primary tn-btn-xl"
-            disabled={includedNames.length === 0 && !manualMode}
             onClick={() => {
-              const items = confirmedItems();
-              onConfirmInventory(items, manualMode ? "manual" : inventoryMode);
+              onConfirmInventory(effectiveItems, manualMode ? "manual" : inventoryMode);
               if (!isFeed) setStep("bench");
             }}
           >
-            {isFeed ? "库存确认了，给我今晚的决定" : `确认库存（${includedNames.length} 样），下一步`}
+            {isFeed ? "库存确认了，给我今晚的决定" : `确认库存（${effectiveNames.length} 样），下一步`}
           </button>
         )}
       </footer>

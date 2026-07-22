@@ -5,6 +5,7 @@ import {
   SAMPLE_FRIDGE,
   buildUserContext,
   clearSessionState,
+  eatFirstItemStatesFromMarks,
   fallbackDinnerPlan,
   fallbackTargetPlan,
   feedbackOptionByType,
@@ -38,6 +39,7 @@ export default function TonightApp() {
   const [inventory, setInventory] = useState([]);
   const [inventoryMode, setInventoryMode] = useState("vision"); // vision | last | manual | empty
   const [inventoryConfirmed, setInventoryConfirmed] = useState(false);
+  const [eatFirstMarks, setEatFirstMarks] = useState({}); // { [name]: {opened, labelSoon, unsure} }
   const [intent, setIntent] = useState(null);
   const [plans, setPlans] = useState([]);
   const [activePlanId, setActivePlanId] = useState(null);
@@ -78,6 +80,7 @@ export default function TonightApp() {
       setInventory(Array.isArray(saved.inventory) ? saved.inventory : []);
       setInventoryMode(saved.inventoryMode || "vision");
       setInventoryConfirmed(Boolean(saved.inventoryConfirmed));
+      setEatFirstMarks(saved.eatFirstMarks && typeof saved.eatFirstMarks === "object" ? saved.eatFirstMarks : {});
       setIntent(saved.intent || null);
       const savedPlans = Array.isArray(saved.plans) ? saved.plans : [];
       setPlans(savedPlans);
@@ -103,12 +106,13 @@ export default function TonightApp() {
       inventory,
       inventoryMode,
       inventoryConfirmed,
+      eatFirstMarks,
       intent,
       plans,
       activePlanId,
       pendingKind: pending?.kind || null,
     });
-  }, [hydrated, route, scene, dish, timeBudgetId, timeBudgetAuto, note, fridge, inventory, inventoryMode, inventoryConfirmed, intent, plans, activePlanId, pending]);
+  }, [hydrated, route, scene, dish, timeBudgetId, timeBudgetAuto, note, fridge, inventory, inventoryMode, inventoryConfirmed, eatFirstMarks, intent, plans, activePlanId, pending]);
 
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: "auto" });
@@ -250,6 +254,8 @@ export default function TonightApp() {
       const fileName = imageSource === "sample" ? SAMPLE_FRIDGE.fileName : file.name;
       setInventory([]);
       setInventoryConfirmed(false);
+      // 换了真实照片：旧照片上的先吃标记不能套到新实物
+      setEatFirstMarks({});
       if (imageSource !== "sample" && timeBudgetAuto && route === "fridge") {
         setTimeBudgetId(null);
         setTimeBudgetAuto(false);
@@ -285,6 +291,7 @@ export default function TonightApp() {
     setInventory(snapshot.items);
     setInventoryMode("last");
     setInventoryConfirmed(false);
+    setEatFirstMarks({}); // 库存来源换成上次快照：重新核对后再标
     setFridge(null);
     setScene("fridge");
   }, [showNotice]);
@@ -314,16 +321,61 @@ export default function TonightApp() {
     setInventory([]);
     setInventoryMode("vision");
     setInventoryConfirmed(false);
+    setEatFirstMarks({});
     setReshootResult(null);
   }, []);
 
+  // ---------- 先吃标记（用户确认状态，规则失败不阻断规划） ----------
+
+  const toggleEatFirstMark = useCallback((name, key) => {
+    setEatFirstMarks((cur) => {
+      const prev = cur[name] || { opened: false, labelSoon: false, unsure: false };
+      const next = { ...prev, [key]: !prev[key] };
+      if (key === "unsure" && next.unsure) { next.opened = false; next.labelSoon = false; }
+      if ((key === "opened" || key === "labelSoon") && next[key]) next.unsure = false;
+      const copy = { ...cur };
+      if (next.opened || next.labelSoon || next.unsure) copy[name] = next;
+      else delete copy[name];
+      return copy;
+    });
+  }, []);
+
+  // 确定性规则端点：毫秒级，失败时返回 applied:false 快照，规划继续但不冒充已生效
+  async function resolveEatFirst(itemStates) {
+    if (!itemStates?.length) return null;
+    try {
+      const data = await api.eatFirst({ itemStates }, { timeoutMs: 6000 });
+      const result = data.eatFirst || {};
+      return {
+        applied: true,
+        itemStates,
+        plannerPriorities: Array.isArray(result.plannerPriorities) ? result.plannerPriorities : [],
+        needsConfirmation: (result.needsConfirmation || []).map((item) => item.name || item).filter(Boolean),
+        summary: String(result.summary || ""),
+        source: "user-confirmed",
+      };
+    } catch {
+      return { applied: false, itemStates, plannerPriorities: [], needsConfirmation: [], summary: "", source: "rules-failed" };
+    }
+  }
+
   // ---------- 规划（W → T） ----------
+
+  // 严格快照派生：重规划原样继承用户当前查看版本的完整先吃结果
+  // （含 applied:false 与空结果），不再次调用 /api/eat-first；
+  // 只有 2a 以前没有 eatFirst 字段的旧版本才回退当前全局标记
+  function inheritEatFirstSnapshot(active) {
+    const snap = active?.requestSnapshot;
+    if (snap && "eatFirst" in snap) return snap.eatFirst ?? null;
+    return undefined;
+  }
 
   const startPlanning = useCallback(async ({
     mode,
     dishName,
     feedbackType = null,
     alternative = false,
+    alternativeFrom = null,
     cartItems = [],
     acquiredItems = [],
     inventorySnapshot = inventory,
@@ -331,10 +383,12 @@ export default function TonightApp() {
     timeBudgetIdSnapshot = timeBudgetId,
     noteSnapshot = note,
     inputProvenance = null,
+    eatFirstItemStates = null,
+    resolvedEatFirst = null,
+    inheritedEatFirst = undefined,
   }) => {
     const baseInventory = Array.isArray(inventorySnapshot) ? inventorySnapshot : [];
     const timeBudget = timeOptionById(timeBudgetIdSnapshot);
-    const userContext = buildUserContext({ timeBudget, note: noteSnapshot, feedbackType, alternative });
     const realAcquired = [...new Set(acquiredItems.map((name) => String(name || "").trim()).filter(Boolean))];
     const simulated = [...new Set(cartItems.map((name) => String(name || "").trim()).filter(Boolean))];
     const planningInventory = [
@@ -348,9 +402,33 @@ export default function TonightApp() {
       fridgeAnalysisSource: fridge?.visionSource || null,
       inventoryMode: inventoryModeSnapshot,
     };
-    const signal = beginPending("plan", mode === "target" ? "正在看家里够不够做" : "正在按你有的食材想办法");
-    setPlanError(null);
+    // 默认从当前先吃标记派生；失败重试等场景用调用方冻结的快照
+    const efStates = eatFirstItemStates
+      || eatFirstItemStatesFromMarks(eatFirstMarks, baseInventory.map((item) => String(item?.name || item || "").trim()).filter(Boolean));
+    const frozenArgs = {
+      mode, dishName, feedbackType, alternative, alternativeFrom,
+      cartItems: simulated, acquiredItems: realAcquired,
+      inventorySnapshot: baseInventory, inventoryModeSnapshot,
+      timeBudgetIdSnapshot, noteSnapshot,
+      inputProvenance: provenance, eatFirstItemStates: efStates,
+    };
+    const signal = beginPending("plan", alternativeFrom?.candidateName ? "正在换个思路想办法" : mode === "target" ? "正在看家里够不够做" : "正在按你有的食材想办法");
+    // 不在此处清空 planError：重试途中取消时，失败卡片必须仍然可用，否则行动单会空白
     try {
+      // 优先级：继承当前查看版本的完整快照 > 重试冻结结果 > 重新解析规则
+      const eatFirstSnap = inheritedEatFirst !== undefined
+        ? inheritedEatFirst
+        : resolvedEatFirst || await resolveEatFirst(efStates);
+      frozenArgs.resolvedEatFirst = eatFirstSnap;
+      if (signal.aborted) return;
+      const userContext = buildUserContext({
+        timeBudget,
+        note: noteSnapshot,
+        feedbackType,
+        alternative,
+        alternativeFrom,
+        eatFirstPriorities: eatFirstSnap?.applied ? eatFirstSnap.plannerPriorities : [],
+      });
       if (mode === "target") {
         const text = `我今晚想吃${dishName}`;
         const imageAnalysis = dish?.analysis && namesMatch(dish.analysis.dishName, dishName) ? dish.analysis : null;
@@ -368,7 +446,7 @@ export default function TonightApp() {
           mode: "target",
           plan: normalizeTargetPlanData(data.targetPlan),
           source: data.source || "model",
-          snapshotLabel: versionLabel({ mode: "target", dishName, timeBudget, feedbackType, cartItems: simulated, acquiredItems: realAcquired }),
+          snapshotLabel: versionLabel({ mode: "target", dishName, timeBudget, feedbackType, alternativeFrom, cartItems: simulated, acquiredItems: realAcquired }),
           shoppingPreview: simulated.length ? { acceptedItems: simulated } : null,
           materialState: { acquiredItems: realAcquired, simulatedItems: simulated },
           inputProvenance: provenance,
@@ -380,6 +458,8 @@ export default function TonightApp() {
             inventoryCount: baseInventory.length,
             inventoryMode: inventoryModeSnapshot,
             note: noteSnapshot,
+            eatFirst: eatFirstSnap,
+            alternativeFrom,
           },
         });
       } else {
@@ -388,9 +468,9 @@ export default function TonightApp() {
           mode: "free",
           plan: normalizeDinnerPlan(data.plan),
           source: data.source || "model",
-          snapshotLabel: versionLabel({ mode: "free", timeBudget, feedbackType, cartItems: simulated, acquiredItems: realAcquired }),
+          snapshotLabel: versionLabel({ mode: "free", timeBudget, feedbackType, alternativeFrom, cartItems: simulated, acquiredItems: realAcquired }),
           shoppingPreview: null,
-          materialState: { acquiredItems: realAcquired, simulatedItems: [] },
+          materialState: { acquiredItems: realAcquired, simulatedItems: simulated },
           inputProvenance: provenance,
           requestSnapshot: {
             timeBudgetId: timeBudgetIdSnapshot,
@@ -399,14 +479,18 @@ export default function TonightApp() {
             inventoryCount: baseInventory.length,
             inventoryMode: inventoryModeSnapshot,
             note: noteSnapshot,
+            eatFirst: eatFirstSnap,
+            alternativeFrom,
           },
         });
       }
+      setPlanError(null); // 只在成功时清失败卡；重试取消不抹掉原失败出口
       setScene("ticket");
     } catch (error) {
       if (signal.aborted) return; // 用户主动取消：静默返回
       if (plans.length === 0) {
-        setPlanError({ message: error.message || "规划失败", mode, dishName });
+        // 冻结首次请求的完整参数：重试按原条件重发，不用当前可能已变的 UI 状态重新拼装
+        setPlanError({ message: error.message || "规划失败", requestArgs: frozenArgs });
         setScene("ticket");
       } else {
         showNotice("这次重新规划失败了，当前方案仍保留");
@@ -415,13 +499,14 @@ export default function TonightApp() {
       endPending();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [timeBudgetId, note, inventory, inventoryMode, dish, fridge, plans.length]);
+  }, [timeBudgetId, note, inventory, inventoryMode, eatFirstMarks, dish, fridge, plans.length]);
 
-  function versionLabel({ mode, dishName, timeBudget, feedbackType, cartItems, acquiredItems }) {
+  function versionLabel({ mode, dishName, timeBudget, feedbackType, alternativeFrom, cartItems, acquiredItems }) {
     const parts = [mode === "target" ? `目标菜 · ${dishName}` : "按库存安排"];
     if (timeBudget) parts.push(timeBudget.label);
     const fb = feedbackOptionByType(feedbackType);
     if (fb && !fb.recordOnly) parts.push(`反馈：${fb.label}`);
+    if (alternativeFrom?.candidateName) parts.push(`换个思路 · ${alternativeFrom.candidateName}`);
     if (cartItems?.length) parts.push(`模拟补购 ${cartItems.length} 样`);
     if (acquiredItems?.length) parts.push(`已拿到 ${acquiredItems.length} 样`);
     return parts.join(" · ");
@@ -446,38 +531,59 @@ export default function TonightApp() {
     setActivePlanId(entry.id);
   }
 
-  const useRulesFallback = useCallback(() => {
-    const timeBudget = timeOptionById(timeBudgetId);
-    const mode = planError?.mode || (intent?.type === "target_dish" ? "target" : "free");
-    commitPlan({
-      mode,
-      plan: mode === "target"
-        ? fallbackTargetPlan(planError?.dishName || intent?.dishName, inventory, timeBudget)
-        : fallbackDinnerPlan(inventory, timeBudget),
-      source: "rules-fallback",
-      snapshotLabel: "规则兜底（非本次模型结果）",
-      shoppingPreview: null,
-      materialState: { acquiredItems: [], simulatedItems: [] },
-      inputProvenance: {
-        dishImageSource: dish?.imageSource || null,
-        dishAnalysisSource: dish?.analysisSource || null,
-        fridgeImageSource: fridge?.imageSource || null,
-        fridgeAnalysisSource: fridge?.visionSource || null,
-        inventoryMode,
-      },
-      requestSnapshot: {
-        timeBudgetId,
-        availableCookingTime: timeBudget?.value || "由用户确认",
-        inventory,
-        inventoryCount: inventory.length,
-        inventoryMode,
-        note,
-      },
-    });
-    setPlanError(null);
-    setScene("ticket");
+  const [fallbackBusy, setFallbackBusy] = useState(false);
+
+  const useRulesFallback = useCallback(async () => {
+    if (fallbackBusy) return; // 防重复点击生成多个兜底版本
+    setFallbackBusy(true);
+    try {
+      // 优先沿用首次请求冻结的条件，避免兜底版本与失败请求的条件不一致
+      const frozen = planError?.requestArgs || null;
+      const fbInventory = frozen?.inventorySnapshot || inventory;
+      const fbInventoryMode = frozen?.inventoryModeSnapshot || inventoryMode;
+      const fbTimeId = frozen?.timeBudgetIdSnapshot || timeBudgetId;
+      const fbNote = frozen?.noteSnapshot ?? note;
+      const timeBudget = timeOptionById(fbTimeId);
+      const mode = frozen?.mode || (intent?.type === "target_dish" ? "target" : "free");
+      const dishName = frozen?.dishName || intent?.dishName;
+      const efStates = frozen?.eatFirstItemStates
+        || eatFirstItemStatesFromMarks(eatFirstMarks, fbInventory.map((item) => String(item?.name || item || "").trim()).filter(Boolean));
+      // 冻结里有首次真正生效的先吃结果就直接沿用，不重新调用规则
+      const eatFirstSnap = frozen?.resolvedEatFirst || await resolveEatFirst(efStates);
+      commitPlan({
+        mode,
+        plan: mode === "target"
+          ? fallbackTargetPlan(dishName, fbInventory, timeBudget)
+          : fallbackDinnerPlan(fbInventory, timeBudget),
+        source: "rules-fallback",
+        snapshotLabel: "规则兜底（非本次模型结果）",
+        shoppingPreview: null,
+        materialState: { acquiredItems: [], simulatedItems: [] },
+        inputProvenance: frozen?.inputProvenance || {
+          dishImageSource: dish?.imageSource || null,
+          dishAnalysisSource: dish?.analysisSource || null,
+          fridgeImageSource: fridge?.imageSource || null,
+          fridgeAnalysisSource: fridge?.visionSource || null,
+          inventoryMode: fbInventoryMode,
+        },
+        requestSnapshot: {
+          dishName: mode === "target" ? dishName : undefined,
+          timeBudgetId: fbTimeId,
+          availableCookingTime: timeBudget?.value || "由用户确认",
+          inventory: fbInventory,
+          inventoryCount: fbInventory.length,
+          inventoryMode: fbInventoryMode,
+          note: fbNote,
+          eatFirst: eatFirstSnap,
+        },
+      });
+      setPlanError(null);
+      setScene("ticket");
+    } finally {
+      setFallbackBusy(false);
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [planError, intent, inventory, inventoryMode, timeBudgetId, note, dish, fridge]);
+  }, [fallbackBusy, planError, intent, inventory, inventoryMode, timeBudgetId, note, eatFirstMarks, dish, fridge]);
 
   // ---------- 反馈 / 补购 / 已拿到 ----------
 
@@ -507,6 +613,7 @@ export default function TonightApp() {
       acquiredItems: active.materialState?.acquiredItems || [],
       cartItems: active.materialState?.simulatedItems || [],
       inputProvenance: active.inputProvenance,
+      inheritedEatFirst: inheritEatFirstSnapshot(active),
     });
   }, [plans, activePlanId, startPlanning, showNotice, inventory, inventoryMode, timeBudgetId, note]);
 
@@ -523,6 +630,7 @@ export default function TonightApp() {
       timeBudgetIdSnapshot: active.requestSnapshot?.timeBudgetId || timeBudgetId,
       noteSnapshot: active.requestSnapshot?.note ?? note,
       inputProvenance: active.inputProvenance,
+      inheritedEatFirst: inheritEatFirstSnapshot(active),
     });
   }, [plans, activePlanId, startPlanning, inventory, inventoryMode, timeBudgetId, note]);
 
@@ -563,14 +671,33 @@ export default function TonightApp() {
       timeBudgetIdSnapshot: active.requestSnapshot?.timeBudgetId || timeBudgetId,
       noteSnapshot: active.requestSnapshot?.note ?? note,
       inputProvenance: active.inputProvenance,
+      inheritedEatFirst: inheritEatFirstSnapshot(active),
     });
   }, [plans, activePlanId, startPlanning, showNotice, inventory, inventoryMode, timeBudgetId, note]);
+
+  // 「另一个思路」：冻结来源版本与候选菜，仍走自由推荐；库存现实可能让结果偏离候选
+  const applyAlternative = useCallback(({ sourcePlanId, candidateName, candidateWhy }) => {
+    const active = plans.find((p) => p.id === activePlanId);
+    if (!active || active.mode !== "free" || !candidateName) return;
+    return startPlanning({
+      mode: "free",
+      alternativeFrom: { sourcePlanId, candidateName, candidateWhy },
+      inventorySnapshot: active.requestSnapshot?.inventory || inventory,
+      inventoryModeSnapshot: active.requestSnapshot?.inventoryMode || inventoryMode,
+      timeBudgetIdSnapshot: active.requestSnapshot?.timeBudgetId || timeBudgetId,
+      noteSnapshot: active.requestSnapshot?.note ?? note,
+      acquiredItems: active.materialState?.acquiredItems || [],
+      inputProvenance: active.inputProvenance,
+      inheritedEatFirst: inheritEatFirstSnapshot(active),
+    });
+  }, [plans, activePlanId, startPlanning, inventory, inventoryMode, timeBudgetId, note]);
 
   // ---------- 导航 ----------
 
   const restart = useCallback(() => {
     abortRef.current?.abort();
     clearSessionState();
+    planSeq = 1; // 换一种开始 = 新的一餐，版本序号重置
     setRoute(null);
     setScene("home");
     setDish(null);
@@ -581,6 +708,7 @@ export default function TonightApp() {
     setInventory([]);
     setInventoryMode("vision");
     setInventoryConfirmed(false);
+    setEatFirstMarks({});
     setIntent(null);
     setPlans([]);
     setActivePlanId(null);
@@ -630,6 +758,8 @@ export default function TonightApp() {
             inventory={inventory}
             inventoryMode={inventoryMode}
             inventoryConfirmed={inventoryConfirmed}
+            eatFirstMarks={eatFirstMarks}
+            onToggleEatFirst={toggleEatFirstMark}
             timeBudgetId={timeBudgetId}
             setTimeBudgetId={selectTimeBudget}
             note={note}
@@ -645,6 +775,9 @@ export default function TonightApp() {
               setInventory(items);
               setInventoryMode(mode);
               setInventoryConfirmed(true);
+              // 标记只绑定本次确认的库存：被点出库存的食材不再计入
+              const confirmedNames = new Set(items.map((item) => String(item?.name || item || "").trim()).filter(Boolean));
+              setEatFirstMarks((cur) => Object.fromEntries(Object.entries(cur).filter(([name]) => confirmedNames.has(name))));
               if (fridge?.imageSource !== "sample" && items.length > 0) {
                 saveInventorySnapshot(items, { source: mode });
               }
@@ -685,6 +818,7 @@ export default function TonightApp() {
             onFeedback={applyFeedback}
             onCartReplan={applyCartReplan}
             onGotIt={applyGotIt}
+            onAlternative={applyAlternative}
             onAddTarget={(dishName) => startPlanning({
               mode: "target",
               dishName,
@@ -694,6 +828,7 @@ export default function TonightApp() {
               noteSnapshot: activePlan.requestSnapshot?.note ?? note,
               acquiredItems: activePlan.materialState?.acquiredItems || [],
               inputProvenance: activePlan.inputProvenance,
+              inheritedEatFirst: inheritEatFirstSnapshot(activePlan),
             })}
             onEditFridge={() => setScene("fridge")}
             onRestart={restart}
@@ -705,10 +840,13 @@ export default function TonightApp() {
               <p className="tn-failbox-title">这次没有生成方案</p>
               <p className="tn-failbox-detail">{planError.message}</p>
               <div className="tn-failbox-actions">
-                <button type="button" className="tn-btn tn-btn-primary" onClick={() => startPlanning({ mode: planError.mode, dishName: planError.dishName })}>重试一次</button>
-                <button type="button" className="tn-btn tn-btn-quiet" onClick={useRulesFallback}>先看一版保守方案（规则兜底，非本次模型结果）</button>
-                <button type="button" className="tn-link" onClick={() => { setPlanError(null); setScene("fridge"); }}>回去改条件</button>
+                <button type="button" className="tn-btn tn-btn-primary" disabled={fallbackBusy} onClick={() => startPlanning(planError.requestArgs || {})}>按原条件重试一次</button>
+                <button type="button" className="tn-btn tn-btn-quiet" disabled={fallbackBusy} onClick={useRulesFallback}>
+                  {fallbackBusy ? "正在生成保守方案…" : "先看一版保守方案（规则兜底，非本次模型结果）"}
+                </button>
+                <button type="button" className="tn-link" disabled={fallbackBusy} onClick={() => { setPlanError(null); setScene("fridge"); }}>回去改条件</button>
               </div>
+              <p className="tn-foot-hint">重试会按你刚才确认的库存、时间和要求原样重新请求，不会改动任何条件。</p>
             </div>
           </section>
         )}

@@ -104,9 +104,32 @@ export function itemDisplayName(item) {
   return String(item?.name || item?.item || "").trim();
 }
 
+// ---------- 先吃标记（只来自用户主动确认，不从照片推断） ----------
+
+// 标记形状：{ [name]: { opened, labelSoon, unsure } }
+// opened 与 labelSoon 可同时成立；unsure 与两者互斥
+export function eatFirstItemStatesFromMarks(marks, names) {
+  if (!marks || !Array.isArray(names)) return [];
+  return names
+    .map((name) => {
+      const mark = marks[name];
+      if (!mark) return null;
+      if (mark.unsure) return { name, status: "unknown" };
+      if (mark.opened && mark.labelSoon) return { name, status: "opened_label_soon" };
+      if (mark.opened) return { name, status: "opened" };
+      if (mark.labelSoon) return { name, status: "label_soon" };
+      return null;
+    })
+    .filter(Boolean);
+}
+
+export function eatFirstMarkedCount(marks) {
+  return Object.values(marks || {}).filter((m) => m && (m.opened || m.labelSoon || m.unsure)).length;
+}
+
 // ---------- userContext（沿用现有后端契约） ----------
 
-export function buildUserContext({ timeBudget, note = "", feedbackType = null, alternative = false }) {
+export function buildUserContext({ timeBudget, note = "", feedbackType = null, alternative = false, eatFirstPriorities = [], alternativeFrom = null }) {
   const option = feedbackOptionByType(feedbackType);
   const preferences = [];
   const avoid = [];
@@ -116,7 +139,15 @@ export function buildUserContext({ timeBudget, note = "", feedbackType = null, a
     avoid.push(...option.avoid);
     goal += `；${option.goal}`;
   }
-  if (alternative) {
+  if (eatFirstPriorities.length) {
+    const priorityText = `本餐优先处理：${eatFirstPriorities.join("、")}`;
+    preferences.push(priorityText);
+    goal += `；用户主动确认${priorityText}`;
+  }
+  if (alternativeFrom?.candidateName) {
+    preferences.push(`参考上一版的思路「${alternativeFrom.candidateName}」`);
+    goal += `；用户想参考上一版的另一个思路「${alternativeFrom.candidateName}」${alternativeFrom.candidateWhy ? `（${alternativeFrom.candidateWhy}）` : ""}，给出一版新方案；仍以现实库存为准，不必坚持原候选菜`;
+  } else if (alternative) {
     preferences.push("与上一版不同但同样可执行");
     goal += "；同时给出与上一版不同的可执行版本";
   }

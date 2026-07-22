@@ -5,7 +5,7 @@ import { FEEDBACK_OPTIONS, isFixedDemoResult, namesMatch, parseMinutes, sessionS
 
 export default function TicketScene({
   plan, plans, onSelectPlan, timeBudget, gotIt,
-  onFeedback, onCartReplan, onGotIt, onAddTarget, onEditFridge, onRestart,
+  onFeedback, onCartReplan, onGotIt, onAlternative, onAddTarget, onEditFridge, onRestart,
 }) {
   const [cartSel, setCartSel] = useState([]);
   const [gotSel, setGotSel] = useState([]);
@@ -32,6 +32,11 @@ export default function TicketScene({
 
   const mealName = isTarget ? plan.plan?.targetDish?.name : plan.plan?.baseMeal?.name;
   const accepted = plan.materialState?.simulatedItems || plan.shoppingPreview?.acceptedItems || [];
+  const eatFirst = plan.requestSnapshot?.eatFirst || null;
+  const alternativeFrom = plan.requestSnapshot?.alternativeFrom || null;
+  const altSourceSeq = alternativeFrom?.sourcePlanId
+    ? plans.find((p) => p.id === alternativeFrom.sourcePlanId)?.sequence
+    : null;
 
   const missing = isTarget
     ? [...new Set([
@@ -118,6 +123,20 @@ export default function TicketScene({
     }
   }
 
+  async function handleAlternative() {
+    if (!onAlternative || !plan.plan?.stretchMeal?.name) return;
+    setBusy(true);
+    try {
+      await onAlternative({
+        sourcePlanId: plan.id,
+        candidateName: plan.plan.stretchMeal.name,
+        candidateWhy: plan.plan.stretchMeal.why || "",
+      });
+    } finally {
+      setBusy(false);
+    }
+  }
+
   function missingItemState(name) {
     if (gotIt.some((g) => namesMatch(g, name))) return { tag: "本次已拿到", cls: "is-got" };
     if (gotSel.includes(name)) return { tag: "已拿到（待确认）", cls: "is-got" };
@@ -140,6 +159,15 @@ export default function TicketScene({
           {` · ${plan.requestSnapshot.inventoryCount ?? 0} 样`}
         </p>
       )}
+      {eatFirst?.applied && eatFirst.plannerPriorities.length > 0 && (
+        <p className="tn-source-line">规划时已优先考虑：{eatFirst.plannerPriorities.join("、")}（按你确认的状态；实际用到哪些以下方方案为准）</p>
+      )}
+      {eatFirst?.applied && eatFirst.needsConfirmation.length > 0 && (
+        <p className="tn-source-line">状态待确认：{eatFirst.needsConfirmation.join("、")}——未进入优先，使用前请自己确认</p>
+      )}
+      {eatFirst && !eatFirst.applied && (
+        <p className="tn-warning" role="note">先吃偏好这次没生效，方案未受影响；你标记的状态已保留在本版。</p>
+      )}
       {isRules && (
         <p className="tn-warning" role="note">这是保守兜底方案（规则生成，不是本次模型结果）。模型恢复后建议重新规划。</p>
       )}
@@ -147,6 +175,11 @@ export default function TicketScene({
       <article className="tn-ticket">
         <header className="tn-ticket-head">
           <p className="tn-ticket-mode">{isTarget ? `想吃的 · ${mealName || "目标菜"}` : "按你有的安排"}</p>
+          {alternativeFrom?.candidateName && (
+            <p className="tn-ticket-lineage">
+              换个思路 · 来自{altSourceSeq ? `第 ${altSourceSeq} 版` : "上一版"}的「{alternativeFrom.candidateName}」；按现实库存重定，不一定是同一道菜
+            </p>
+          )}
           <p className="tn-ticket-verdict">
             {isTarget
               ? allRequiredAcquired ? `本次所缺材料已拿到，可以按这版准备「${mealName || "目标菜"}」` : plan.plan?.verdict?.title
@@ -263,7 +296,12 @@ export default function TicketScene({
               <p className="tn-ticket-meta">用到了你有的：{plan.plan.baseMeal.requiredItems.join("、")}</p>
             )}
             {plan.plan?.stretchMeal?.name ? (
-              <p className="tn-ticket-alt">另一个思路：{plan.plan.stretchMeal.name} —— {plan.plan.stretchMeal.why}</p>
+              <div className="tn-ticket-altbox">
+                <p className="tn-ticket-alt">另一个思路：{plan.plan.stretchMeal.name} —— {plan.plan.stretchMeal.why}</p>
+                <button type="button" className="tn-btn tn-btn-quiet tn-altbtn" disabled={busy} onClick={handleAlternative}>
+                  按这个思路重新定一版
+                </button>
+              </div>
             ) : null}
           </div>
         )}

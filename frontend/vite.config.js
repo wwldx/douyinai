@@ -7,15 +7,15 @@ export default defineConfig({
     port: 5173,
     proxy: {
       "/api": {
-        target: process.env.BACKEND_ORIGIN || "http://localhost:4174",
+        target: process.env.BACKEND_ORIGIN || "http://localhost:4173",
         changeOrigin: true,
       },
       "/sliced": {
-        target: process.env.BACKEND_ORIGIN || "http://localhost:4174",
+        target: process.env.BACKEND_ORIGIN || "http://localhost:4173",
         changeOrigin: true,
       },
       "/demo-assets": {
-        target: process.env.BACKEND_ORIGIN || "http://localhost:4174",
+        target: process.env.BACKEND_ORIGIN || "http://localhost:4173",
         changeOrigin: true,
       },
     },
