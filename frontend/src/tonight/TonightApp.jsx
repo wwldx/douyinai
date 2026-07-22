@@ -27,6 +27,7 @@ import DishScene from "./scenes/DishScene";
 import FridgeScene from "./scenes/FridgeScene";
 import TicketScene from "./scenes/TicketScene";
 import RescueScene from "./scenes/RescueScene";
+import LifeLogScene from "./scenes/LifeLogScene";
 import WaitingOverlay from "./scenes/WaitingOverlay";
 
 let planSeq = 1;
@@ -45,6 +46,8 @@ export default function TonightApp() {
   const [eatFirstMarks, setEatFirstMarks] = useState({}); // { [name]: {opened, labelSoon, unsure} }
   const [stepPositions, setStepPositions] = useState({}); // { [planId]: number } 仅用户显式标记
   const [rescue, setRescue] = useState(null); // 做饭救援：冻结方案快照 + 草稿 + 已完成轮次，不含原始照片
+  const [lifeLog, setLifeLog] = useState(null); // 生活记录：绑定 planId 的草稿会话，不含原始照片
+  const [lifeLogDrafts, setLifeLogDrafts] = useState({}); // { [planId]: 已保存草稿（纯文本） }
   const [intent, setIntent] = useState(null);
   const [plans, setPlans] = useState([]);
   const [activePlanId, setActivePlanId] = useState(null);
@@ -88,13 +91,16 @@ export default function TonightApp() {
       setEatFirstMarks(saved.eatFirstMarks && typeof saved.eatFirstMarks === "object" ? saved.eatFirstMarks : {});
       setStepPositions(saved.stepPositions && typeof saved.stepPositions === "object" ? saved.stepPositions : {});
       setRescue(saved.rescue && typeof saved.rescue === "object" ? saved.rescue : null);
+      setLifeLog(saved.lifeLog && typeof saved.lifeLog === "object" ? saved.lifeLog : null);
+      setLifeLogDrafts(saved.lifeLogDrafts && typeof saved.lifeLogDrafts === "object" ? saved.lifeLogDrafts : {});
       setIntent(saved.intent || null);
       const savedPlans = Array.isArray(saved.plans) ? saved.plans : [];
       setPlans(savedPlans);
       planSeq = Math.max(planSeq, ...savedPlans.map((entry, index) => Number(entry.sequence || index + 1) + 1));
       setActivePlanId(saved.activePlanId || null);
-      // 恢复优先级：救援（含已完成轮次与草稿）> 行动单 > 库存 > 菜图；在途请求只标中断，不静默重发
+      // 恢复优先级：救援/生活记录（含草稿）> 行动单 > 库存 > 菜图；在途请求只标中断，不静默重发
       if (saved.scene === "rescue" && saved.rescue?.planSnapshot) setScene("rescue");
+      else if (saved.scene === "lifelog" && saved.lifeLog?.planId) setScene("lifelog");
       else if (saved.plans?.length) setScene("ticket");
       else if (saved.scene === "fridge" || saved.inventoryConfirmed || saved.inventoryMode === "empty" || saved.fridge?.vision) setScene("fridge");
       else if (saved.dish) setScene("dish");
@@ -118,12 +124,14 @@ export default function TonightApp() {
       eatFirstMarks,
       stepPositions,
       rescue,
+      lifeLog,
+      lifeLogDrafts,
       intent,
       plans,
       activePlanId,
       pendingKind: pending?.kind || null,
     });
-  }, [hydrated, route, scene, dish, timeBudgetId, timeBudgetAuto, note, fridge, inventory, inventoryMode, inventoryConfirmed, eatFirstMarks, stepPositions, rescue, intent, plans, activePlanId, pending]);
+  }, [hydrated, route, scene, dish, timeBudgetId, timeBudgetAuto, note, fridge, inventory, inventoryMode, inventoryConfirmed, eatFirstMarks, stepPositions, rescue, lifeLog, lifeLogDrafts, intent, plans, activePlanId, pending]);
 
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: "auto" });
@@ -825,6 +833,92 @@ export default function TonightApp() {
     }
   }, [rescue, showNotice]);
 
+  // ---------- 饭后生活记录（按 planId 绑定，纯文本草稿，不发布） ----------
+
+  const openLifeLog = useCallback(() => {
+    const active = plans.find((p) => p.id === activePlanId);
+    if (!active) return;
+    setLifeLog((cur) => {
+      if (cur && cur.planId === active.id) return cur; // 同方案：继续既有草稿会话
+      const saved = lifeLogDrafts[active.id];
+      const dishName = active.mode === "target" ? active.plan?.targetDish?.name : active.plan?.baseMeal?.name;
+      if (saved) {
+        return { planId: active.id, sequence: active.sequence, dishName: saved.dishName || dishName || "", status: "draft", result: saved, source: saved.source || "model" };
+      }
+      return { planId: active.id, sequence: active.sequence, dishName: dishName || "", status: "intake", result: null, source: null };
+    });
+    setScene("lifelog");
+  }, [plans, activePlanId, lifeLogDrafts]);
+
+  const submitLifeLog = useCallback(async ({ image, dishName }) => {
+    if (!lifeLog || !image || !dishName) return;
+    const signal = beginPending("life-log", "正在起草生活记录");
+    try {
+      const data = await api.generateLifeLog({
+        imageDataUrl: image,
+        mealContext: { mealName: dishName, planVersion: lifeLog.sequence },
+      }, { signal });
+      const draft = data.lifeLog || {};
+      setLifeLog((cur) => (cur ? {
+        ...cur,
+        dishName,
+        status: "draft",
+        source: data.source || "model",
+        result: {
+          dishName,
+          selectedTitle: draft.titleOptions?.[0] || "",
+          titleOptions: draft.titleOptions || [],
+          coverText: draft.coverText || "",
+          voiceoverDraft: draft.voiceoverDraft || "",
+          visualSummary: draft.visualSummary || "",
+          suggestedShots: draft.suggestedShots || [],
+          tags: draft.tags || [],
+          warnings: draft.warnings || [],
+        },
+      } : cur));
+    } catch (error) {
+      if (!signal.aborted) showNotice(error.message || "生成失败；照片和菜名都保留，可以直接重试");
+    } finally {
+      endPending();
+    }
+  }, [lifeLog, showNotice]);
+
+  const updateLifeLog = useCallback((patch) => {
+    setLifeLog((cur) => (cur ? { ...cur, ...patch } : cur));
+  }, []);
+
+  const updateLifeLogResult = useCallback((patch) => {
+    setLifeLog((cur) => (cur?.result ? { ...cur, result: { ...cur.result, ...patch } } : cur));
+  }, []);
+
+  // 工作草稿按 planId 自动保存：任何编辑立即持久化；时间只存在于草稿存储中，
+  // 比较时新旧两侧都剔除时间字段，仅打开/刷新同一份草稿不会刷新时间
+  useEffect(() => {
+    if (!lifeLog?.result || !lifeLog.planId) return;
+    setLifeLogDrafts((drafts) => {
+      const prev = drafts[lifeLog.planId];
+      const { lastEditedAt: _prevTime, ...prevCore } = prev || {};
+      const { lastEditedAt: _nextTime, ...resultCore } = lifeLog.result;
+      const nextCore = { ...resultCore, dishName: lifeLog.dishName, source: lifeLog.source };
+      if (prev && JSON.stringify(prevCore) === JSON.stringify(nextCore)) return drafts;
+      return { ...drafts, [lifeLog.planId]: { ...nextCore, lastEditedAt: new Date().toISOString() } };
+    });
+  }, [lifeLog]);
+
+  // 换一张成品图：回到填写态并清掉该方案的旧草稿，避免旧草稿与新照片混淆
+  const retakeLifeLog = useCallback(() => {
+    setLifeLog((cur) => {
+      if (!cur) return cur;
+      setLifeLogDrafts((drafts) => {
+        if (!drafts[cur.planId]) return drafts;
+        const next = { ...drafts };
+        delete next[cur.planId];
+        return next;
+      });
+      return { ...cur, status: "intake", result: null, source: null };
+    });
+  }, []);
+
   // ---------- 导航 ----------
 
   const restart = useCallback(() => {
@@ -844,6 +938,8 @@ export default function TonightApp() {
     setEatFirstMarks({});
     setStepPositions({});
     setRescue(null);
+    setLifeLog(null);
+    setLifeLogDrafts({});
     setIntent(null);
     setPlans([]);
     setActivePlanId(null);
@@ -970,6 +1066,7 @@ export default function TonightApp() {
             onEditFridge={() => setScene("fridge")}
             onRestart={restart}
             onRescue={openRescue}
+            onLifeLog={openLifeLog}
           />
         )}
         {scene === "rescue" && rescue && (
@@ -990,6 +1087,20 @@ export default function TonightApp() {
             }}
           />
         )}
+        {scene === "lifelog" && lifeLog && (
+          <LifeLogScene
+            lifeLog={lifeLog}
+            lastEditedAt={lifeLogDrafts[lifeLog.planId]?.lastEditedAt || null}
+            interrupted={interrupted?.kind === "life-log"}
+            onDismissInterrupted={() => setInterrupted(null)}
+            onUpdate={updateLifeLog}
+            onUpdateResult={updateLifeLogResult}
+            onSubmit={submitLifeLog}
+            onRetake={retakeLifeLog}
+            onBack={() => setScene("ticket")}
+            showNotice={showNotice}
+          />
+        )}
         {scene === "ticket" && !activePlan && planError && (
           <section className="tn-scene" aria-label="规划失败">
             <div className="tn-failbox">
@@ -1006,7 +1117,7 @@ export default function TonightApp() {
             </div>
           </section>
         )}
-        {interrupted && (
+        {interrupted && interrupted.kind !== "life-log" && interrupted.kind !== "dish-rescue" && (
           <div className="tn-interrupted" role="status">
             <span>上次页面在请求中关闭；本页不会自动采用迟到的结果，也不会静默重发。</span>
             <button type="button" className="tn-chip tn-chip-mini" onClick={() => setInterrupted(null)}>知道了</button>

@@ -53,6 +53,7 @@ let targetDishSourceFileName = "";
 let targetDishImageAnalysis = null;
 let lifeLogImageDataUrl = "";
 let lifeLogSourceFileName = "";
+let lifeLogDemoKey = "";
 let targetVoiceController = null;
 let currentVision = { items: [], uncertainItems: [], warnings: [] };
 let confirmedItems = new Set();
@@ -664,12 +665,18 @@ async function runOrganizationPreview() {
   }
 }
 
-async function loadLifeLogFile(file) {
+async function loadLifeLogFile(file, { demoKey = "" } = {}) {
   if (!file) return;
+  // 切换图片时立即作废上一张图和示例身份；读取完成前不得继续生成。
+  lifeLogImageDataUrl = "";
+  lifeLogSourceFileName = "";
+  lifeLogDemoKey = "";
+  elements.lifeLogGenerateButton.disabled = true;
   elements.lifeLogPreview.src = URL.createObjectURL(file);
   elements.lifeLogPreview.style.display = "block";
   lifeLogImageDataUrl = await fileToDataUrl(file);
   lifeLogSourceFileName = file.name || "finished-dish.jpg";
+  lifeLogDemoKey = demoKey;
   elements.lifeLogGenerateButton.disabled = isBusy || !lifeLogImageDataUrl;
   renderJson(elements.lifeLogRaw, {
     sourceFileName: lifeLogSourceFileName,
@@ -683,7 +690,10 @@ async function loadLifeLogSample() {
     const response = await fetch("/demo-assets/菜/黄焖鸡-示例.png");
     if (!response.ok) throw new Error("示例成品图加载失败");
     const blob = await response.blob();
-    await loadLifeLogFile(new File([blob], "黄焖鸡-示例.png", { type: blob.type || "image/png" }));
+    await loadLifeLogFile(
+      new File([blob], "黄焖鸡-示例.png", { type: blob.type || "image/png" }),
+      { demoKey: "sample-life-log-huangmenji" },
+    );
     finishOperationStatus("示例成品图已加载，可调用生活记录 Agent。");
     showToast("示例成品图已加载");
   } catch (error) {
@@ -702,6 +712,7 @@ async function runLifeLogDraft() {
   const requestPayload = {
     imageDataUrl: lifeLogImageDataUrl,
     sourceFileName: lifeLogSourceFileName,
+    ...(lifeLogDemoKey ? { demoKey: lifeLogDemoKey } : {}),
     mealContext: {
       mealName: elements.lifeLogMealName.value.trim() || "这顿饭",
       summary: "仅供生成饭后生活记录草稿，不代表图片可证明的事实。",
@@ -939,12 +950,14 @@ elements.lifeLogUpload.addEventListener("change", async (event) => {
   const [file] = event.target.files;
   if (!file) return;
   try {
+    setBusy(true);
     await loadLifeLogFile(file);
     setStatus(`已上传成品图：${file.name}。`);
     setBusy(false);
   } catch (error) {
     lifeLogImageDataUrl = "";
     lifeLogSourceFileName = "";
+    lifeLogDemoKey = "";
     renderJson(elements.lifeLogRaw, { error: error.message });
     setStatus(error.message || "成品图读取失败");
     setBusy(false);

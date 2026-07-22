@@ -32,7 +32,7 @@ export function createDemoVisionCache(dataRoot, options = {}) {
     const signature = requestSignature(kind, request);
 
     for (const entry of registry.entries) {
-      if (kind === "dishRescue" && (!signature || normalizeSignature(entry.requestSignature) !== signature)) continue;
+      if (["dishRescue", "lifeLog"].includes(kind) && (!signature || normalizeSignature(entry.requestSignature) !== signature)) continue;
       const hashes = normalizeList([entry.imageHash, ...(entry.imageHashes || [])]);
       if (imageHash && hashes.includes(imageHash)) {
         return { entry, matchedBy: "imageHash", key: imageHash };
@@ -43,7 +43,7 @@ export function createDemoVisionCache(dataRoot, options = {}) {
         return { entry, matchedBy: "demoKey", key: demoKey };
       }
 
-      if (request?.allowFileNameMatch === true || !["fridge", "targetDish", "dishRescue"].includes(kind)) {
+      if (request?.allowFileNameMatch === true || !["fridge", "targetDish", "dishRescue", "lifeLog"].includes(kind)) {
         const names = normalizeList([entry.fileName, ...(entry.fileNames || [])]);
         if (fileName && names.includes(fileName)) {
           return { entry, matchedBy: "fileName", key: fileName };
@@ -60,7 +60,7 @@ export function createDemoVisionCache(dataRoot, options = {}) {
     const imageHash = hashDataUrl(request?.imageDataUrl);
     const signature = requestSignature(kind, request);
     if (!fileName && !imageHash) return;
-    if (kind === "dishRescue" && !signature) return;
+    if (["dishRescue", "lifeLog"].includes(kind) && !signature) return;
 
     const cacheFile = CACHE_FILES[kind];
     if (!cacheFile) return;
@@ -171,6 +171,10 @@ function normalizeSignature(value) {
 }
 
 function requestSignature(kind, request) {
+  if (kind === "lifeLog") {
+    const mealName = normalizeSignature(request?.mealContext?.mealName || request?.mealName);
+    return mealName ? `meal:${mealName}` : "";
+  }
   if (kind !== "dishRescue") return "";
   const explicit = normalizeSignature(request?.requestSignature);
   if (explicit) return explicit;

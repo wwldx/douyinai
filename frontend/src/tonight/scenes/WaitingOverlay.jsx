@@ -19,6 +19,12 @@ function phaseFor(kind, seconds) {
     if (seconds < 45) return "仍在分析现场，可继续等待";
     return "网络较慢，可以继续等，或取消后重新提交";
   }
+  if (kind === "life-log") {
+    if (seconds < 3) return "正在压缩并发送成品图";
+    if (seconds < 18) return "正在看这道菜，起草记录";
+    if (seconds < 45) return "仍在起草，可继续等待";
+    return "网络较慢，可以继续等，或取消后重新提交";
+  }
   if (seconds < 3) return "正在整理你确认的库存和约束";
   if (seconds < 16) return "正在权衡做法、缺料和时间";
   return "正在生成可执行步骤和提醒";
@@ -44,8 +50,11 @@ export default function WaitingOverlay({ pending, onCancel, dishImage, fridgeIma
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [onCancel]);
 
-  // 救援等待不显示冰箱图：真实会话不显示缩略图，示例会话明示示例身份
-  const thumb = pending.kind === "dish-vision" ? dishImage : pending.kind === "plan" ? dishImage || fridgeImage : pending.kind === "dish-rescue" ? null : fridgeImage;
+  // 救援与生活记录等待不显示冰箱图；只有菜图/冰箱识别与规划显示对应缩略图
+  const thumb = pending.kind === "dish-vision" ? dishImage
+    : pending.kind === "plan" ? dishImage || fridgeImage
+      : pending.kind === "fridge-vision" || pending.kind === "reshoot" ? fridgeImage
+        : null;
 
   return (
     <div className="tn-waiting" role="dialog" aria-modal="true" aria-label={pending.label}>

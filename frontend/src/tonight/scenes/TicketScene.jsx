@@ -7,7 +7,7 @@ import { FEEDBACK_OPTIONS, isFixedDemoResult, namesMatch, parseMinutes, sessionS
 
 export default function TicketScene({
   plan, plans, onSelectPlan, timeBudget, gotIt, stepPosition, onMarkStep,
-  onFeedback, onCartReplan, onGotIt, onAlternative, onAddTarget, onEditFridge, onRestart, onRescue,
+  onFeedback, onCartReplan, onGotIt, onAlternative, onAddTarget, onEditFridge, onRestart, onRescue, onLifeLog,
 }) {
   const [cartSel, setCartSel] = useState([]);
   const [gotSel, setGotSel] = useState([]);
@@ -323,6 +323,10 @@ export default function TicketScene({
           <button type="button" className="tn-rescue-open" onClick={onRescue}>
             <span className="tn-rescue-open-title">已经在做了，遇到问题？</span>
             <span className="tn-rescue-open-sub">拍一下现场，AI 帮你救 · 最多两轮</span>
+          </button>
+          <button type="button" className="tn-lifelog-open" onClick={onLifeLog}>
+            <span className="tn-rescue-open-title">做完了，记录一下</span>
+            <span className="tn-rescue-open-sub">拍张成品，生成可编辑的生活记录草稿 · 不会发布</span>
           </button>
         </div>
 

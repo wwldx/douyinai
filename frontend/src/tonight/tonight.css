@@ -795,6 +795,98 @@ img { display: block; max-width: 100%; }
 .tn-rescue-open-sub { font-size: 12px; color: var(--tn-paper-dim); }
 .tn-rescue-open:active { background: rgba(43, 32, 26, 0.06); }
 
+.tn-lifelog-open {
+  margin-top: 10px;
+  width: 100%;
+  min-height: 52px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  border: 1.5px solid rgba(180, 84, 36, 0.55);
+  background: rgba(180, 84, 36, 0.08);
+  border-radius: 14px;
+  padding: 12px 14px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.tn-lifelog-open:active { background: rgba(180, 84, 36, 0.14); }
+
+/* ---------- 生活记录 ---------- */
+
+.tn-lifelog .tn-back { width: 44px; height: 44px; }
+
+.tn-lifelog .tn-chip { min-height: 44px; padding: 10px 14px; }
+
+.tn-lifelog .speech-btn { min-width: 44px; min-height: 44px; }
+
+.tn-lifelog .tn-fridge-rebtn { min-height: 44px; }
+
+.tn-lifelog .tn-failbox-actions .tn-btn-quiet { min-height: 44px; padding: 10px 16px; }
+
+/* 生活记录长文本防横向溢出：长中文、长英文、无空格字符串都要能断行或截断 */
+
+.tn-lifelog .tn-rescue-context-title,
+.tn-lifelog .tn-rescue-context-sub,
+.tn-lifelog .tn-lifelog-visual,
+.tn-lifelog .tn-warning,
+.tn-lifelog .tn-rescue-boundary,
+.tn-lifelog .tn-foot-hint { overflow-wrap: anywhere; }
+
+.tn-lifelog .tn-chip {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tn-lifelog .tn-lifelog-shots li span,
+.tn-lifelog .tn-lifelog-shots li small { overflow-wrap: anywhere; }
+
+.tn-lifelog .tn-field,
+.tn-lifelog .tn-note { min-width: 0; }
+
+.tn-interrupted .tn-chip-mini { min-height: 44px; padding: 10px 16px; }
+
+.tn-lifelog-visual {
+  margin: 0;
+  font-size: 13px;
+  color: var(--tn-dim);
+  border-left: 3px solid var(--tn-line);
+  padding-left: 10px;
+}
+
+.tn-lifelog-titleinput { margin-top: 8px; }
+
+.tn-lifelog-voice {
+  resize: vertical;
+  min-height: 110px;
+  font-family: inherit;
+  line-height: 1.6;
+}
+
+.tn-lifelog-shots {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tn-lifelog-shots li {
+  border: 1px dashed var(--tn-line);
+  border-radius: 12px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 13px;
+}
+
+.tn-lifelog-shots small { color: var(--tn-faint); font-size: 12px; }
+
 .tn-rescue-context {
   border: 1px solid var(--tn-line);
   border-radius: 14px;

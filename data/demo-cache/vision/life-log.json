@@ -5,6 +5,8 @@
     {
       "id": "life-log-yellow-braised-chicken-demo",
       "fileName": "黄焖鸡-示例.png",
+      "cacheKeys": ["sample-life-log-huangmenji"],
+      "requestSignature": "meal:黄焖鸡",
       "sourcePath": "assets/菜/黄焖鸡-示例.png",
       "lifeLog": {
         "dishName": "黄焖鸡",

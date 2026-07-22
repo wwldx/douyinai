@@ -83,6 +83,7 @@ export const api = {
   planTargetDish: (payload, options) => postJson("/api/plan-target-dish", payload, options),
   eatFirst: (payload, options) => postJson("/api/eat-first", payload, options),
   rescueDish: (payload, options) => postJson("/api/rescue-dish", payload, options),
+  generateLifeLog: (payload, options) => postJson("/api/generate-life-log", payload, options),
   recordFeedback: (payload) =>
     postJson("/api/users/xiaolin/feedback", { source: "showcase-ticket", ...payload }, { timeoutMs: 5000 }),
 };

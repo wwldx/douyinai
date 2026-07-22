@@ -1265,7 +1265,12 @@ const server = createServer(async (req, res) => {
       const draftStartedAt = performance.now();
       const outcome = await demoVisionCache.race(
         "lifeLog",
-        { imageDataUrl: body.imageDataUrl, sourceFileName: body.sourceFileName },
+        {
+          imageDataUrl: body.imageDataUrl,
+          sourceFileName: body.sourceFileName,
+          demoKey: body.demoKey,
+          mealContext: body.mealContext || {},
+        },
         () => generateLifeLogDraft({
           imageDataUrl: body.imageDataUrl,
           mealContext: body.mealContext || {},

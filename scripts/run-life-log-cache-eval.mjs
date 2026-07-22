@@ -1,5 +1,8 @@
-import { readFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { createDemoVisionCache } from "../demo/agent/demoVisionCache.mjs";
 
 const cachePath = fileURLToPath(new URL("../data/demo-cache/vision/life-log.json", import.meta.url));
 const cache = JSON.parse(await readFile(cachePath, "utf8"));
@@ -35,6 +38,57 @@ for (const entry of cache.entries) {
     assert(!serialized.includes(claim), `${entry.id}: 包含禁止的事实或效果声称“${claim}”。`);
   }
   passed += 1;
+}
+
+const dataRoot = fileURLToPath(new URL("../data/", import.meta.url));
+const demoCache = createDemoVisionCache(dataRoot, { fallbackMs: 1 });
+const explicitDemo = await demoCache.find("lifeLog", {
+  demoKey: "sample-life-log-huangmenji",
+  sourceFileName: "renamed-finished-dish.png",
+  mealContext: { mealName: "黄焖鸡" },
+});
+assert(explicitDemo?.matchedBy === "demoKey", "生活记录示例必须通过受控 demoKey 命中。");
+
+const realSameName = await demoCache.find("lifeLog", {
+  imageDataUrl: "data:image/png;base64,different-real-image",
+  sourceFileName: "黄焖鸡-示例.png",
+  mealContext: { mealName: "黄焖鸡" },
+});
+assert(realSameName === null, "真实同名文件不得命中生活记录示例缓存。");
+
+const wrongMeal = await demoCache.find("lifeLog", {
+  demoKey: "sample-life-log-huangmenji",
+  sourceFileName: "renamed-finished-dish.png",
+  mealContext: { mealName: "回锅肉" },
+});
+assert(wrongMeal === null, "同一示例 key 改菜名后不得复用旧菜名草稿。");
+
+const runtimeRoot = await mkdtemp(join(tmpdir(), "life-log-cache-eval-"));
+try {
+  const seedDir = join(runtimeRoot, "demo-cache", "vision");
+  await mkdir(seedDir, { recursive: true });
+  await writeFile(join(seedDir, "life-log.json"), '{"version":1,"entries":[]}\n');
+  const runtimeCache = createDemoVisionCache(runtimeRoot, { fallbackMs: 1 });
+  const sameImage = "data:image/jpeg;base64,c2FtZS1maW5pc2hlZC1kaXNo";
+  await runtimeCache.saveRuntime("lifeLog", {
+    imageDataUrl: sameImage,
+    sourceFileName: "finished-dish.jpg",
+    mealContext: { mealName: "黄焖鸡" },
+  }, { dishName: "黄焖鸡" });
+  const sameMeal = await runtimeCache.find("lifeLog", {
+    imageDataUrl: sameImage,
+    sourceFileName: "renamed.jpg",
+    mealContext: { mealName: "黄焖鸡" },
+  });
+  const changedMeal = await runtimeCache.find("lifeLog", {
+    imageDataUrl: sameImage,
+    sourceFileName: "renamed.jpg",
+    mealContext: { mealName: "回锅肉" },
+  });
+  assert(sameMeal?.matchedBy === "imageHash", "同图同菜名应复用运行时缓存。");
+  assert(changedMeal === null, "同一真实图片改菜名后不得复用旧菜名运行时草稿。");
+} finally {
+  await rm(runtimeRoot, { recursive: true, force: true });
 }
 
 console.log(`Life-log cache eval passed: ${passed}/${cache.entries.length}`);
