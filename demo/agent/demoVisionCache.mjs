@@ -43,7 +43,7 @@ export function createDemoVisionCache(dataRoot, options = {}) {
         return { entry, matchedBy: "demoKey", key: demoKey };
       }
 
-      if (request?.allowFileNameMatch === true || !["fridge", "targetDish"].includes(kind)) {
+      if (request?.allowFileNameMatch === true || !["fridge", "targetDish", "dishRescue"].includes(kind)) {
         const names = normalizeList([entry.fileName, ...(entry.fileNames || [])]);
         if (fileName && names.includes(fileName)) {
           return { entry, matchedBy: "fileName", key: fileName };

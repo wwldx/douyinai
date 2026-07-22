@@ -1347,6 +1347,7 @@ const server = createServer(async (req, res) => {
           {
             imageDataUrl: body.imageDataUrl,
             sourceFileName: body.sourceFileName,
+            demoKey: body.demoKey,
             category: body.category,
             symptom: body.symptom,
             requestSignature: [

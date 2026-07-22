@@ -773,6 +773,230 @@ img { display: block; max-width: 100%; }
   vertical-align: 2px;
 }
 
+/* ---------- 做饭救援 ---------- */
+
+.tn-rescue-open {
+  margin-top: 14px;
+  width: 100%;
+  min-height: 52px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  border: 1.5px dashed rgba(43, 32, 26, 0.4);
+  background: transparent;
+  border-radius: 14px;
+  padding: 12px 14px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.tn-rescue-open-title { font-size: 14px; font-weight: 600; color: var(--tn-paper-ink); }
+.tn-rescue-open-sub { font-size: 12px; color: var(--tn-paper-dim); }
+.tn-rescue-open:active { background: rgba(43, 32, 26, 0.06); }
+
+.tn-rescue-context {
+  border: 1px solid var(--tn-line);
+  border-radius: 14px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.tn-rescue-context.is-demo {
+  border-color: var(--tn-gold);
+  background: rgba(216, 164, 65, 0.08);
+}
+
+.tn-rescue-context-title { margin: 0; font-size: 14px; font-weight: 700; }
+.tn-rescue-context-sub { margin: 0; font-size: 12px; color: var(--tn-faint); }
+.tn-rescue-context .tn-link { align-self: flex-start; padding: 4px 0 0; font-size: 13px; }
+
+.tn-rescue-prev {
+  margin: 0;
+  font-size: 12px;
+  color: var(--tn-faint);
+  border-left: 3px solid var(--tn-line);
+  padding-left: 10px;
+}
+
+.tn-rescue-result {
+  border: 1px solid var(--tn-line);
+  border-radius: 16px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.tn-rescue-symptom { margin: 0; font-size: 12px; color: var(--tn-faint); }
+
+.tn-rescue-fixed {
+  margin: 0;
+  align-self: flex-start;
+  font-size: 11px;
+  color: var(--tn-gold);
+  border: 1px solid var(--tn-gold);
+  border-radius: 999px;
+  padding: 2px 8px;
+}
+
+.tn-rescue-headline {
+  margin: 0;
+  font-family: var(--tn-serif);
+  font-size: 21px;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+.tn-rescue-block { display: flex; flex-direction: column; gap: 8px; }
+
+.tn-rescue-blocktitle {
+  margin: 0;
+  font-size: 13px;
+  letter-spacing: 0.1em;
+  color: var(--tn-faint);
+}
+
+.tn-rescue-block ul { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 6px; font-size: 14px; color: var(--tn-dim); }
+
+.tn-rescue-actions { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 12px; }
+
+.tn-rescue-acttitle { margin: 0; font-size: 15px; font-weight: 700; }
+.tn-rescue-acttext { margin: 4px 0 0; font-size: 14px; color: var(--tn-dim); line-height: 1.55; }
+
+.tn-rescue-actcheck {
+  margin: 6px 0 0;
+  font-size: 13px;
+  color: var(--tn-gold);
+  border-left: 3px solid var(--tn-gold);
+  padding-left: 10px;
+}
+
+.tn-rescue-nextstep {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  border-top: 1px dashed var(--tn-line);
+  padding-top: 12px;
+}
+
+.tn-rescue-boundary { margin: 0; font-size: 12px; color: var(--tn-faint); }
+
+.tn-rescue-exhausted { margin: 0 0 10px; font-size: 13px; color: var(--tn-dim); text-align: center; }
+
+.tn-rescue-round2 {
+  border: 1px dashed var(--tn-line);
+  border-radius: 14px;
+  padding: 12px 14px;
+}
+
+.tn-rescue-round2-note { margin: 10px 0 0; font-size: 12px; color: var(--tn-faint); }
+
+.tn-rescue-photo {
+  position: relative;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid var(--tn-line);
+}
+
+.tn-rescue-photo img { display: block; width: 100%; max-height: 220px; object-fit: cover; }
+
+.tn-rescue-photo .tn-badge { position: absolute; left: 10px; top: 10px; }
+
+.tn-rescue-photobtns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.tn-rescue-photobtns .tn-btn-quiet { min-height: 48px; }
+
+.tn-rescue-photonote { margin: 8px 0 0; font-size: 12px; color: var(--tn-faint); }
+
+.tn-rescue-demoline { margin: 0; font-size: 14px; color: var(--tn-dim); }
+
+.tn-rescue-demoentry {
+  border-top: 1px dashed var(--tn-line);
+  padding-top: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tn-rescue-demotitle { margin: 0; font-size: 13px; color: var(--tn-faint); }
+
+/* 救援场景触控收口（只作用于救援，不改全站） */
+
+.tn-rescue .tn-chip { min-height: 44px; padding: 10px 14px; }
+
+.tn-rescue .tn-back { width: 44px; height: 44px; }
+
+.tn-rescue-context .tn-link {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+}
+
+.tn-rescue .tn-fridge-rebtn { min-height: 44px; }
+
+.tn-rescue .speech-btn { min-width: 44px; min-height: 44px; }
+
+.tn-rescue .tn-failbox-actions .tn-btn-quiet { min-height: 44px; padding: 10px 16px; }
+
+.tn-rescue .tn-scene-foot .tn-link {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tn-waiting .tn-link {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  padding: 10px 18px;
+}
+
+.tn-rescue-now {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  border: 1.5px solid var(--tn-ember);
+  background: rgba(255, 138, 74, 0.12);
+  border-radius: 14px;
+  padding: 13px 14px;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.tn-rescue-nowlabel {
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  color: var(--tn-ember);
+  font-weight: 700;
+}
+
+.tn-rescue-ref {
+  border: 1px dashed var(--tn-line);
+  border-radius: 14px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.tn-rescue-reftitle { margin: 0; font-size: 13px; font-weight: 600; }
+.tn-rescue-refline { margin: 0; font-size: 12px; color: var(--tn-faint); }
+
+.tn-waiting-demo {
+  margin: 0;
+  font-size: 12px;
+  color: var(--tn-gold);
+  border: 1px solid var(--tn-gold);
+  border-radius: 999px;
+  padding: 3px 10px;
+}
+
+
 /* ---------- 大字做法视图 ---------- */
 
 .tn-bigsteps {

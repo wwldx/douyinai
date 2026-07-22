@@ -13,6 +13,43 @@ export const SAMPLE_FRIDGE = {
   demoKey: "sample-fridge-01",
 };
 
+// 示例翻车图：只用于与当前晚餐方案无关的独立演示，症状与缓存 requestSignature 严格对应
+export const SAMPLE_RESCUES = [
+  {
+    key: "sample-rescue-watery",
+    url: "/demo-assets/dish-rescue/tomato-eggs-too-watery-demo.png",
+    fileName: "tomato-eggs-too-watery-demo.png",
+    dishName: "番茄炒蛋",
+    symptomLabel: "汤太多",
+    category: "state",
+    symptom: "太稀",
+  },
+  {
+    key: "sample-rescue-scorched",
+    url: "/demo-assets/dish-rescue/chicken-stir-fry-scorched-demo.png",
+    fileName: "chicken-stir-fry-scorched-demo.png",
+    dishName: "干锅鸡块",
+    symptomLabel: "炒糊了",
+    category: "state",
+    symptom: "粘锅/糊锅",
+  },
+];
+
+// 常见现场症状：单选，category/symptom 与后端救援契约一致
+export const RESCUE_SYMPTOMS = [
+  { key: "scorched", label: "粘锅 / 糊了", category: "state", symptom: "粘锅/糊锅" },
+  { key: "watery", label: "汤太多 / 太稀", category: "state", symptom: "太稀" },
+  { key: "dry", label: "太干 / 快烧干", category: "state", symptom: "太干" },
+  { key: "salty", label: "太咸", category: "taste", symptom: "太咸" },
+  { key: "bland", label: "太淡", category: "taste", symptom: "太淡" },
+  { key: "seasoning", label: "调料不知怎么补", category: "seasoning", symptom: "不知道怎么补调料" },
+  { key: "lost", label: "不知道下一步", category: "next_step", symptom: "不知道下一步" },
+];
+
+export function rescueSymptomByKey(key) {
+  return RESCUE_SYMPTOMS.find((option) => option.key === key) || null;
+}
+
 export const TIME_OPTIONS = [
   { id: "15", label: "只剩 15 分钟", value: "15 分钟", minutes: 15 },
   { id: "25", label: "25 分钟左右", value: "25 分钟", minutes: 25 },

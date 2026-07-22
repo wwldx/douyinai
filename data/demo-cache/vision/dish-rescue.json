@@ -5,6 +5,7 @@
     {
       "id": "dish-rescue-watery-tomato-eggs-demo",
       "fileName": "tomato-eggs-too-watery-demo.png",
+      "cacheKeys": ["sample-rescue-watery"],
       "sourcePath": "assets/dish-rescue/tomato-eggs-too-watery-demo.png",
       "requestSignature": "state|太稀",
       "cachedAt": "2026-07-15T00:00:00.000Z",
@@ -47,6 +48,7 @@
     {
       "id": "dish-rescue-scorched-chicken-demo",
       "fileName": "chicken-stir-fry-scorched-demo.png",
+      "cacheKeys": ["sample-rescue-scorched"],
       "sourcePath": "assets/dish-rescue/chicken-stir-fry-scorched-demo.png",
       "requestSignature": "state|粘锅/糊锅",
       "cachedAt": "2026-07-15T00:00:00.000Z",

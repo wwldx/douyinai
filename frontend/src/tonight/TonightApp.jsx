@@ -16,14 +16,17 @@ import {
   normalizeDinnerPlan,
   normalizeTargetPlanData,
   readableDishNameFromFile,
+  rescueSymptomByKey,
   saveInventorySnapshot,
   saveSessionState,
   timeOptionById,
 } from "./model";
+import { getCookingContext } from "./steps";
 import HomeScene from "./scenes/HomeScene";
 import DishScene from "./scenes/DishScene";
 import FridgeScene from "./scenes/FridgeScene";
 import TicketScene from "./scenes/TicketScene";
+import RescueScene from "./scenes/RescueScene";
 import WaitingOverlay from "./scenes/WaitingOverlay";
 
 let planSeq = 1;
@@ -41,6 +44,7 @@ export default function TonightApp() {
   const [inventoryConfirmed, setInventoryConfirmed] = useState(false);
   const [eatFirstMarks, setEatFirstMarks] = useState({}); // { [name]: {opened, labelSoon, unsure} }
   const [stepPositions, setStepPositions] = useState({}); // { [planId]: number } 仅用户显式标记
+  const [rescue, setRescue] = useState(null); // 做饭救援：冻结方案快照 + 草稿 + 已完成轮次，不含原始照片
   const [intent, setIntent] = useState(null);
   const [plans, setPlans] = useState([]);
   const [activePlanId, setActivePlanId] = useState(null);
@@ -83,12 +87,15 @@ export default function TonightApp() {
       setInventoryConfirmed(Boolean(saved.inventoryConfirmed));
       setEatFirstMarks(saved.eatFirstMarks && typeof saved.eatFirstMarks === "object" ? saved.eatFirstMarks : {});
       setStepPositions(saved.stepPositions && typeof saved.stepPositions === "object" ? saved.stepPositions : {});
+      setRescue(saved.rescue && typeof saved.rescue === "object" ? saved.rescue : null);
       setIntent(saved.intent || null);
       const savedPlans = Array.isArray(saved.plans) ? saved.plans : [];
       setPlans(savedPlans);
       planSeq = Math.max(planSeq, ...savedPlans.map((entry, index) => Number(entry.sequence || index + 1) + 1));
       setActivePlanId(saved.activePlanId || null);
-      if (saved.plans?.length) setScene("ticket");
+      // 恢复优先级：救援（含已完成轮次与草稿）> 行动单 > 库存 > 菜图；在途请求只标中断，不静默重发
+      if (saved.scene === "rescue" && saved.rescue?.planSnapshot) setScene("rescue");
+      else if (saved.plans?.length) setScene("ticket");
       else if (saved.scene === "fridge" || saved.inventoryConfirmed || saved.inventoryMode === "empty" || saved.fridge?.vision) setScene("fridge");
       else if (saved.dish) setScene("dish");
     }
@@ -110,12 +117,13 @@ export default function TonightApp() {
       inventoryConfirmed,
       eatFirstMarks,
       stepPositions,
+      rescue,
       intent,
       plans,
       activePlanId,
       pendingKind: pending?.kind || null,
     });
-  }, [hydrated, route, scene, dish, timeBudgetId, timeBudgetAuto, note, fridge, inventory, inventoryMode, inventoryConfirmed, eatFirstMarks, stepPositions, intent, plans, activePlanId, pending]);
+  }, [hydrated, route, scene, dish, timeBudgetId, timeBudgetAuto, note, fridge, inventory, inventoryMode, inventoryConfirmed, eatFirstMarks, stepPositions, rescue, intent, plans, activePlanId, pending]);
 
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: "auto" });
@@ -123,10 +131,10 @@ export default function TonightApp() {
 
   // ---------- 等待与中断 ----------
 
-  function beginPending(kind, label) {
+  function beginPending(kind, label, extra = null) {
     const controller = new AbortController();
     abortRef.current = controller;
-    setPending({ kind, label, startedAt: Date.now() });
+    setPending({ kind, label, startedAt: Date.now(), ...(extra || {}) });
     return controller.signal;
   }
 
@@ -701,6 +709,122 @@ export default function TonightApp() {
     showNotice(`已记下：你做到第 ${stepIndex + 1} 步`);
   }, [showNotice]);
 
+  // ---------- 做饭救援（最多两轮，冻结进入时查看的版本） ----------
+
+  const openRescue = useCallback(() => {
+    const active = plans.find((p) => p.id === activePlanId);
+    if (!active) return; // 无方案版本不允许凭空进入真实救援
+    setRescue((cur) => {
+      if (cur && cur.sourcePlanId === active.id) return cur; // 同方案：继续既有救援会话
+      const { steps } = getCookingContext(active);
+      return {
+        mode: "plan",
+        sourcePlanId: active.id,
+        planSnapshot: {
+          dishName: active.mode === "target" ? active.plan?.targetDish?.name : active.plan?.baseMeal?.name,
+          steps,
+          versionLabel: active.snapshotLabel || "",
+          sequence: active.sequence,
+        },
+        demoAsset: null,
+        draft: { stepIndex: typeof stepPositions[active.id] === "number" ? stepPositions[active.id] : null, stepUnknown: false, symptomKey: null, description: "", outcome: null },
+        rounds: [],
+        status: "intake",
+      };
+    });
+    setScene("rescue");
+  }, [plans, activePlanId, stepPositions]);
+
+  // 示例翻车图：切换为独立示例会话，与本次晚餐方案无关；只演示第一轮
+  const startDemoRescue = useCallback((sample) => {
+    setRescue((cur) => (cur ? {
+      ...cur,
+      mode: "demo",
+      demoAsset: sample,
+      draft: { stepIndex: null, stepUnknown: false, symptomKey: null, description: "", outcome: null },
+      rounds: [],
+      status: "intake",
+    } : cur));
+  }, []);
+
+  const exitDemoRescue = useCallback(() => {
+    setRescue((cur) => (cur ? {
+      ...cur,
+      mode: "plan",
+      demoAsset: null,
+      draft: { stepIndex: typeof stepPositions[cur.sourcePlanId] === "number" ? stepPositions[cur.sourcePlanId] : null, stepUnknown: false, symptomKey: null, description: "", outcome: null },
+      rounds: [],
+      status: "intake",
+    } : cur));
+  }, [stepPositions]);
+
+  const updateRescueDraft = useCallback((patch) => {
+    setRescue((cur) => (cur ? { ...cur, draft: { ...cur.draft, ...patch } } : cur));
+  }, []);
+
+  const resetRescueRounds = useCallback(() => {
+    setRescue((cur) => (cur ? {
+      ...cur,
+      draft: { stepIndex: cur.mode === "plan" && typeof stepPositions[cur.sourcePlanId] === "number" ? stepPositions[cur.sourcePlanId] : null, stepUnknown: false, symptomKey: null, description: "", outcome: null },
+      rounds: [],
+      status: "intake",
+    } : cur));
+  }, [stepPositions]);
+
+  const enterRescueRound2 = useCallback(() => {
+    setRescue((cur) => (cur && cur.rounds.length === 1 ? { ...cur, status: "intake" } : cur));
+  }, []);
+
+  const submitRescue = useCallback(async ({ image, fileName }) => {
+    if (!rescue || !image) return;
+    const { draft, rounds, mode, demoAsset, planSnapshot } = rescue;
+    const symptomOption = mode === "demo"
+      ? { label: demoAsset.symptomLabel, category: demoAsset.category, symptom: demoAsset.symptom }
+      : rescueSymptomByKey(draft.symptomKey);
+    if (!symptomOption) return;
+    const isRound2 = rounds.length === 1;
+    // 第二轮的「有好转 / 还是没好」必须由用户明确选择
+    if (isRound2 && mode !== "demo" && draft.outcome !== "recheck" && draft.outcome !== "not_improved") return;
+    const previous = isRound2 ? rounds[0].result : null;
+    const signal = beginPending("dish-rescue", mode === "demo" ? "正在看示例现场" : "正在看现场情况", { demo: mode === "demo" });
+    try {
+      const data = await api.rescueDish({
+        imageDataUrl: image,
+        sourceFileName: fileName,
+        demoKey: mode === "demo" ? demoAsset.key : undefined,
+        category: symptomOption.category,
+        symptom: symptomOption.symptom,
+        description: draft.description || undefined,
+        dishContext: mode === "plan" ? {
+          dishName: planSnapshot?.dishName || "",
+          steps: planSnapshot?.steps || [],
+          currentStep: !draft.stepUnknown && typeof draft.stepIndex === "number" ? planSnapshot?.steps?.[draft.stepIndex] || "" : "",
+          stepNumber: !draft.stepUnknown && typeof draft.stepIndex === "number" ? draft.stepIndex + 1 : null,
+        } : { dishName: demoAsset.dishName },
+        followUp: isRound2 && previous ? {
+          round: 2,
+          outcome: draft.outcome === "not_improved" ? "not_improved" : "recheck",
+          previousHeadline: previous.headline || "",
+          previousAction: previous.actions?.[0]?.instruction || "",
+          previousCheck: previous.actions?.[0]?.check || "",
+        } : undefined,
+      }, { signal });
+      const round = {
+        stepIndex: draft.stepUnknown ? null : draft.stepIndex,
+        symptomLabel: symptomOption.label,
+        description: draft.description || "",
+        outcome: isRound2 ? (draft.outcome === "not_improved" ? "not_improved" : "recheck") : null,
+        result: data.dishRescue || null,
+        source: data.source || "model",
+      };
+      setRescue((cur) => (cur ? { ...cur, draft: { ...cur.draft, outcome: null }, rounds: [...cur.rounds, round], status: "result" } : cur));
+    } catch (error) {
+      if (!signal.aborted) showNotice(error.message || "救援请求失败；已填写的内容保留，可重试");
+    } finally {
+      endPending();
+    }
+  }, [rescue, showNotice]);
+
   // ---------- 导航 ----------
 
   const restart = useCallback(() => {
@@ -719,6 +843,7 @@ export default function TonightApp() {
     setInventoryConfirmed(false);
     setEatFirstMarks({});
     setStepPositions({});
+    setRescue(null);
     setIntent(null);
     setPlans([]);
     setActivePlanId(null);
@@ -844,6 +969,25 @@ export default function TonightApp() {
             })}
             onEditFridge={() => setScene("fridge")}
             onRestart={restart}
+            onRescue={openRescue}
+          />
+        )}
+        {scene === "rescue" && rescue && (
+          <RescueScene
+            rescue={rescue}
+            interrupted={interrupted?.kind === "dish-rescue"}
+            onDismissInterrupted={() => setInterrupted(null)}
+            onUpdateDraft={updateRescueDraft}
+            onSubmit={submitRescue}
+            onStartDemo={startDemoRescue}
+            onExitDemo={exitDemoRescue}
+            onResetRounds={resetRescueRounds}
+            onEnterRound2={enterRescueRound2}
+            onBack={() => {
+              // 示例不能黏住真实入口：离开示例回到行动单后，下次进入是真实方案救援
+              if (rescue?.mode === "demo") setRescue(null);
+              setScene("ticket");
+            }}
           />
         )}
         {scene === "ticket" && !activePlan && planError && (

@@ -3,6 +3,7 @@ import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
+import { fileURLToPath } from "node:url";
 import { createDemoVisionCache } from "./demoVisionCache.mjs";
 
 const rescueModule = await import("./dishRescueAgent.mjs").catch(() => ({}));
@@ -109,7 +110,7 @@ test("second rescue round compares the new state and does not repeat a failed ac
   assert.match(fallback.actions[0].title, /别重复/);
 });
 
-test("dish rescue cache distinguishes category and symptom for the same image", async () => {
+test("dish rescue seed cache requires an explicit demo key and still distinguishes the symptom", async () => {
   const dataRoot = await mkdtemp(join(tmpdir(), "dish-rescue-cache-"));
   try {
     const seedDir = join(dataRoot, "demo-cache", "vision");
@@ -117,20 +118,53 @@ test("dish rescue cache distinguishes category and symptom for the same image", 
     await writeFile(join(seedDir, "dish-rescue.json"), JSON.stringify({
       version: 1,
       entries: [
-        { fileName: "same.png", requestSignature: "state|太稀", dishRescue: { headline: "太稀" } },
-        { fileName: "same.png", requestSignature: "taste|太咸", dishRescue: { headline: "太咸" } },
+        { fileName: "same.png", cacheKeys: ["sample-rescue-shared"], requestSignature: "state|太稀", dishRescue: { headline: "太稀" } },
+        { fileName: "same.png", cacheKeys: ["sample-rescue-shared"], requestSignature: "taste|太咸", dishRescue: { headline: "太咸" } },
       ],
     }));
     const cache = createDemoVisionCache(dataRoot, { fallbackMs: 1 });
 
-    const stateMatch = await cache.find("dishRescue", { sourceFileName: "same.png", category: "state", symptom: "太稀" });
-    const tasteMatch = await cache.find("dishRescue", { sourceFileName: "same.png", category: "taste", symptom: "太咸" });
-    const wrongMatch = await cache.find("dishRescue", { sourceFileName: "same.png", category: "state", symptom: "太干" });
+    const stateMatch = await cache.find("dishRescue", { demoKey: "sample-rescue-shared", sourceFileName: "renamed.png", category: "state", symptom: "太稀" });
+    const tasteMatch = await cache.find("dishRescue", { demoKey: "sample-rescue-shared", sourceFileName: "renamed.png", category: "taste", symptom: "太咸" });
+    const wrongMatch = await cache.find("dishRescue", { demoKey: "sample-rescue-shared", sourceFileName: "renamed.png", category: "state", symptom: "太干" });
+    const realSameName = await cache.find("dishRescue", { sourceFileName: "same.png", category: "state", symptom: "太稀" });
 
     assert.equal(stateMatch?.entry?.dishRescue?.headline, "太稀");
+    assert.equal(stateMatch?.matchedBy, "demoKey");
     assert.equal(tasteMatch?.entry?.dishRescue?.headline, "太咸");
+    assert.equal(tasteMatch?.matchedBy, "demoKey");
     assert.equal(wrongMatch, null);
+    assert.equal(realSameName, null);
   } finally {
     await rm(dataRoot, { recursive: true, force: true });
   }
+});
+
+test("committed dish rescue samples expose stable demo keys without filename fallback", async () => {
+  const dataRoot = fileURLToPath(new URL("../../data/", import.meta.url));
+  const cache = createDemoVisionCache(dataRoot, { fallbackMs: 1 });
+
+  const watery = await cache.find("dishRescue", {
+    demoKey: "sample-rescue-watery",
+    sourceFileName: "renamed.png",
+    category: "state",
+    symptom: "太稀",
+  });
+  const scorched = await cache.find("dishRescue", {
+    demoKey: "sample-rescue-scorched",
+    sourceFileName: "renamed.png",
+    category: "state",
+    symptom: "粘锅/糊锅",
+  });
+  const realSameName = await cache.find("dishRescue", {
+    sourceFileName: "tomato-eggs-too-watery-demo.png",
+    category: "state",
+    symptom: "太稀",
+  });
+
+  assert.equal(watery?.matchedBy, "demoKey");
+  assert.equal(watery?.entry?.id, "dish-rescue-watery-tomato-eggs-demo");
+  assert.equal(scorched?.matchedBy, "demoKey");
+  assert.equal(scorched?.entry?.id, "dish-rescue-scorched-chicken-demo");
+  assert.equal(realSameName, null);
 });
