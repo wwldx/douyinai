@@ -2,7 +2,7 @@
 
 抖音 AI 创变者计划 2026 大区赛赛道四「视觉搜索」作品。
 
-当前公网基线为 CloudBase 011：`AGENT_APP_VERSION=011`、三任务 `gpt-5.6-terra`、Case 检索 `off`、固定目标菜规划和 `agent_runs`/`ops.html` 查询均已通过定向验收；010 是首选回滚版本，009 是次级回滚点。当前版本的 iPhone 相机、局部补拍、语音权限和移动网络链路仍待复验。
+当前公网基线为 CloudBase 012：`AGENT_APP_VERSION=012`、三任务 `gpt-5.6-terra`、Case 检索 `off`、严格公网冒烟、静态资源一致性和固定目标菜真实规划均已通过；011 是首选回滚版本，010 是次级回滚点。012 的 iPhone 相机、局部补拍、语音权限和移动网络链路仍待复验。
 
 ```text
 抖音 Feed 刷到想吃的菜
@@ -75,7 +75,7 @@ DISABLE_RESPONSE_STORAGE=true
 CASE_RETRIEVAL_MODE=off
 API_RATE_LIMIT_MAX=80
 MODEL_RATE_LIMIT_MAX=30
-AGENT_APP_VERSION=011
+AGENT_APP_VERSION=012
 AGENT_RUNS_ENABLED=true
 AGENT_RUNS_BACKEND=cloudbase
 AGENT_RUNS_CAPTURE_CONTENT=true
@@ -90,7 +90,7 @@ AUDIO_TRANSCRIPTION_ENABLED=false
 
 Codex Pro 中可用的模型不等于部署应用自动拥有 API 权限；公网 H5 仍需要服务端 API Key。Key 只能放在平台 Secret 或本机 `.env.local`，不能写入前端和 Git。
 
-上述 `AGENT_APP_VERSION=011` 只用于下一次 011 部署；当前公网仍是 010。011 发布失败时优先保持或切回已验证的 010 服务版本，009 仅作为次级回滚点；不在生产容器内手工改代码或密钥。
+`AGENT_APP_VERSION` 必须与 CloudBase 服务版本一致。当前公网为 012；012 异常时优先切回保留的 011 服务版本，010 作为次级回滚点；不在生产容器内手工改代码或密钥。
 
 ## 稳定性
 
