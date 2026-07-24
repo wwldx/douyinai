@@ -2,7 +2,7 @@
 
 抖音 AI 创变者计划 2026 大区赛赛道四「视觉搜索」作品。
 
-当前公网基线为 CloudBase 012：`AGENT_APP_VERSION=012`、三任务 `gpt-5.6-terra`、Case 检索 `off`、严格公网冒烟、静态资源一致性和固定目标菜真实规划均已通过；011 是首选回滚版本，010 是次级回滚点。012 的 iPhone 相机、局部补拍、语音权限和移动网络链路仍待复验。
+当前公网为 CloudBase 013，平台 Base URL 已迁到 `rightapi.ai`。014 手机修复候选包已经冻结但尚未部署；013 是 014 的首选回滚，012 保留为最近一次完成严格公网冒烟、静态资源一致性与固定目标菜真实规划的历史基线。
 
 ```text
 抖音 Feed 刷到想吃的菜
@@ -65,7 +65,7 @@ docker run --rm -p 4173:4173 --env-file .env.local fridge-dinner-agent
 
 ```env
 OPENAI_API_KEY=真实的 Right Code 或 OpenAI 兼容 API Key
-OPENAI_BASE_URL=https://right.codes/codex/v1
+OPENAI_BASE_URL=https://rightapi.ai/codex/v1
 MODEL_PROVIDER=rightcode_responses_stream
 OPENAI_MODEL=gpt-5.6-terra
 VISION_MODEL=gpt-5.6-terra
@@ -75,7 +75,7 @@ DISABLE_RESPONSE_STORAGE=true
 CASE_RETRIEVAL_MODE=off
 API_RATE_LIMIT_MAX=80
 MODEL_RATE_LIMIT_MAX=30
-AGENT_APP_VERSION=012
+AGENT_APP_VERSION=014
 AGENT_RUNS_ENABLED=true
 AGENT_RUNS_BACKEND=cloudbase
 AGENT_RUNS_CAPTURE_CONTENT=true
@@ -90,7 +90,7 @@ AUDIO_TRANSCRIPTION_ENABLED=false
 
 Codex Pro 中可用的模型不等于部署应用自动拥有 API 权限；公网 H5 仍需要服务端 API Key。Key 只能放在平台 Secret 或本机 `.env.local`，不能写入前端和 Git。
 
-`AGENT_APP_VERSION` 必须与 CloudBase 服务版本一致。当前公网为 012；012 异常时优先切回保留的 011 服务版本，010 作为次级回滚点；不在生产容器内手工改代码或密钥。
+`AGENT_APP_VERSION` 必须与 CloudBase 服务版本一致。当前公网为 013；上传候选包时创建 014 并设置 `AGENT_APP_VERSION=014`。014 异常时优先切回 013；不在生产容器内手工改代码或密钥。
 
 ## 稳定性
 
