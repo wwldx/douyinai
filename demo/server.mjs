@@ -964,6 +964,14 @@ function userContextRunContent(userContext) {
     mealSlot: String(userContext?.context?.mealSlot || "").trim().slice(0, 40),
     availableCookingTime: String(userContext?.context?.availableCookingTime || "").trim().slice(0, 40),
     energyLevel: String(userContext?.context?.energyLevel || "").trim().slice(0, 40),
+    pantryConfirmation: {
+      availableItems: Array.isArray(userContext?.context?.pantryConfirmation?.availableItems)
+        ? userContext.context.pantryConfirmation.availableItems.slice(0, 12)
+        : [],
+      missingItems: Array.isArray(userContext?.context?.pantryConfirmation?.missingItems)
+        ? userContext.context.pantryConfirmation.missingItems.slice(0, 12)
+        : [],
+    },
   };
 }
 

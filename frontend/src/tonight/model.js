@@ -136,6 +136,49 @@ export function namesMatch(a, b) {
   return Boolean(x && y && (x.includes(y) || y.includes(x)));
 }
 
+// 家中常备是用户确认的事实，不能沿用普通食材的模糊子串匹配。
+// 例如「油」绝不能把「蚝油」一并判成家里已有；这里只保留极小、无歧义的别名。
+const PANTRY_NAME_ALIASES = new Map([
+  ["食盐", "盐"],
+  ["食用盐", "盐"],
+  ["植物油", "食用油"],
+  ["植物食用油", "食用油"],
+  ["食用植物油", "食用油"],
+  ["炒菜油", "食用油"],
+]);
+
+function pantryNameKey(name) {
+  const normalized = normalizeName(name);
+  return PANTRY_NAME_ALIASES.get(normalized) || normalized;
+}
+
+export function pantryNamesMatch(a, b) {
+  const x = pantryNameKey(a);
+  const y = pantryNameKey(b);
+  return Boolean(x && y && x === y);
+}
+
+function uniquePantryNames(value) {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map(itemDisplayName)
+    .filter(Boolean)
+    .reduce((result, name) => {
+      if (!result.some((item) => pantryNamesMatch(item, name))) result.push(name);
+      return result;
+    }, [])
+    .slice(0, 12);
+}
+
+// 家中常备确认是独立事实：不能混进「冰箱原有」「本次已拿到」或「模拟补购」。
+// availableItems 优先；同一材料若同时出现在两边，missingItems 会被剔除。
+export function normalizePantryConfirmation(value) {
+  const availableItems = uniquePantryNames(value?.availableItems);
+  const missingItems = uniquePantryNames(value?.missingItems)
+    .filter((name) => !availableItems.some((item) => pantryNamesMatch(item, name)));
+  return { availableItems, missingItems };
+}
+
 export function itemDisplayName(item) {
   if (typeof item === "string") return item;
   return String(item?.name || item?.item || "").trim();
@@ -166,10 +209,19 @@ export function eatFirstMarkedCount(marks) {
 
 // ---------- userContext（沿用现有后端契约） ----------
 
-export function buildUserContext({ timeBudget, note = "", feedbackType = null, alternative = false, eatFirstPriorities = [], alternativeFrom = null }) {
+export function buildUserContext({
+  timeBudget,
+  note = "",
+  feedbackType = null,
+  alternative = false,
+  eatFirstPriorities = [],
+  alternativeFrom = null,
+  pantryConfirmation = null,
+}) {
   const option = feedbackOptionByType(feedbackType);
   const preferences = [];
   const avoid = [];
+  const pantry = normalizePantryConfirmation(pantryConfirmation);
   let goal = "晚餐：给出今晚现实可做的一顿饭";
   if (option && !option.recordOnly) {
     preferences.push(...option.preferences);
@@ -192,6 +244,12 @@ export function buildUserContext({ timeBudget, note = "", feedbackType = null, a
     preferences.push(note);
     goal += `；用户补充：${note}`;
   }
+  if (pantry.availableItems.length) {
+    goal += `；用户已确认家中另有：${pantry.availableItems.join("、")}`;
+  }
+  if (pantry.missingItems.length) {
+    goal += `；用户明确确认家里没有：${pantry.missingItems.join("、")}；这些材料不得再次列为待确认，若本版需要则必须列入缺料或调整做法`;
+  }
   return {
     user: {
       name: "展示用户",
@@ -208,6 +266,7 @@ export function buildUserContext({ timeBudget, note = "", feedbackType = null, a
       timeBudgetId: timeBudget ? timeBudget.id : "",
       energyLevel: "由用户确认",
       nextSchedule: "由用户确认",
+      pantryConfirmation: pantry,
     },
   };
 }

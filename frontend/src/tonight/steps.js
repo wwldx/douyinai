@@ -1,7 +1,7 @@
 // 共享有效步骤：行动单内联、大字做法视图与做饭救援（2c）同源
 // 只读派生，不改动模型原始步骤文本（除「全部缺料已拿到」时的第一步补购改写）
 
-import { namesMatch } from "./model";
+import { namesMatch, normalizePantryConfirmation, pantryNamesMatch } from "./model";
 
 export function getRawSteps(entry) {
   if (!entry) return [];
@@ -14,6 +14,13 @@ export function getRawSteps(entry) {
 export function getCookingContext(entry) {
   const gotIt = entry?.materialState?.acquiredItems || [];
   const accepted = entry?.materialState?.simulatedItems || entry?.shoppingPreview?.acceptedItems || [];
+  const pantry = normalizePantryConfirmation(entry?.requestSnapshot?.pantryConfirmation);
+  const pendingPantry = entry?.mode === "target"
+    ? (entry.plan?.shoppingPlan?.confirmAtHome || []).filter((name) => (
+      !pantry.availableItems.some((item) => pantryNamesMatch(item, name))
+      && !pantry.missingItems.some((item) => pantryNamesMatch(item, name))
+    ))
+    : [];
   const missing = entry?.mode === "target"
     ? [...new Set([
       ...(entry.plan?.inventoryMatch?.missingCritical || []),
@@ -21,7 +28,7 @@ export function getCookingContext(entry) {
     ])]
     : [];
   // 「全部缺料已拿到」要求确实存在过缺料；无缺料版本不因 gotIt 误触发第一步改写
-  const allRequiredAcquired = gotIt.length > 0 && accepted.length === 0 && missing.length > 0 && missing.every(
+  const allRequiredAcquired = pendingPantry.length === 0 && gotIt.length > 0 && accepted.length === 0 && missing.length > 0 && missing.every(
     (name) => gotIt.some((item) => namesMatch(item, name)),
   );
   const steps = getRawSteps(entry).map((step, index) => {
@@ -29,5 +36,5 @@ export function getCookingContext(entry) {
     const tail = String(step).split(/[；;]/).slice(1).join("；").trim();
     return `确认本次已拿到的${gotIt.join("、")}与冰箱材料状态。${tail}`;
   });
-  return { steps, allRequiredAcquired, gotIt, accepted, missing };
+  return { steps, allRequiredAcquired, gotIt, accepted, missing, pendingPantry };
 }

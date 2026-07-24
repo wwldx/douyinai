@@ -3,22 +3,32 @@ import SpeechInput from "../../components/SpeechInput";
 import { VersionStepper } from "../bits";
 import BigStepsView from "./BigStepsView";
 import { getCookingContext } from "../steps";
-import { FEEDBACK_OPTIONS, isFixedDemoResult, namesMatch, parseMinutes, sessionSourceBadge } from "../model";
+import {
+  FEEDBACK_OPTIONS,
+  isFixedDemoResult,
+  namesMatch,
+  pantryNamesMatch,
+  normalizePantryConfirmation,
+  parseMinutes,
+  sessionSourceBadge,
+} from "../model";
 
 export default function TicketScene({
   plan, plans, onSelectPlan, timeBudget, gotIt, stepPosition, onMarkStep,
-  onFeedback, onCartReplan, onGotIt, onAlternative, onAddTarget, onEditFridge, onRestart, onRescue, onLifeLog,
+  onFeedback, onCartReplan, onGotIt, onPantryReplan, onAlternative, onAddTarget, onEditFridge, onRestart, onRescue, onLifeLog,
 }) {
   const [cartSel, setCartSel] = useState([]);
   const [gotSel, setGotSel] = useState([]);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [targetInput, setTargetInput] = useState("");
+  const [pantryDraft, setPantryDraft] = useState({});
   const [busy, setBusy] = useState(false);
   const [bigStepsOpen, setBigStepsOpen] = useState(false);
 
   useEffect(() => {
     setCartSel([]);
     setGotSel([]);
+    setPantryDraft({});
     setFeedbackOpen(false);
     setBigStepsOpen(false);
   }, [plan?.id]);
@@ -38,10 +48,18 @@ export default function TicketScene({
   const accepted = plan.materialState?.simulatedItems || plan.shoppingPreview?.acceptedItems || [];
   const eatFirst = plan.requestSnapshot?.eatFirst || null;
   const alternativeFrom = plan.requestSnapshot?.alternativeFrom || null;
+  const pantryConfirmation = normalizePantryConfirmation(plan.requestSnapshot?.pantryConfirmation);
+  const pantryAvailable = pantryConfirmation.availableItems;
+  const pantryMissing = pantryConfirmation.missingItems;
   // 优先用生成时冻结的来源序号；只有旧会话缺字段才回退运行时查找
   const altSourceSeq = alternativeFrom?.sourceSequence
     ?? (alternativeFrom?.sourcePlanId ? plans.find((p) => p.id === alternativeFrom.sourcePlanId)?.sequence : null);
 
+  const modelPantry = isTarget ? [...new Set(plan.plan?.shoppingPlan?.confirmAtHome || [])] : [];
+  const pendingPantry = modelPantry.filter((name) => (
+    !pantryAvailable.some((item) => pantryNamesMatch(item, name))
+    && !pantryMissing.some((item) => pantryNamesMatch(item, name))
+  ));
   const missing = isTarget
     ? [...new Set([
       ...(plan.plan?.inventoryMatch?.missingCritical || []),
@@ -54,8 +72,11 @@ export default function TicketScene({
   const { steps: displaySteps, allRequiredAcquired } = getCookingContext(plan);
   const mustBuyReasons = new Map((plan.plan?.shoppingPlan?.mustBuy || []).map((b) => [b.item, b.reason]));
   const fridgeAvailable = (plan.plan?.inventoryMatch?.availableItems || []).filter(
-    (name) => !accepted.some((item) => namesMatch(item, name)) && !gotIt.some((item) => namesMatch(item, name)),
+    (name) => !accepted.some((item) => namesMatch(item, name))
+      && !gotIt.some((item) => namesMatch(item, name))
+      && !pantryAvailable.some((item) => pantryNamesMatch(item, name)),
   );
+  const pantryDraftCount = Object.values(pantryDraft).filter((status) => status === "available" || status === "missing").length;
 
   const cookTimeText = isTarget ? plan.plan?.targetDish?.estimatedTime : plan.plan?.baseMeal?.timeCost;
   const cleanCookTimeText = String(cookTimeText || "")
@@ -120,6 +141,31 @@ export default function TicketScene({
     }
   }
 
+  function choosePantry(name, status) {
+    setPantryDraft((cur) => {
+      const next = { ...cur };
+      if (next[name] === status) delete next[name];
+      else next[name] = status;
+      return next;
+    });
+  }
+
+  function markAllPantryAvailable() {
+    setPantryDraft((cur) => Object.fromEntries(
+      pendingPantry.map((name) => [name, cur[name] || "available"]),
+    ));
+  }
+
+  async function handlePantryReplan() {
+    if (!onPantryReplan || pantryDraftCount !== pendingPantry.length) return;
+    setBusy(true);
+    try {
+      await onPantryReplan(pantryDraft);
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function handleAlternative() {
     if (!onAlternative || !plan.plan?.stretchMeal?.name) return;
     setBusy(true);
@@ -179,11 +225,18 @@ export default function TicketScene({
           )}
           <p className="tn-ticket-verdict">
             {isTarget
-              ? allRequiredAcquired ? `本次所缺材料已拿到，可以按这版准备「${mealName || "目标菜"}」` : plan.plan?.verdict?.title
+              ? pendingPantry.length > 0
+                ? `还要确认 ${pendingPantry.length} 样家中常备，再定今晚怎么补`
+                : allRequiredAcquired ? `本次所缺材料已拿到，可以按这版准备「${mealName || "目标菜"}」` : plan.plan?.verdict?.title
               : plan.plan?.summary}
           </p>
           {isTarget && allRequiredAcquired && <p className="tn-ticket-meta">材料状态已更新；做法沿用本版，没有再次调用模型。开火前仍请核对实物。</p>}
-          {isTarget && !allRequiredAcquired && plan.plan?.verdict?.summary && <p className="tn-ticket-meta">{plan.plan.verdict.summary}</p>}
+          {isTarget && pendingPantry.length > 0 && (
+            <p className="tn-ticket-pendingnote" role="note">
+              下面这些材料还没有成为“有”或“缺”的事实；确认后会生成新版本，这一版暂时只作条件参考。
+            </p>
+          )}
+          {isTarget && pendingPantry.length === 0 && !allRequiredAcquired && plan.plan?.verdict?.summary && <p className="tn-ticket-meta">{plan.plan.verdict.summary}</p>}
           <p className="tn-ticket-meta">
             {cookTimeLabel}
             {isTarget && missing.length > 0 && !allRequiredAcquired ? " · 补购耗时另计" : ""}
@@ -205,15 +258,76 @@ export default function TicketScene({
                 ))}
                 {fridgeAvailable.length === 0 && <li className="tn-ticket-empty">没有已确认的冰箱材料</li>}
               </ul>
-              {(plan.plan?.shoppingPlan?.confirmAtHome || []).length > 0 && (
+              {pantryAvailable.length > 0 && (
                 <>
-                  <p className="tn-ticket-coltitle tn-ticket-confirmtitle">家里常备 · 请确认</p>
+                  <p className="tn-ticket-coltitle tn-ticket-confirmtitle is-have">家中已有 · 你确认的</p>
                   <ul>
-                {(plan.plan?.shoppingPlan?.confirmAtHome || []).map((name) => (
-                  <li key={`home-${name}`}><span className="tn-ticket-itemname">{name}</span><span className="tn-via">家里常备 · 请确认</span></li>
-                ))}
+                    {pantryAvailable.map((name) => (
+                      <li key={`pantry-have-${name}`}>
+                        <span className="tn-ticket-itemname">{name}</span>
+                        <span className="tn-via is-fridge">用户确认家中已有</span>
+                      </li>
+                    ))}
                   </ul>
                 </>
+              )}
+              {pantryMissing.length > 0 && (
+                <p className="tn-pantry-resolved-note">
+                  已按“家里没有”重新规划：{pantryMissing.join("、")}。本版需要补的项目会列在后面的补齐状态里。
+                </p>
+              )}
+              {pendingPantry.length > 0 && (
+                <div className="tn-pantry-confirm" aria-label="确认家中常备材料">
+                  <div className="tn-pantry-confirm-head">
+                    <div>
+                      <p className="tn-ticket-coltitle tn-ticket-confirmtitle">家里常备 · 待确认</p>
+                      <p className="tn-pantry-hint">逐项选“有”或“没有”，选完后只重新规划一次。</p>
+                    </div>
+                    <button type="button" className="tn-pantry-all" disabled={busy} onClick={markAllPantryAvailable}>
+                      {pantryDraftCount > 0 ? "其余都有" : "这些都有"}
+                    </button>
+                  </div>
+                  <ul className="tn-pantry-list">
+                    {pendingPantry.map((name) => (
+                      <li key={`home-${name}`} className="tn-pantry-item">
+                        <span className="tn-ticket-itemname">{name}</span>
+                        <div className="tn-pantry-choices" role="group" aria-label={`确认家里是否有${name}`}>
+                          <button
+                            type="button"
+                            className={`tn-pantry-choice ${pantryDraft[name] === "available" ? "is-have" : ""}`}
+                            aria-pressed={pantryDraft[name] === "available"}
+                            disabled={busy}
+                            onClick={() => choosePantry(name, "available")}
+                          >
+                            家里有
+                          </button>
+                          <button
+                            type="button"
+                            className={`tn-pantry-choice ${pantryDraft[name] === "missing" ? "is-missing" : ""}`}
+                            aria-pressed={pantryDraft[name] === "missing"}
+                            disabled={busy}
+                            onClick={() => choosePantry(name, "missing")}
+                          >
+                            家里没有
+                          </button>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                  <button
+                    type="button"
+                    className="tn-btn tn-btn-quiet tn-pantry-apply"
+                    disabled={busy || pantryDraftCount !== pendingPantry.length}
+                    onClick={handlePantryReplan}
+                  >
+                    {busy ? "正在按确认结果更新…" : pantryDraftCount === pendingPantry.length
+                      ? `按这 ${pantryDraftCount} 样确认更新方案`
+                      : `还需确认 ${pendingPantry.length - pantryDraftCount} 样`}
+                  </button>
+                  {pantryDraftCount < pendingPantry.length && (
+                    <p className="tn-pantry-hint">全部选完后再统一更新一次，避免每确认一项都等待模型。</p>
+                  )}
+                </div>
               )}
             </div>
             <div className="tn-ticket-col">

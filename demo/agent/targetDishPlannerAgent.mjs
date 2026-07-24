@@ -19,14 +19,77 @@ const COOKWARE_NAMES = new Set([
   "锅铲",
 ]);
 
-export function sanitizeTargetDishPlan(plan) {
+function ingredientKey(value) {
+  return String(value?.name || value?.item || value || "")
+    .replace(/[\s·、，,（）()]/gu, "")
+    .trim();
+}
+
+function ingredientMatches(a, b) {
+  const x = ingredientKey(a);
+  const y = ingredientKey(b);
+  const aliases = new Map([
+    ["食盐", "盐"],
+    ["食用盐", "盐"],
+    ["植物油", "食用油"],
+    ["植物食用油", "食用油"],
+    ["食用植物油", "食用油"],
+    ["炒菜油", "食用油"],
+  ]);
+  const safeX = aliases.get(x) || x;
+  const safeY = aliases.get(y) || y;
+  return Boolean(safeX && safeY && safeX === safeY);
+}
+
+function pantryConfirmationFrom(userContext) {
+  const value = userContext?.context?.pantryConfirmation || {};
+  const availableItems = Array.isArray(value.availableItems) ? value.availableItems.filter(Boolean) : [];
+  const missingItems = Array.isArray(value.missingItems) ? value.missingItems.filter(Boolean) : [];
+  return { availableItems, missingItems };
+}
+
+export function sanitizeTargetDishPlan(plan, { userContext = null } = {}) {
   if (!Array.isArray(plan?.shoppingPlan?.confirmAtHome)) return plan;
 
-  plan.shoppingPlan.confirmAtHome = [...new Set(
+  const pantry = pantryConfirmationFrom(userContext);
+  // 这里只消解用户本轮明确确认的常备项；普通库存可能因数量不足仍被 Planner 判为缺口，不能在后处理中擅自删掉。
+  const confirmedAvailable = pantry.availableItems;
+  const resolvedPantry = [...pantry.availableItems, ...pantry.missingItems];
+
+  const pendingAtHome = [...new Set(
     plan.shoppingPlan.confirmAtHome
       .flatMap(splitCorruptedListEntry)
       .filter((item) => item && !isCookwareEntry(item)),
   )];
+  // 只有模型仍将「用户已确认没有」的材料列为待确认时，才确定性迁移到缺料与必买；
+  // 若模型已经省略该项，视为它调整了做法，不强行把材料塞回方案。
+  const confirmedMissingStillRequired = pendingAtHome.filter((item) => (
+    pantry.missingItems.some((missing) => ingredientMatches(missing, item))
+  ));
+
+  plan.shoppingPlan.confirmAtHome = pendingAtHome
+    .filter((item) => !resolvedPantry.some((resolved) => ingredientMatches(resolved, item)));
+
+  if (!plan.inventoryMatch || typeof plan.inventoryMatch !== "object") plan.inventoryMatch = {};
+  const missingCritical = Array.isArray(plan.inventoryMatch.missingCritical)
+    ? plan.inventoryMatch.missingCritical
+      .filter((item) => !confirmedAvailable.some((available) => ingredientMatches(available, item)))
+    : [];
+  for (const item of confirmedMissingStillRequired) {
+    if (!missingCritical.some((existing) => ingredientMatches(existing, item))) missingCritical.push(item);
+  }
+  plan.inventoryMatch.missingCritical = missingCritical;
+
+  const mustBuy = Array.isArray(plan.shoppingPlan.mustBuy)
+    ? plan.shoppingPlan.mustBuy
+      .filter((item) => !confirmedAvailable.some((available) => ingredientMatches(available, item)))
+    : [];
+  for (const item of confirmedMissingStillRequired) {
+    if (!mustBuy.some((existing) => ingredientMatches(existing, item))) {
+      mustBuy.push({ item, reason: "用户已确认家里没有" });
+    }
+  }
+  plan.shoppingPlan.mustBuy = mustBuy;
   return plan;
 }
 
@@ -54,7 +117,8 @@ export async function planTargetDish({ inventory, targetDish, userContext, retri
     "不要输出可做指数、分数、百分比或评分算法。",
     "必须尊重用户想吃这道菜的意愿，先尽量给出可执行路线；如果难度、时间、工具或食材不足，需要温和提醒，并给简化版本、明天准备路线或补买建议。",
     "用户是新手时，不要直接推荐高风险动作，例如油炸、长时间处理生肉、复杂刀工；但可以给低风险替代做法。",
-    "inventory 只包含用户从冰箱画面中确认保留的食材；看不到某种调料不等于用户家里一定没有。",
+    "inventory 包含用户本轮明确确认可用的材料；来源以每项 category/state 为准，可能是冰箱原有、本次已拿到或用户确认家中常备。冰箱画面没看到某种调料不等于用户家里一定没有。",
+    "如果 userContext.context.pantryConfirmation 存在：availableItems 是用户明确确认家中已有的常备材料，必须按真实可用处理；missingItems 是用户明确确认家里没有的材料，不得再次放进 confirmAtHome。missingItems 若是本版必要材料，必须进入 missingCritical 与 mustBuy；若可以不用，则调整做法并说明。",
     "userContext.context.timeBudgetId 是用户亲选的时间语义档；flexible 表示今晚不赶时间，不等于无限时长。做饭耗时只计算从备菜到出锅，补购或配送耗时另计。",
     "shoppingPlan 必须覆盖当前目标菜完整的材料缺口，而不是只挑一个适合展示的商品。mustBuy 列出当前推荐版本不可缺少、且确认库存中没有的主料、辅料和专用调味料；常见但可能放在橱柜里的油、盐、酱油等放进 confirmAtHome；不影响成菜成立的材料放进 optionalUpgrades。",
     "shoppingPlan 的每个数组元素只能写一个简短材料名，不得把 JSON 引号、转义符或多个数组元素拼进同一字符串；锅具和厨具不得写进 confirmAtHome。",
@@ -110,5 +174,5 @@ export async function planTargetDish({ inventory, targetDish, userContext, retri
       },
     ],
   });
-  return sanitizeTargetDishPlan(plan);
+  return sanitizeTargetDishPlan(plan, { inventory, userContext });
 }

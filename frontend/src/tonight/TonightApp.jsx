@@ -14,6 +14,8 @@ import {
   loadSessionState,
   namesMatch,
   normalizeDinnerPlan,
+  normalizePantryConfirmation,
+  pantryNamesMatch,
   normalizeTargetPlanData,
   readableDishNameFromFile,
   rescueSymptomByKey,
@@ -420,6 +422,10 @@ export default function TonightApp() {
     return undefined;
   }
 
+  function pantryConfirmationForPlan(active) {
+    return normalizePantryConfirmation(active?.requestSnapshot?.pantryConfirmation);
+  }
+
   const startPlanning = useCallback(async ({
     mode,
     dishName,
@@ -428,6 +434,7 @@ export default function TonightApp() {
     alternativeFrom = null,
     cartItems = [],
     acquiredItems = [],
+    pantryConfirmation = null,
     inventorySnapshot = inventory,
     inventoryModeSnapshot = inventoryMode,
     timeBudgetIdSnapshot = timeBudgetId,
@@ -441,9 +448,17 @@ export default function TonightApp() {
     const timeBudget = timeOptionById(timeBudgetIdSnapshot);
     const realAcquired = [...new Set(acquiredItems.map((name) => String(name || "").trim()).filter(Boolean))];
     const simulated = [...new Set(cartItems.map((name) => String(name || "").trim()).filter(Boolean))];
+    const pantry = normalizePantryConfirmation(pantryConfirmation);
+    const baseNames = baseInventory.map((item) => String(item?.name || item || "").trim()).filter(Boolean);
+    const acquiredToAdd = realAcquired.filter((name) => !baseNames.some((item) => namesMatch(item, name)));
+    const pantryToAdd = pantry.availableItems.filter((name) => (
+      !baseNames.some((item) => pantryNamesMatch(item, name))
+      && !acquiredToAdd.some((item) => pantryNamesMatch(item, name))
+    ));
     const planningInventory = [
       ...baseInventory,
-      ...realAcquired.map((name) => ({ name, category: "本次已拿到", quantityEstimate: "", state: "用户确认本次已经拿到", notes: "" })),
+      ...acquiredToAdd.map((name) => ({ name, category: "本次已拿到", quantityEstimate: "", state: "用户确认本次已经拿到", notes: "" })),
+      ...pantryToAdd.map((name) => ({ name, category: "家中常备", quantityEstimate: "", state: "用户确认家中已有", notes: "" })),
     ];
     const provenance = inputProvenance || {
       dishImageSource: dish?.imageSource || null,
@@ -458,6 +473,7 @@ export default function TonightApp() {
     const frozenArgs = {
       mode, dishName, feedbackType, alternative, alternativeFrom,
       cartItems: simulated, acquiredItems: realAcquired,
+      pantryConfirmation: pantry,
       inventorySnapshot: baseInventory, inventoryModeSnapshot,
       timeBudgetIdSnapshot, noteSnapshot,
       inputProvenance: provenance, eatFirstItemStates: efStates,
@@ -478,6 +494,7 @@ export default function TonightApp() {
         alternative,
         alternativeFrom,
         eatFirstPriorities: eatFirstSnap?.applied ? eatFirstSnap.plannerPriorities : [],
+        pantryConfirmation: pantry,
       });
       if (mode === "target") {
         const text = `我今晚想吃${dishName}`;
@@ -496,7 +513,7 @@ export default function TonightApp() {
           mode: "target",
           plan: normalizeTargetPlanData(data.targetPlan),
           source: data.source || "model",
-          snapshotLabel: versionLabel({ mode: "target", dishName, timeBudget, feedbackType, alternativeFrom, cartItems: simulated, acquiredItems: realAcquired }),
+          snapshotLabel: versionLabel({ mode: "target", dishName, timeBudget, feedbackType, alternativeFrom, cartItems: simulated, acquiredItems: realAcquired, pantryConfirmation: pantry }),
           shoppingPreview: simulated.length ? { acceptedItems: simulated } : null,
           materialState: { acquiredItems: realAcquired, simulatedItems: simulated },
           inputProvenance: provenance,
@@ -510,6 +527,7 @@ export default function TonightApp() {
             note: noteSnapshot,
             eatFirst: eatFirstSnap,
             alternativeFrom,
+            pantryConfirmation: pantry,
           },
         });
       } else {
@@ -518,7 +536,7 @@ export default function TonightApp() {
           mode: "free",
           plan: normalizeDinnerPlan(data.plan),
           source: data.source || "model",
-          snapshotLabel: versionLabel({ mode: "free", timeBudget, feedbackType, alternativeFrom, cartItems: simulated, acquiredItems: realAcquired }),
+          snapshotLabel: versionLabel({ mode: "free", timeBudget, feedbackType, alternativeFrom, cartItems: simulated, acquiredItems: realAcquired, pantryConfirmation: pantry }),
           shoppingPreview: null,
           materialState: { acquiredItems: realAcquired, simulatedItems: simulated },
           inputProvenance: provenance,
@@ -531,6 +549,7 @@ export default function TonightApp() {
             note: noteSnapshot,
             eatFirst: eatFirstSnap,
             alternativeFrom,
+            pantryConfirmation: pantry,
           },
         });
       }
@@ -551,7 +570,7 @@ export default function TonightApp() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [timeBudgetId, note, inventory, inventoryMode, eatFirstMarks, dish, fridge, plans.length]);
 
-  function versionLabel({ mode, dishName, timeBudget, feedbackType, alternativeFrom, cartItems, acquiredItems }) {
+  function versionLabel({ mode, dishName, timeBudget, feedbackType, alternativeFrom, cartItems, acquiredItems, pantryConfirmation }) {
     const parts = [mode === "target" ? `目标菜 · ${dishName}` : "按库存安排"];
     if (timeBudget) parts.push(timeBudget.label);
     const fb = feedbackOptionByType(feedbackType);
@@ -559,6 +578,9 @@ export default function TonightApp() {
     if (alternativeFrom?.candidateName) parts.push(`换个思路 · ${alternativeFrom.candidateName}`);
     if (cartItems?.length) parts.push(`模拟补购 ${cartItems.length} 样`);
     if (acquiredItems?.length) parts.push(`已拿到 ${acquiredItems.length} 样`);
+    const pantry = normalizePantryConfirmation(pantryConfirmation);
+    const pantryCount = pantry.availableItems.length + pantry.missingItems.length;
+    if (pantryCount) parts.push(`常备确认 ${pantryCount} 样`);
     return parts.join(" · ");
   }
 
@@ -596,6 +618,7 @@ export default function TonightApp() {
       const timeBudget = timeOptionById(fbTimeId);
       const mode = frozen?.mode || (intent?.type === "target_dish" ? "target" : "free");
       const dishName = frozen?.dishName || intent?.dishName;
+      const fbPantry = normalizePantryConfirmation(frozen?.pantryConfirmation);
       const efStates = frozen?.eatFirstItemStates
         || eatFirstItemStatesFromMarks(eatFirstMarks, fbInventory.map((item) => String(item?.name || item || "").trim()).filter(Boolean));
       // 冻结里有首次真正生效的先吃结果就直接沿用，不重新调用规则
@@ -625,6 +648,7 @@ export default function TonightApp() {
           inventoryMode: fbInventoryMode,
           note: fbNote,
           eatFirst: eatFirstSnap,
+          pantryConfirmation: fbPantry,
         },
       });
       setPlanError(null);
@@ -662,6 +686,7 @@ export default function TonightApp() {
       noteSnapshot: active.requestSnapshot?.note ?? note,
       acquiredItems: active.materialState?.acquiredItems || [],
       cartItems: active.materialState?.simulatedItems || [],
+      pantryConfirmation: pantryConfirmationForPlan(active),
       inputProvenance: active.inputProvenance,
       inheritedEatFirst: inheritEatFirstSnapshot(active),
     });
@@ -675,6 +700,7 @@ export default function TonightApp() {
       dishName: active.plan?.targetDish?.name,
       cartItems: items,
       acquiredItems: active.materialState?.acquiredItems || [],
+      pantryConfirmation: pantryConfirmationForPlan(active),
       inventorySnapshot: active.requestSnapshot?.inventory || inventory,
       inventoryModeSnapshot: active.requestSnapshot?.inventoryMode || inventoryMode,
       timeBudgetIdSnapshot: active.requestSnapshot?.timeBudgetId || timeBudgetId,
@@ -716,6 +742,7 @@ export default function TonightApp() {
       dishName: active.mode === "target" ? active.plan?.targetDish?.name : undefined,
       acquiredItems: acquired,
       cartItems: simulated,
+      pantryConfirmation: pantryConfirmationForPlan(active),
       inventorySnapshot: active.requestSnapshot?.inventory || inventory,
       inventoryModeSnapshot: active.requestSnapshot?.inventoryMode || inventoryMode,
       timeBudgetIdSnapshot: active.requestSnapshot?.timeBudgetId || timeBudgetId,
@@ -724,6 +751,36 @@ export default function TonightApp() {
       inheritedEatFirst: inheritEatFirstSnapshot(active),
     });
   }, [plans, activePlanId, startPlanning, showNotice, inventory, inventoryMode, timeBudgetId, note]);
+
+  const applyPantryReplan = useCallback((choices) => {
+    const active = plans.find((p) => p.id === activePlanId);
+    if (!active || active.mode !== "target" || !choices || typeof choices !== "object") return;
+    const current = pantryConfirmationForPlan(active);
+    let availableItems = [...current.availableItems];
+    let missingItems = [...current.missingItems];
+    Object.entries(choices).forEach(([rawName, status]) => {
+      const name = String(rawName || "").trim();
+      if (!name || (status !== "available" && status !== "missing")) return;
+      availableItems = availableItems.filter((item) => !pantryNamesMatch(item, name));
+      missingItems = missingItems.filter((item) => !pantryNamesMatch(item, name));
+      if (status === "available") availableItems.push(name);
+      else missingItems.push(name);
+    });
+    const pantryConfirmation = normalizePantryConfirmation({ availableItems, missingItems });
+    return startPlanning({
+      mode: "target",
+      dishName: active.plan?.targetDish?.name,
+      acquiredItems: active.materialState?.acquiredItems || [],
+      cartItems: active.materialState?.simulatedItems || [],
+      pantryConfirmation,
+      inventorySnapshot: active.requestSnapshot?.inventory || inventory,
+      inventoryModeSnapshot: active.requestSnapshot?.inventoryMode || inventoryMode,
+      timeBudgetIdSnapshot: active.requestSnapshot?.timeBudgetId || timeBudgetId,
+      noteSnapshot: active.requestSnapshot?.note ?? note,
+      inputProvenance: active.inputProvenance,
+      inheritedEatFirst: inheritEatFirstSnapshot(active),
+    });
+  }, [plans, activePlanId, startPlanning, inventory, inventoryMode, timeBudgetId, note]);
 
   // 「另一个思路」：冻结来源版本与候选菜，仍走自由推荐；库存现实可能让结果偏离候选
   const applyAlternative = useCallback(({ sourcePlanId, candidateName, candidateWhy }) => {
@@ -738,6 +795,7 @@ export default function TonightApp() {
       timeBudgetIdSnapshot: active.requestSnapshot?.timeBudgetId || timeBudgetId,
       noteSnapshot: active.requestSnapshot?.note ?? note,
       acquiredItems: active.materialState?.acquiredItems || [],
+      pantryConfirmation: pantryConfirmationForPlan(active),
       inputProvenance: active.inputProvenance,
       inheritedEatFirst: inheritEatFirstSnapshot(active),
     });
@@ -1107,6 +1165,7 @@ export default function TonightApp() {
             onFeedback={applyFeedback}
             onCartReplan={applyCartReplan}
             onGotIt={applyGotIt}
+            onPantryReplan={applyPantryReplan}
             onAlternative={applyAlternative}
             onAddTarget={(dishName) => startPlanning({
               mode: "target",
@@ -1116,6 +1175,7 @@ export default function TonightApp() {
               timeBudgetIdSnapshot: activePlan.requestSnapshot?.timeBudgetId || timeBudgetId,
               noteSnapshot: activePlan.requestSnapshot?.note ?? note,
               acquiredItems: activePlan.materialState?.acquiredItems || [],
+              pantryConfirmation: pantryConfirmationForPlan(activePlan),
               inputProvenance: activePlan.inputProvenance,
               inheritedEatFirst: inheritEatFirstSnapshot(activePlan),
             })}
