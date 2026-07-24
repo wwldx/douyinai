@@ -40,8 +40,8 @@ const runtimeDataRoot = process.env.DATA_DIR ? resolve(process.env.DATA_DIR) : d
 const modelConfig = {
   apiKey: usableApiKey(process.env.OPENAI_API_KEY),
   responsesBaseUrl: normalizeBaseUrl(process.env.OPENAI_BASE_URL || process.env.RIGHTCODE_BASE_URL || "https://api.openai.com/v1"),
-  chatBaseUrl: normalizeBaseUrl(process.env.RIGHTCODE_CHAT_BASE_URL || process.env.OPENAI_CHAT_BASE_URL || "https://www.right.codes/draw"),
-  provider: process.env.MODEL_PROVIDER || ((process.env.OPENAI_BASE_URL || process.env.RIGHTCODE_BASE_URL || "").includes("right.codes") ? "rightcode_responses_stream" : "openai_responses"),
+  chatBaseUrl: normalizeBaseUrl(process.env.RIGHTCODE_CHAT_BASE_URL || process.env.OPENAI_CHAT_BASE_URL || "https://www.rightapi.ai/draw"),
+  provider: process.env.MODEL_PROVIDER || (/right(?:\.codes|api\.ai)/u.test(process.env.OPENAI_BASE_URL || process.env.RIGHTCODE_BASE_URL || "") ? "rightcode_responses_stream" : "openai_responses"),
   disableResponseStorage: process.env.DISABLE_RESPONSE_STORAGE === "true" || process.env.OPENAI_STORE === "false",
 };
 
