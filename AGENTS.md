@@ -92,6 +92,7 @@ OPENAI_MODEL=gpt-5.6-terra
 VISION_MODEL=gpt-5.6-terra
 PLANNING_MODEL=gpt-5.6-terra
 LIFE_LOG_MODEL=gpt-5.6-terra
+AGENT_APP_VERSION=015
 DISABLE_RESPONSE_STORAGE=true
 CASE_RETRIEVAL_MODE=off
 CASE_RETRIEVAL_LIMIT=4
@@ -105,7 +106,7 @@ TRUST_PROXY=false
 说明：
 
 - `MODEL_PROVIDER=rightcode_responses_stream` 时，demo 会走 Right Code Codex `/responses`，并强制使用 `stream:true` 解析 SSE。
-- `VISION_MODEL`、`PLANNING_MODEL`、`LIFE_LOG_MODEL` 可按任务独立路由；任何一项未填写时回退到 `OPENAI_MODEL`。公网 012 已统一使用 `gpt-5.6-terra`；011 是首选回滚版本，010 是次级回滚点。
+- `VISION_MODEL`、`PLANNING_MODEL`、`LIFE_LOG_MODEL` 可按任务独立路由；任何一项未填写时回退到 `OPENAI_MODEL`。当前公网 013 与最新候选 015 均统一使用 `gpt-5.6-terra`；015 上线异常时首选回滚 013，012 保留为最近一次完成严格公网验证的历史基线。
 - 当前账号的 `/draw/v1/models` 只列出图像生成模型，不适合本项目的图片理解；`/draw/v1/chat/completions` 保留为备用 provider。
 - 2026-07-18 已完成当前 `gpt-5.6-terra` 固定 30 例真实模型基线：30/30，全部 `source=model`；平均 18.33 秒、P95 28.03 秒、总 114,467 tokens，Schema、规划动作和禁用语义门禁均为 100%。视觉输入采用展示端等效的最长边 1400px JPEG；该结果只代表固定回归集，不外推为真实用户准确率。原 8 例混合小集保留为历史证据。
 - 同一 4 例视觉小集中，`gpt-5.6-sol` 与 `gpt-5.6-terra` 首轮均通过 3/4，平均延迟分别约 63.2 秒和 20.3 秒；`gpt-5.6-luna` 0/4，不采用。重复菜图识别仍存在细粒度菜名波动，因此用户确认菜名是硬步骤。
@@ -408,7 +409,7 @@ npm run push -- "提交信息"
 优先级较高：
 
 - 按 `docs/roadmap/大区赛升级总计划-2026-07-13.md` 推进，Solo 同时只允许一个 `In progress` 升级。
-- 腾讯云 CloudBase 当前公网版本为 013，环境 ID 为 `fridge-dinner-agent-d7bpec7d4611`，默认 HTTPS 域名为 `https://fridge-dinner-agent-281751-9-1304313771.sh.run.tcloudbase.com`；013 已把中转 Base URL 迁到 `rightapi.ai`。014 手机修复候选已冻结但尚未部署；014 异常时首选回滚 013，012 保留为最近一次完整公网验证基线。
+- 腾讯云 CloudBase 当前公网版本为 013，环境 ID 为 `fridge-dinner-agent-d7bpec7d4611`，默认 HTTPS 域名为 `https://fridge-dinner-agent-281751-9-1304313771.sh.run.tcloudbase.com`；013 已把中转 Base URL 迁到 `rightapi.ai`。015 是最新未部署候选，包含 014 的手机修复、目标菜候选确认与语义执行门禁、严格材料状态，以及 RightAPI 连接失败/502/503 的一次有界重试；014 仅保留为未上线中间存档。015 异常时首选回滚 013，012 保留为最近一次完整公网验证基线。
 - 012 第一、二轮视觉实现已保留为 Git 回滚点，但用户确认其仍属于旧结构上的换肤，不作为最终设计。第三轮使用全新 Kimi 3 会话，按 `docs/frontend/012第三轮真正前端重构设计简报-2026-07-20.md` 从产品任务重新设计；现有两类业务任务、API 和后端能力是可复用基线，不冻结颜色、页面数量、入口形态、信息顺序、组件或后端上限。Kimi 可提出或实现能增强比赛呈现的新前后端能力，Codex 负责后续契约审计、补齐与定向验证。
 - 手机直接拍菜/拍冰箱、五类结果反馈、反馈约束重规划、阶段 trace 和公网前限流已经完成本地验收；剩余 HTTPS 真机和外网压力验证。
 - 结构化历史 Case V1、正反例选择、开发台预览和当前 `terra` 完整 19 例消融均已完成；结果不支持进入主演示，公网保持 `off`，不继续扩展 embedding。
@@ -439,7 +440,7 @@ npm run push -- "提交信息"
 - 第二张目标菜图片已支持：先识别目标菜名和关键材料，再允许用户手动确认菜名。
 - 多图自动分类暂不进主流程，只作为后续规划：一次上传多张图后由 AI 判断哪张是冰箱、哪张是目标菜。
 - U24 已完成代码、离线回归、腾讯一句话识别公网端点和 005 iPhone 麦克风允许/拒绝兜底验收；10 条 macOS 合成语音 10/10 只证明合成链路。U24 为 Verified，012 的手机复验归入发布矩阵，不重新打开功能开发。
-- CloudBase 014 候选包为 `dist/deployment/fridge-dinner-agent-cloudbase-014.zip`，SHA-256 为 `017790d7edded818aa02f1067ef7186b57a968b2469efb9f04b508261980f70c`；压缩完整性和敏感文件门禁已通过，但尚未部署。013 当前承载公网；012 包与完整公网验证证据继续保留。
+- CloudBase 015 候选包为 `dist/deployment/fridge-dinner-agent-cloudbase-015.zip`，大小 `43,925,233 bytes`，SHA-256 为 `cae54bf47b97949b7278daa0881c6db082bd55d320a7d592278360542ae8a7e4`；压缩完整性和敏感文件门禁已通过，但尚未部署。014 包继续作为中间存档保留；013 当前承载公网，012 包与完整公网验证证据继续保留。
 - `.env.local` 已配置任务级模型路由；接口可审计 provider token usage，完整 30 例与 19 例 Case 消融均已完成。012 的三任务 `terra` 路由已由严格公网 `/api/health` 门禁确认生效。
 - U23 抖音小程序适配已纳入候选但不进入关键路径。CloudBase 原生小程序接入主要是微信 `wx.cloud`；抖音小程序需要独立字节小程序工程、`tt.*` API、AppID、备案 HTTPS 域名和提审，现有 React H5 不能原样复用。当前投入优先给 012 真机、回滚准备和提交材料；完成后再按评分收益重评。
 - 生活记录 Agent 已有一个 terra 真实模型固定样例；主演示仍保留明确区分来源的固定成品图缓存，所有草稿必须人工确认。

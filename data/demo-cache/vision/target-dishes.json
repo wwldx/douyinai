@@ -11,7 +11,7 @@
       "cachedAt": "2026-07-18",
       "targetVision": {
         "dishName": "黄焖鸡",
-        "dishNameCandidates": ["香菇焖鸡"],
+        "dishNameCandidates": ["香菇焖鸡", "土豆焖鸡", "鸡块烧土豆"],
         "confidence": 0.88,
         "dishType": "焖菜",
         "coreTaste": "咸香微甜、热乎下饭",

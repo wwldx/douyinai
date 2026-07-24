@@ -50,11 +50,11 @@ export default function WaitingOverlay({ pending, onCancel, dishImage, fridgeIma
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [onCancel]);
 
-  // 救援与生活记录等待不显示冰箱图；只有菜图/冰箱识别与规划显示对应缩略图
+  // 规划可能来自历史版本、手动菜名或纯库存，不能拿当前全局菜图冒充本次请求素材。
+  // 因此只有视觉识别任务显示对应缩略图；统一规划等待只展示冻结的文字事实。
   const thumb = pending.kind === "dish-vision" ? dishImage
-    : pending.kind === "plan" ? dishImage || fridgeImage
-      : pending.kind === "fridge-vision" || pending.kind === "reshoot" ? fridgeImage
-        : null;
+    : pending.kind === "fridge-vision" || pending.kind === "reshoot" ? fridgeImage
+      : null;
 
   return (
     <div className="tn-waiting" role="dialog" aria-modal="true" aria-label={pending.label}>

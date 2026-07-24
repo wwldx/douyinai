@@ -158,6 +158,21 @@ export function pantryNamesMatch(a, b) {
   return Boolean(x && y && x === y);
 }
 
+// 食材进入“已有 / 已拿到 / 已补齐”等事实状态时一律使用严格匹配。
+// 不能用 namesMatch 的包含关系，否则「油」会误覆盖「蚝油」并错误解锁做饭。
+export function ingredientNamesMatch(a, b) {
+  return pantryNamesMatch(a, b);
+}
+
+export function mergeIngredientNames(...groups) {
+  const merged = [];
+  groups.flatMap((group) => (Array.isArray(group) ? group : [])).forEach((value) => {
+    const name = String(value || "").trim();
+    if (name && !merged.some((item) => ingredientNamesMatch(item, name))) merged.push(name);
+  });
+  return merged;
+}
+
 function uniquePantryNames(value) {
   if (!Array.isArray(value)) return [];
   return value
@@ -177,6 +192,20 @@ export function normalizePantryConfirmation(value) {
   const missingItems = uniquePantryNames(value?.missingItems)
     .filter((name) => !availableItems.some((item) => pantryNamesMatch(item, name)));
   return { availableItems, missingItems };
+}
+
+// 历史快照保留用户当时确认的「家里没有」；但派生新请求时，
+// 已拿到或已选中模拟补齐的同名材料已由当前执行状态覆盖，
+// 不能再同时作为「本轮必须继续判缺」的约束传给 Planner。
+export function pantryConfirmationForPlanning(value, { acquiredItems = [], simulatedItems = [] } = {}) {
+  const pantry = normalizePantryConfirmation(value);
+  const covered = mergeIngredientNames(acquiredItems, simulatedItems);
+  return {
+    availableItems: pantry.availableItems,
+    missingItems: pantry.missingItems.filter(
+      (name) => !covered.some((item) => pantryNamesMatch(item, name)),
+    ),
+  };
 }
 
 export function itemDisplayName(item) {
@@ -310,9 +339,14 @@ export function fallbackTargetPlan(dishName, inventory, timeBudget) {
       difficulty: "未知",
     },
     verdict: {
-      title: "模型暂时不可用，先给你保守判断",
-      summary: "这是一版规则兜底，不是本次模型结果：先核对主料，缺主料时不要硬凑；等模型恢复后重新判断会更准。",
-      primaryAction: "cook_simplified",
+      title: "模型暂时不可用，先别按这个菜名开火",
+      summary: "这是一版规则兜底，不是本次模型结果。当前无法可靠确认目标菜及其关键材料；可以改菜名，或改为按已确认库存安排。",
+      primaryAction: "clarify_target",
+    },
+    targetAssessment: {
+      status: "needs_clarification",
+      reason: "模型暂时不可用，规则兜底不能确认这个名称是否对应明确可做的食物。",
+      clarificationPrompt: "请确认更具体的菜名，或改为按现有库存安排。",
     },
     inventoryMatch: {
       availableItems: names,
@@ -322,10 +356,13 @@ export function fallbackTargetPlan(dishName, inventory, timeBudget) {
       coverageStatus: "unresolved",
       needsConfirmationItems: ["这道菜的关键主料"],
     },
-    shoppingPlan: { mustBuy: [], confirmAtHome: ["食用油", "盐", "酱油"], optionalUpgrades: [] },
+    shoppingPlan: { mustBuy: [], confirmAtHome: [], optionalUpgrades: [] },
     executionPlan: {
-      recommendedVersion: "先确认主料够不够，缺主料时不要硬凑成另一道菜。",
-      steps: ["确认这道菜最重要的主料。", "核对冰箱里已有材料。", "缺主料时先补买，或改做相近口味的热食。", "按你确认的时间控制步骤复杂度。"],
+      isExecutableNow: false,
+      dishName: "",
+      blockReason: "target_unclear",
+      recommendedVersion: "先确认菜名，再生成真正可执行的做法。",
+      steps: [],
       difficultyWarnings: ["当前是保守兜底方案，关键材料还需要你确认。"],
       prepForTomorrow: "",
     },
@@ -362,6 +399,7 @@ export function normalizeDinnerPlan(plan) {
 const targetDefaults = {
   targetDish: { name: "想吃的菜", intentTime: "tonight", coreTaste: "", estimatedTime: "", difficulty: "" },
   verdict: { title: "", summary: "", primaryAction: "" },
+  targetAssessment: { status: "needs_clarification", reason: "", clarificationPrompt: "" },
   inventoryMatch: {
     availableItems: [],
     missingCritical: [],
@@ -371,7 +409,15 @@ const targetDefaults = {
     needsConfirmationItems: [],
   },
   shoppingPlan: { mustBuy: [], confirmAtHome: [], optionalUpgrades: [] },
-  executionPlan: { recommendedVersion: "", steps: [], difficultyWarnings: [], prepForTomorrow: "" },
+  executionPlan: {
+    isExecutableNow: false,
+    dishName: "",
+    blockReason: "needs_confirmation",
+    recommendedVersion: "",
+    steps: [],
+    difficultyWarnings: [],
+    prepForTomorrow: "",
+  },
   userFit: { skillNote: "", timeNote: "", profileNotes: [] },
   commerceCards: [],
 };
@@ -393,11 +439,13 @@ export function normalizeTargetPlanData(plan) {
   const p = plan && typeof plan === "object" ? plan : {};
   const match = { ...targetDefaults.inventoryMatch, ...p.inventoryMatch };
   const shopping = { ...targetDefaults.shoppingPlan, ...p.shoppingPlan };
+  const execution = { ...targetDefaults.executionPlan, ...p.executionPlan };
   return {
     ...targetDefaults,
     ...p,
     targetDish: { ...targetDefaults.targetDish, ...p.targetDish },
     verdict: { ...targetDefaults.verdict, ...p.verdict },
+    targetAssessment: { ...targetDefaults.targetAssessment, ...p.targetAssessment },
     inventoryMatch: {
       ...match,
       availableItems: nameList(match.availableItems),
@@ -410,7 +458,18 @@ export function normalizeTargetPlanData(plan) {
       confirmAtHome: nameList(shopping.confirmAtHome),
       optionalUpgrades: nameList(shopping.optionalUpgrades),
     },
-    executionPlan: { ...targetDefaults.executionPlan, ...p.executionPlan },
+    executionPlan: {
+      ...execution,
+      isExecutableNow: execution.isExecutableNow === true,
+      dishName: String(execution.dishName || "").trim(),
+      blockReason: String(execution.blockReason || "needs_confirmation"),
+      steps: Array.isArray(execution.steps)
+        ? execution.steps.map((step) => String(step || "").trim()).filter(Boolean).slice(0, 6)
+        : [],
+      difficultyWarnings: Array.isArray(execution.difficultyWarnings)
+        ? execution.difficultyWarnings.map((tip) => String(tip || "").trim()).filter(Boolean).slice(0, 4)
+        : [],
+    },
     userFit: { ...targetDefaults.userFit, ...p.userFit },
   };
 }

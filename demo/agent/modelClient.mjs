@@ -50,53 +50,94 @@ async function requestResponsesJsonResponse(config, { instructions, input, schem
   }
 
   return runWithModelTimeout(timeoutMs, async (signal) => {
-    let response;
-    try {
-      response = await fetch(`${config.responsesBaseUrl}/responses`, {
-        method: "POST",
-        headers: {
-          authorization: `Bearer ${config.apiKey}`,
-          "content-type": "application/json",
-        },
-        body: JSON.stringify(requestBody),
-        signal,
-      });
-    } catch (error) {
-      if (signal.aborted) throw error;
-      const wrapped = new Error(`模型服务连接失败：${formatNetworkError(error)}`);
-      wrapped.status = 502;
-      throw wrapped;
-    }
-
-    if (requestBody.stream) {
-      const raw = await response.text();
-      if (!response.ok) {
-        const error = new Error(extractErrorMessage(raw) || `OpenAI API 请求失败：${response.status}`);
-        error.status = response.status;
-        throw error;
+    // RightAPI 偶发的连接超时/502 通常在尚未返回任何模型内容时发生。
+    // 在同一总超时预算内只重试一次；不重试 4xx、结构化解析错误或已超时的请求。
+    const attempts = config.provider === "rightcode_responses_stream" ? 2 : 1;
+    let lastError;
+    for (let attempt = 1; attempt <= attempts; attempt += 1) {
+      try {
+        return await requestResponsesJsonAttempt(config, requestBody, signal);
+      } catch (error) {
+        lastError = error;
+        if (signal.aborted || attempt >= attempts || !isRetryableModelError(error)) throw error;
+        await waitBeforeRetry(signal, 250);
       }
-      const { text, response: completedResponse } = extractSseResponse(raw);
-      if (!text) throw new Error("模型没有返回可解析文本。");
-      return attachModelResponseMeta(parseJsonObjectFromText(text), {
-        model: completedResponse?.model || config.model,
-        usage: completedResponse?.usage || null,
-      });
     }
+    throw lastError;
+  });
+}
 
-    const payload = await parseResponseJson(response);
+async function requestResponsesJsonAttempt(config, requestBody, signal) {
+  let response;
+  try {
+    response = await fetch(`${config.responsesBaseUrl}/responses`, {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${config.apiKey}`,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify(requestBody),
+      signal,
+    });
+  } catch (error) {
+    if (signal.aborted) throw error;
+    const wrapped = new Error(`模型服务连接失败：${formatNetworkError(error)}`);
+    wrapped.status = 502;
+    wrapped.code = "MODEL_CONNECT_ERROR";
+    throw wrapped;
+  }
+
+  if (requestBody.stream) {
+    const raw = await response.text();
     if (!response.ok) {
-      const message = payload.error?.message || payload.message || JSON.stringify(payload).slice(0, 500) || `OpenAI API 请求失败：${response.status}`;
-      const error = new Error(message);
+      const error = new Error(extractErrorMessage(raw) || `OpenAI API 请求失败：${response.status}`);
       error.status = response.status;
       throw error;
     }
-
-    const text = extractOutputText(payload);
+    const { text, response: completedResponse } = extractSseResponse(raw);
     if (!text) throw new Error("模型没有返回可解析文本。");
     return attachModelResponseMeta(parseJsonObjectFromText(text), {
-      model: payload.model || config.model,
-      usage: payload.usage || null,
+      model: completedResponse?.model || config.model,
+      usage: completedResponse?.usage || null,
     });
+  }
+
+  const payload = await parseResponseJson(response);
+  if (!response.ok) {
+    const message = payload.error?.message || payload.message || JSON.stringify(payload).slice(0, 500) || `OpenAI API 请求失败：${response.status}`;
+    const error = new Error(message);
+    error.status = response.status;
+    throw error;
+  }
+
+  const text = extractOutputText(payload);
+  if (!text) throw new Error("模型没有返回可解析文本。");
+  return attachModelResponseMeta(parseJsonObjectFromText(text), {
+    model: payload.model || config.model,
+    usage: payload.usage || null,
+  });
+}
+
+function isRetryableModelError(error) {
+  return error?.status === 502 || error?.status === 503;
+}
+
+function waitBeforeRetry(signal, delayMs) {
+  return new Promise((resolve, reject) => {
+    if (signal.aborted) {
+      reject(Object.assign(new Error("请求已取消"), { name: "AbortError" }));
+      return;
+    }
+    const timeoutId = setTimeout(() => {
+      signal.removeEventListener("abort", onAbort);
+      resolve();
+    }, delayMs);
+    function onAbort() {
+      clearTimeout(timeoutId);
+      signal.removeEventListener("abort", onAbort);
+      reject(Object.assign(new Error("请求已取消"), { name: "AbortError" }));
+    }
+    signal.addEventListener("abort", onAbort, { once: true });
   });
 }
 

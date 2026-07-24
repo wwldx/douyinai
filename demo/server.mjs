@@ -1703,6 +1703,7 @@ const server = createServer(async (req, res) => {
       const targetDish = {
         text: body.targetDish.text.trim(),
         intentTime: body.targetDish.intentTime || "tonight",
+        inputSource: String(body.targetDish.inputSource || "unknown").slice(0, 40),
         imageAnalysis: body.targetDish.imageAnalysis || null,
         shoppingDecision: Array.isArray(body.targetDish.shoppingDecision?.acceptedItems)
           ? {

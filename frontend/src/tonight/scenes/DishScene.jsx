@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import ImageFocusSelector from "../../components/ImageFocusSelector";
 import SpeechInput from "../../components/SpeechInput";
 import { SourceBadge, TimeBudgetPicker } from "../bits";
@@ -25,13 +25,84 @@ export default function DishScene({
   const cameraRef = useRef(null);
   const albumRef = useRef(null);
   const [selecting, setSelecting] = useState(false);
+  const [manualOpen, setManualOpen] = useState(() => (
+    dish.analysisSource === "failed" || String(dish.nameSource || "").startsWith("manual_")
+  ));
+  const lastOriginalImageRef = useRef(dish.originalImage);
 
+  const primaryName = String(dish.analysis?.dishName || "").trim();
   const candidates = Array.isArray(dish.analysis?.dishNameCandidates)
-    ? dish.analysis.dishNameCandidates.filter((c) => c && c !== dish.name).slice(0, 3)
+    ? dish.analysis.dishNameCandidates
+      .map((candidate) => String(candidate || "").trim())
+      .filter((candidate, index, list) => candidate && candidate !== primaryName && list.indexOf(candidate) === index)
+      .slice(0, 3)
     : [];
 
-  function lockName(name) {
-    setDish((cur) => ({ ...cur, name, nameLocked: true }));
+  useEffect(() => {
+    if (dish.analysisSource === "failed") setManualOpen(true);
+  }, [dish.analysisSource]);
+
+  useEffect(() => {
+    if (lastOriginalImageRef.current === dish.originalImage) return;
+    lastOriginalImageRef.current = dish.originalImage;
+    setManualOpen(false);
+  }, [dish.originalImage]);
+
+  function confirmVisionName(name, source) {
+    const clean = String(name || "").trim();
+    if (!clean) return;
+    setManualOpen(false);
+    setDish((cur) => ({
+      ...cur,
+      name: clean,
+      nameLocked: true,
+      nameSource: source,
+      nameConfirmed: true,
+    }));
+  }
+
+  function openManualName() {
+    setManualOpen(true);
+    setDish((cur) => ({
+      ...cur,
+      nameLocked: true,
+      nameSource: "manual_text",
+      nameConfirmed: false,
+    }));
+  }
+
+  function updateManualName(name) {
+    setDish((cur) => ({
+      ...cur,
+      name,
+      nameLocked: true,
+      nameSource: "manual_text",
+      nameConfirmed: false,
+    }));
+  }
+
+  function confirmManualText() {
+    const clean = String(dish.name || "").trim();
+    if (!clean) return;
+    setDish((cur) => ({
+      ...cur,
+      name: clean,
+      nameLocked: true,
+      nameSource: cur.nameSource === "manual_voice" ? "manual_voice" : "manual_text",
+      nameConfirmed: true,
+    }));
+  }
+
+  function fillManualVoice(name) {
+    const clean = String(name || "").trim();
+    if (!clean) return;
+    setDish((cur) => ({
+      ...cur,
+      name: clean,
+      nameLocked: true,
+      nameSource: "manual_voice",
+      nameConfirmed: false,
+    }));
   }
 
   function handleFile(event) {
@@ -40,7 +111,7 @@ export default function DishScene({
     if (file) onReplaceImage(file, event.target.dataset.source || "album");
   }
 
-  const canGo = dish.name.trim().length > 0 && Boolean(timeBudgetId);
+  const canGo = dish.name.trim().length > 0 && dish.nameConfirmed === true && Boolean(timeBudgetId);
 
   return (
     <section className="tn-scene tn-dish" aria-label="确认这道菜">
@@ -81,28 +152,73 @@ export default function DishScene({
         <p className="tn-warning" role="note">这次没认出菜名，请直接输入；识别失败不影响继续。</p>
       )}
 
-      <div className="tn-subtitle" role="group" aria-label="确认菜名">
-        <span className="tn-subtitle-lead">看着像</span>
-        <input
-          className="tn-subtitle-input"
-          value={dish.name}
-          onChange={(e) => lockName(e.target.value)}
-          aria-label="菜名，可修改"
-          placeholder="这道菜叫什么"
-        />
-        <span className="tn-subtitle-tail">？菜名以你确认的为准</span>
-      </div>
-      <div className="tn-dish-namerow">
-        {candidates.length > 0 && (
-          <span className="tn-dish-altname">
-            也可能是
-            {candidates.map((c) => (
-              <button key={c} type="button" className="tn-chip tn-chip-mini" onClick={() => lockName(c)}>{c}</button>
+      {(primaryName || candidates.length > 0) && (
+        <div className="tn-dish-namechoices" role="group" aria-label="选择菜名">
+          <p className="tn-field-label">这道菜更像哪一个？</p>
+          <div className="tn-dish-choicegrid">
+            {primaryName && (
+              <button
+                type="button"
+                className={`tn-dish-choice ${dish.nameConfirmed && dish.nameSource === "vision_primary" && dish.name === primaryName ? "is-on" : ""}`}
+                aria-pressed={dish.nameConfirmed && dish.nameSource === "vision_primary" && dish.name === primaryName}
+                onClick={() => confirmVisionName(primaryName, "vision_primary")}
+              >
+                <small>AI 最可能</small>
+                <strong>{primaryName}</strong>
+              </button>
+            )}
+            {candidates.map((candidate) => (
+              <button
+                key={candidate}
+                type="button"
+                className={`tn-dish-choice ${dish.nameConfirmed && dish.nameSource === "vision_candidate" && dish.name === candidate ? "is-on" : ""}`}
+                aria-pressed={dish.nameConfirmed && dish.nameSource === "vision_candidate" && dish.name === candidate}
+                onClick={() => confirmVisionName(candidate, "vision_candidate")}
+              >
+                <small>也可能是</small>
+                <strong>{candidate}</strong>
+              </button>
             ))}
-          </span>
-        )}
-        <SpeechInput onTranscript={(text) => lockName(text)} />
-      </div>
+          </div>
+        </div>
+      )}
+
+      <button
+        type="button"
+        className="tn-dish-manual-toggle"
+        aria-expanded={manualOpen}
+        onClick={openManualName}
+      >
+        都不对，我来改
+      </button>
+
+      {manualOpen && (
+        <div className="tn-subtitle tn-dish-manual" role="group" aria-label="手动确认菜名">
+          <span className="tn-subtitle-lead">我想做</span>
+          <input
+            className="tn-subtitle-input"
+            value={dish.name}
+            onChange={(e) => updateManualName(e.target.value)}
+            aria-label="手动输入菜名"
+            placeholder="输入这道菜叫什么"
+            maxLength={30}
+          />
+          <div className="tn-dish-manual-actions">
+            <SpeechInput onTranscript={fillManualVoice} />
+            <button
+              type="button"
+              className="tn-btn tn-btn-quiet tn-dish-nameconfirm"
+              disabled={!dish.name.trim()}
+              onClick={confirmManualText}
+            >
+              确认这个菜名
+            </button>
+          </div>
+          {dish.nameConfirmed && (dish.nameSource === "manual_text" || dish.nameSource === "manual_voice") && (
+            <span className="tn-subtitle-tail" role="status">已按你确认的菜名继续</span>
+          )}
+        </div>
+      )}
 
       <div className="tn-feed-alt tn-dish-replace">
         <button type="button" className="tn-btn tn-btn-quiet" data-source="camera" onClick={() => cameraRef.current?.click()}>拍我刷到的菜</button>
@@ -130,7 +246,8 @@ export default function DishScene({
         <button type="button" className="tn-btn tn-btn-primary tn-btn-xl" disabled={!canGo} onClick={onConfirm}>
           对上冰箱，看看能不能做
         </button>
-        {!timeBudgetId && <p className="tn-foot-hint">先选一下今晚愿意留多久</p>}
+        {!dish.nameConfirmed && <p className="tn-foot-hint">先确认一个菜名</p>}
+        {dish.nameConfirmed && !timeBudgetId && <p className="tn-foot-hint">先选一下今晚愿意留多久</p>}
       </footer>
 
       <input ref={cameraRef} data-source="camera" type="file" accept="image/*" capture="environment" hidden onChange={handleFile} />

@@ -215,7 +215,7 @@ export const dinnerPlanSchema = {
 export const targetDishPlanSchema = {
   type: "object",
   additionalProperties: false,
-  required: ["targetDish", "verdict", "inventoryMatch", "shoppingPlan", "executionPlan", "userFit", "commerceCards", "talkTrack"],
+  required: ["targetDish", "targetAssessment", "verdict", "inventoryMatch", "shoppingPlan", "executionPlan", "userFit", "commerceCards", "talkTrack"],
   properties: {
     targetDish: {
       type: "object",
@@ -229,6 +229,16 @@ export const targetDishPlanSchema = {
         difficulty: { type: "string" },
       },
     },
+    targetAssessment: {
+      type: "object",
+      additionalProperties: false,
+      required: ["status", "reason", "clarificationPrompt"],
+      properties: {
+        status: { type: "string", enum: ["confirmed_food", "needs_clarification", "non_food", "unsafe"] },
+        reason: { type: "string" },
+        clarificationPrompt: { type: "string" },
+      },
+    },
     verdict: {
       type: "object",
       additionalProperties: false,
@@ -236,7 +246,18 @@ export const targetDishPlanSchema = {
       properties: {
         title: { type: "string" },
         summary: { type: "string" },
-        primaryAction: { type: "string", enum: ["cook_now", "cook_simplified", "shop_then_cook", "prep_for_tomorrow", "delivery_or_ready_meal"] },
+        primaryAction: {
+          type: "string",
+          enum: [
+            "cook_now",
+            "cook_simplified",
+            "shop_then_cook",
+            "prep_for_tomorrow",
+            "delivery_or_ready_meal",
+            "clarify_target",
+            "choose_inventory_meal",
+          ],
+        },
       },
     },
     inventoryMatch: {
@@ -288,10 +309,16 @@ export const targetDishPlanSchema = {
     executionPlan: {
       type: "object",
       additionalProperties: false,
-      required: ["recommendedVersion", "steps", "difficultyWarnings", "prepForTomorrow"],
+      required: ["isExecutableNow", "dishName", "blockReason", "recommendedVersion", "steps", "difficultyWarnings", "prepForTomorrow"],
       properties: {
+        isExecutableNow: { type: "boolean" },
+        dishName: { type: "string" },
+        blockReason: {
+          type: "string",
+          enum: ["none", "target_unclear", "non_food_target", "unsafe_target", "missing_materials", "needs_confirmation", "not_cooking"],
+        },
         recommendedVersion: { type: "string" },
-        steps: { type: "array", minItems: 3, maxItems: 6, items: { type: "string" } },
+        steps: { type: "array", maxItems: 6, items: { type: "string" } },
         difficultyWarnings: { type: "array", minItems: 1, maxItems: 4, items: { type: "string" } },
         prepForTomorrow: { type: "string" },
       },

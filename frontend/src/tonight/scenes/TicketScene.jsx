@@ -3,10 +3,12 @@ import SpeechInput from "../../components/SpeechInput";
 import { VersionStepper } from "../bits";
 import BigStepsView from "./BigStepsView";
 import { getCookingContext } from "../steps";
+import { getTargetExecutionState } from "../targetPlan";
 import {
   FEEDBACK_OPTIONS,
+  ingredientNamesMatch,
   isFixedDemoResult,
-  namesMatch,
+  mergeIngredientNames,
   pantryNamesMatch,
   normalizePantryConfirmation,
   parseMinutes,
@@ -15,13 +17,16 @@ import {
 
 export default function TicketScene({
   plan, plans, onSelectPlan, timeBudget, gotIt, stepPosition, onMarkStep,
-  onFeedback, onCartReplan, onGotIt, onPantryReplan, onAlternative, onAddTarget, onEditFridge, onRestart, onRescue, onLifeLog,
+  onFeedback, onCartReplan, onGotIt, onPantryReplan, onAlternative, onAddTarget,
+  onUseInventoryPlan, onEditFridge, onRestart, onRescue, onLifeLog,
 }) {
   const [cartSel, setCartSel] = useState([]);
   const [gotSel, setGotSel] = useState([]);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [targetInput, setTargetInput] = useState("");
+  const [targetInputSource, setTargetInputSource] = useState("ticket_text");
   const [pantryDraft, setPantryDraft] = useState({});
+  const [pantryError, setPantryError] = useState("");
   const [busy, setBusy] = useState(false);
   const [bigStepsOpen, setBigStepsOpen] = useState(false);
 
@@ -29,6 +34,7 @@ export default function TicketScene({
     setCartSel([]);
     setGotSel([]);
     setPantryDraft({});
+    setPantryError("");
     setFeedbackOpen(false);
     setBigStepsOpen(false);
   }, [plan?.id]);
@@ -44,8 +50,13 @@ export default function TicketScene({
     provenance.inventoryMode === "vision" ? provenance.fridgeImageSource : provenance.inventoryMode === "last" ? "last-inventory" : "manual",
   ]);
 
-  const mealName = isTarget ? plan.plan?.targetDish?.name : plan.plan?.baseMeal?.name;
-  const accepted = plan.materialState?.simulatedItems || plan.shoppingPreview?.acceptedItems || [];
+  const requestedMealName = isTarget
+    ? plan.requestSnapshot?.dishName || plan.plan?.targetDish?.name
+    : plan.plan?.baseMeal?.name;
+  const accepted = mergeIngredientNames(
+    plan.materialState?.simulatedItems,
+    plan.shoppingPreview?.acceptedItems,
+  );
   const eatFirst = plan.requestSnapshot?.eatFirst || null;
   const alternativeFrom = plan.requestSnapshot?.alternativeFrom || null;
   const pantryConfirmation = normalizePantryConfirmation(plan.requestSnapshot?.pantryConfirmation);
@@ -70,10 +81,17 @@ export default function TicketScene({
   const materialNames = [...new Set([...missing, ...accepted, ...gotIt])];
   // 有效步骤与「全部缺料已拿到」判断统一来自共享模块，与大字视图、做饭救援同源
   const { steps: displaySteps, allRequiredAcquired } = getCookingContext(plan);
+  const executionState = getTargetExecutionState(plan, { allRequiredAcquired, pendingPantry });
+  const mealName = executionState.executionDishName || requestedMealName;
+  const targetIntentAccepted = !isTarget || executionState.targetStatus === "confirmed_food";
+  const targetNeedsCorrection = isTarget && !targetIntentAccepted;
+  const canEnterCooking = executionState.canEnterCooking;
+  const canShowCookingPreview = targetIntentAccepted && displaySteps.length > 0;
+  const targetAssessment = isTarget ? plan.plan?.targetAssessment || {} : {};
   const mustBuyReasons = new Map((plan.plan?.shoppingPlan?.mustBuy || []).map((b) => [b.item, b.reason]));
   const fridgeAvailable = (plan.plan?.inventoryMatch?.availableItems || []).filter(
-    (name) => !accepted.some((item) => namesMatch(item, name))
-      && !gotIt.some((item) => namesMatch(item, name))
+    (name) => !accepted.some((item) => ingredientNamesMatch(item, name))
+      && !gotIt.some((item) => ingredientNamesMatch(item, name))
       && !pantryAvailable.some((item) => pantryNamesMatch(item, name)),
   );
   const pantryDraftCount = Object.values(pantryDraft).filter((status) => status === "available" || status === "missing").length;
@@ -142,6 +160,7 @@ export default function TicketScene({
   }
 
   function choosePantry(name, status) {
+    setPantryError("");
     setPantryDraft((cur) => {
       const next = { ...cur };
       if (next[name] === status) delete next[name];
@@ -151,6 +170,7 @@ export default function TicketScene({
   }
 
   function markAllPantryAvailable() {
+    setPantryError("");
     setPantryDraft((cur) => Object.fromEntries(
       pendingPantry.map((name) => [name, cur[name] || "available"]),
     ));
@@ -158,9 +178,13 @@ export default function TicketScene({
 
   async function handlePantryReplan() {
     if (!onPantryReplan || pantryDraftCount !== pendingPantry.length) return;
+    setPantryError("");
     setBusy(true);
     try {
-      await onPantryReplan(pantryDraft);
+      const committed = await onPantryReplan(pantryDraft);
+      if (!committed) {
+        setPantryError(`模型连接暂时没成功；这 ${pantryDraftCount} 项选择还在，当前旧方案没有被改动。可以按原确认直接重试。`);
+      }
     } finally {
       setBusy(false);
     }
@@ -180,11 +204,36 @@ export default function TicketScene({
     }
   }
 
+  async function handleAddTarget() {
+    const clean = targetInput.trim();
+    if (!clean || !onAddTarget) return;
+    setBusy(true);
+    try {
+      const committed = await onAddTarget(clean, targetInputSource);
+      if (committed) {
+        setTargetInput("");
+        setTargetInputSource("ticket_text");
+      }
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleUseInventoryPlan() {
+    if (!onUseInventoryPlan) return;
+    setBusy(true);
+    try {
+      await onUseInventoryPlan();
+    } finally {
+      setBusy(false);
+    }
+  }
+
   function missingItemState(name) {
-    if (gotIt.some((g) => namesMatch(g, name))) return { tag: "本次已拿到", cls: "is-got" };
+    if (gotIt.some((g) => ingredientNamesMatch(g, name))) return { tag: "本次已拿到", cls: "is-got" };
     if (gotSel.includes(name)) return { tag: "已拿到（待确认）", cls: "is-got" };
     if (cartSel.includes(name)) return { tag: "已勾选模拟补购", cls: "is-carted" };
-    if (accepted.some((a) => namesMatch(a, name))) return { tag: "模拟待补 · 尚未真实购买", cls: "is-carted" };
+    if (accepted.some((a) => ingredientNamesMatch(a, name))) return { tag: "模拟待补 · 尚未真实购买", cls: "is-carted" };
     return { tag: "仍缺", cls: "is-missing" };
   }
 
@@ -217,7 +266,7 @@ export default function TicketScene({
 
       <article className="tn-ticket">
         <header className="tn-ticket-head">
-          <p className="tn-ticket-mode">{isTarget ? `想吃的 · ${mealName || "目标菜"}` : "按你有的安排"}</p>
+          <p className="tn-ticket-mode">{isTarget ? `想吃的 · ${requestedMealName || "目标菜"}` : "按你有的安排"}</p>
           {alternativeFrom?.candidateName && (
             <p className="tn-ticket-lineage">
               换个思路 · 来自{altSourceSeq ? `第 ${altSourceSeq} 版` : "上一版"}的「{alternativeFrom.candidateName}」；按现实库存重定，不一定是同一道菜
@@ -225,30 +274,59 @@ export default function TicketScene({
           )}
           <p className="tn-ticket-verdict">
             {isTarget
-              ? pendingPantry.length > 0
+              ? targetNeedsCorrection
+                ? plan.plan?.verdict?.title || "先确认具体菜名"
+                : pendingPantry.length > 0
                 ? `还要确认 ${pendingPantry.length} 样家中常备，再定今晚怎么补`
                 : allRequiredAcquired ? `本次所缺材料已拿到，可以按这版准备「${mealName || "目标菜"}」` : plan.plan?.verdict?.title
               : plan.plan?.summary}
           </p>
-          {isTarget && allRequiredAcquired && <p className="tn-ticket-meta">材料状态已更新；做法沿用本版，没有再次调用模型。开火前仍请核对实物。</p>}
-          {isTarget && pendingPantry.length > 0 && (
+          {isTarget && targetIntentAccepted && allRequiredAcquired && <p className="tn-ticket-meta">材料状态已更新；做法沿用本版，没有再次调用模型。开火前仍请核对实物。</p>}
+          {isTarget && targetIntentAccepted && pendingPantry.length > 0 && (
             <p className="tn-ticket-pendingnote" role="note">
               下面这些材料还没有成为“有”或“缺”的事实；确认后会生成新版本，这一版暂时只作条件参考。
             </p>
           )}
           {isTarget && pendingPantry.length === 0 && !allRequiredAcquired && plan.plan?.verdict?.summary && <p className="tn-ticket-meta">{plan.plan.verdict.summary}</p>}
-          <p className="tn-ticket-meta">
+          {!targetNeedsCorrection && <p className="tn-ticket-meta">
             {cookTimeLabel}
             {isTarget && missing.length > 0 && !allRequiredAcquired ? " · 补购耗时另计" : ""}
-          </p>
-          {overBudget && (
+          </p>}
+          {!targetNeedsCorrection && overBudget && (
             <p className="tn-ticket-timenote" role="note">
               比你说的{timeBudget.label}多一些——开火前把后面的安排挪一挪，或者换个更简单的版本。
             </p>
           )}
         </header>
 
-        {isTarget && (
+        {targetNeedsCorrection && (
+          <div className="tn-target-blocked" role="note">
+            <p className="tn-target-blocked-title">这版没有进入做饭状态</p>
+            <p>{targetAssessment.reason || "当前输入还不能作为明确可执行的晚餐目标。"}</p>
+            <p>{targetAssessment.clarificationPrompt || "请换一个具体菜名，或按已确认库存重新安排。"}</p>
+            <div className="tn-note">
+              <input
+                className="tn-note-input"
+                value={targetInput}
+                onChange={(event) => { setTargetInput(event.target.value); setTargetInputSource("ticket_text"); }}
+                placeholder="输入具体菜名，比如 番茄牛腩"
+                aria-label="修改目标菜名"
+                maxLength={30}
+              />
+              <SpeechInput onTranscript={(text) => { setTargetInput(text); setTargetInputSource("ticket_voice"); }} />
+            </div>
+            <div className="tn-target-blocked-actions">
+              <button type="button" className="tn-btn tn-btn-primary" disabled={!targetInput.trim() || busy} onClick={handleAddTarget}>
+                按新菜名生成一版
+              </button>
+              <button type="button" className="tn-btn tn-btn-quiet" disabled={busy} onClick={handleUseInventoryPlan}>
+                不指定菜，按库存决定
+              </button>
+            </div>
+          </div>
+        )}
+
+        {isTarget && targetIntentAccepted && (
           <div className="tn-ticket-cols">
             <div className="tn-ticket-col">
               <p className="tn-ticket-coltitle is-have">冰箱原有</p>
@@ -321,9 +399,10 @@ export default function TicketScene({
                     onClick={handlePantryReplan}
                   >
                     {busy ? "正在按确认结果更新…" : pantryDraftCount === pendingPantry.length
-                      ? `按这 ${pantryDraftCount} 样确认更新方案`
+                      ? pantryError ? `按原确认重试更新` : `按这 ${pantryDraftCount} 样确认更新方案`
                       : `还需确认 ${pendingPantry.length - pantryDraftCount} 样`}
                   </button>
+                  {pantryError && <p className="tn-pantry-error" role="alert">{pantryError}</p>}
                   {pantryDraftCount < pendingPantry.length && (
                     <p className="tn-pantry-hint">全部选完后再统一更新一次，避免每确认一项都等待模型。</p>
                   )}
@@ -335,7 +414,7 @@ export default function TicketScene({
               <ul>
                 {materialNames.map((name) => {
                   const st = missingItemState(name);
-                  const isAccepted = accepted.some((item) => namesMatch(item, name));
+                  const isAccepted = accepted.some((item) => ingredientNamesMatch(item, name));
                   return (
                     <li key={name}>
                       <div>
@@ -376,7 +455,7 @@ export default function TicketScene({
           </div>
         )}
 
-        {isTarget && (cartSel.length > 0 || gotSel.length > 0) && (
+        {isTarget && targetIntentAccepted && (cartSel.length > 0 || gotSel.length > 0) && (
           <div className="tn-ticket-actions">
             {cartSel.length > 0 && (
               <button type="button" className="tn-btn tn-btn-primary" disabled={busy} onClick={handleCartReplan}>
@@ -390,7 +469,7 @@ export default function TicketScene({
             )}
           </div>
         )}
-        {accepted.length > 0 && (
+        {targetIntentAccepted && accepted.length > 0 && (
           <p className="tn-ticket-cartnote" role="status">
             模拟补购：{accepted.join("、")} —— 只是帮你算清「补齐后能不能做」，没有真实下单，也不会扣款。
           </p>
@@ -417,10 +496,10 @@ export default function TicketScene({
           </div>
         )}
 
-        <div className="tn-ticket-steps">
+        {canShowCookingPreview && <div className="tn-ticket-steps">
           <div className="tn-ticket-stepshead">
-            <p className="tn-ticket-coltitle">开火之后</p>
-            {displaySteps.length > 0 && (
+            <p className="tn-ticket-coltitle">{canEnterCooking ? "开火之后" : "条件确认后这样做"}</p>
+            {canEnterCooking && displaySteps.length > 0 && (
               <button type="button" className="tn-bigsteps-open" onClick={() => setBigStepsOpen(true)}>
                 大字看
               </button>
@@ -428,30 +507,40 @@ export default function TicketScene({
           </div>
           <ol>
             {displaySteps.map((step, i) => (
-              <li key={i} className={stepPosition === i ? "is-marked" : ""}>
+              <li key={i} className={canEnterCooking && stepPosition === i ? "is-marked" : ""}>
                 {step}
-                {stepPosition === i && <span className="tn-step-tag">做到这一步</span>}
+                {canEnterCooking && stepPosition === i && <span className="tn-step-tag">做到这一步</span>}
               </li>
             ))}
           </ol>
-          <button type="button" className="tn-rescue-open" onClick={onRescue}>
-            <span className="tn-rescue-open-title">已经在做了，遇到问题？</span>
-            <span className="tn-rescue-open-sub">拍一下现场，AI 帮你救 · 最多两轮</span>
-          </button>
-          <button type="button" className="tn-lifelog-open" onClick={onLifeLog}>
-            <span className="tn-rescue-open-title">做完了，记录一下</span>
-            <span className="tn-rescue-open-sub">拍张成品，生成可编辑的生活记录草稿 · 不会发布</span>
-          </button>
-        </div>
+          {canEnterCooking ? (
+            <>
+              <button type="button" className="tn-rescue-open" onClick={onRescue}>
+                <span className="tn-rescue-open-title">已经在做了，遇到问题？</span>
+                <span className="tn-rescue-open-sub">拍一下现场，AI 帮你救 · 最多两轮</span>
+              </button>
+              <button type="button" className="tn-lifelog-open" onClick={onLifeLog}>
+                <span className="tn-rescue-open-title">做完了，记录一下</span>
+                <span className="tn-rescue-open-sub">拍张成品，生成可编辑的生活记录草稿 · 不会发布</span>
+              </button>
+            </>
+          ) : (
+            <p className="tn-cooking-blocked" role="status">
+              {executionState.blockReason === "simulated_materials"
+                ? "模拟补购还不等于已经买到；确认本次材料已拿到后，才会开放做饭救援与饭后记录。"
+                : "菜名或材料条件还没有确认完成，这一版暂不开放做饭救援与饭后记录。"}
+            </p>
+          )}
+        </div>}
 
-        <div className="tn-ticket-tips">
+        {targetIntentAccepted && <div className="tn-ticket-tips">
           {displayTips.map((tip, i) => (
             <p key={i}>· {tip}</p>
           ))}
           {isTarget && timeNote ? <p>· {timeNote}</p> : null}
           {isTarget && plan.plan?.userFit?.skillNote ? <p>· {plan.plan.userFit.skillNote}</p> : null}
           <p>· 食材新鲜度、保质期和肉类熟度以你自己检查为准。</p>
-        </div>
+        </div>}
       </article>
 
       {!isTarget && (
@@ -461,24 +550,24 @@ export default function TicketScene({
             <input
               className="tn-note-input"
               value={targetInput}
-              onChange={(e) => setTargetInput(e.target.value)}
+              onChange={(e) => { setTargetInput(e.target.value); setTargetInputSource("ticket_text"); }}
               placeholder="比如 番茄牛腩"
               aria-label="补充目标菜"
             />
-            <SpeechInput onTranscript={(text) => setTargetInput(text)} />
+            <SpeechInput onTranscript={(text) => { setTargetInput(text); setTargetInputSource("ticket_voice"); }} />
           </div>
           <button
             type="button"
             className="tn-btn tn-btn-quiet"
             disabled={!targetInput.trim() || busy}
-            onClick={() => { onAddTarget(targetInput.trim()); setTargetInput(""); }}
+            onClick={handleAddTarget}
           >
             按「{targetInput.trim() || "这道菜"}」重新规划（生成新版本）
           </button>
         </div>
       )}
 
-      <div className="tn-feedback">
+      {!targetNeedsCorrection && <div className="tn-feedback">
         <button type="button" className="tn-link" onClick={() => setFeedbackOpen((v) => !v)}>
           这个不合适？
         </button>
@@ -492,14 +581,14 @@ export default function TicketScene({
           </div>
         )}
         {feedbackOpen && <p className="tn-foot-hint">除「正合适」只记录外，其余会按你的反馈生成新版本，当前版本保留。</p>}
-      </div>
+      </div>}
 
       <footer className="tn-decision-actions">
         <button type="button" className="tn-btn tn-btn-quiet" onClick={onEditFridge}>库存不对？回去改</button>
         <button type="button" className="tn-link" onClick={onRestart}>换一种开始</button>
       </footer>
 
-      {bigStepsOpen && displaySteps.length > 0 && (
+      {bigStepsOpen && canEnterCooking && displaySteps.length > 0 && (
         <BigStepsView
           mealName={mealName}
           steps={displaySteps}

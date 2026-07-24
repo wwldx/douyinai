@@ -19,6 +19,20 @@ const COOKWARE_NAMES = new Set([
   "锅铲",
 ]);
 
+const TARGET_ASSESSMENT_STATUSES = new Set([
+  "confirmed_food",
+  "needs_clarification",
+  "non_food",
+  "unsafe",
+]);
+
+const COOK_NOW_ACTIONS = new Set(["cook_now", "cook_simplified"]);
+const NON_COOKING_ACTIONS = new Set([
+  "prep_for_tomorrow",
+  "delivery_or_ready_meal",
+  "choose_inventory_meal",
+]);
+
 function ingredientKey(value) {
   return String(value?.name || value?.item || value || "")
     .replace(/[\s·、，,（）()]/gu, "")
@@ -48,48 +62,202 @@ function pantryConfirmationFrom(userContext) {
   return { availableItems, missingItems };
 }
 
+function ensureObject(parent, key) {
+  if (!parent[key] || typeof parent[key] !== "object" || Array.isArray(parent[key])) parent[key] = {};
+  return parent[key];
+}
+
+function blockedTargetCopy(status, reason, clarificationPrompt) {
+  if (status === "needs_clarification") {
+    return {
+      primaryAction: "clarify_target",
+      blockReason: "target_unclear",
+      title: "先确认你具体想吃什么",
+      reason: reason || "当前目标名称还不足以确认是一道具体食物。",
+      clarificationPrompt: clarificationPrompt || "请补充一道具体菜名，或说明它是什么食物。",
+    };
+  }
+  if (status === "non_food") {
+    return {
+      primaryAction: "choose_inventory_meal",
+      blockReason: "non_food_target",
+      title: "这个输入不能作为晚餐目标",
+      reason: reason || "当前目标不是可以进入烹饪规划的食物。",
+      clarificationPrompt: clarificationPrompt || "请换一道具体可食用的菜，或改为按现有库存决定。",
+    };
+  }
+  return {
+    primaryAction: "choose_inventory_meal",
+    blockReason: "unsafe_target",
+    title: "这个目标不适合作为安全烹饪方案",
+    reason: reason || "当前目标存在无法通过普通家常烹饪消除的安全风险。",
+    clarificationPrompt: clarificationPrompt || "请换一种安全可食用的目标，或改为按现有库存决定。",
+  };
+}
+
+function enforceBlockedTarget(plan, status) {
+  const assessment = ensureObject(plan, "targetAssessment");
+  const verdict = ensureObject(plan, "verdict");
+  const inventoryMatch = ensureObject(plan, "inventoryMatch");
+  const shoppingPlan = ensureObject(plan, "shoppingPlan");
+  const executionPlan = ensureObject(plan, "executionPlan");
+  const copy = blockedTargetCopy(
+    status,
+    String(assessment.reason || "").trim(),
+    String(assessment.clarificationPrompt || "").trim(),
+  );
+
+  assessment.status = status;
+  assessment.reason = copy.reason;
+  assessment.clarificationPrompt = copy.clarificationPrompt;
+  verdict.title = copy.title;
+  verdict.summary = `${copy.reason} ${copy.clarificationPrompt}`.trim();
+  verdict.primaryAction = copy.primaryAction;
+
+  inventoryMatch.availableItems = [];
+  inventoryMatch.missingCritical = [];
+  inventoryMatch.missingOptional = [];
+  inventoryMatch.substitutions = [];
+  shoppingPlan.mustBuy = [];
+  shoppingPlan.confirmAtHome = [];
+  shoppingPlan.optionalUpgrades = [];
+  plan.commerceCards = [];
+
+  executionPlan.isExecutableNow = false;
+  executionPlan.dishName = "";
+  executionPlan.blockReason = copy.blockReason;
+  executionPlan.recommendedVersion = "";
+  executionPlan.steps = [];
+  executionPlan.prepForTomorrow = "";
+  return plan;
+}
+
+function blockedReasonFromAction(primaryAction) {
+  if (primaryAction === "shop_then_cook") return "missing_materials";
+  if (primaryAction === "clarify_target") return "needs_confirmation";
+  return "not_cooking";
+}
+
+function normalizeConfirmedFoodBlockReason(value) {
+  if (["missing_materials", "needs_confirmation", "not_cooking"].includes(value)) return value;
+  return "needs_confirmation";
+}
+
+function primaryActionForBlockedFood(blockReason, currentAction) {
+  if (blockReason === "missing_materials") return "shop_then_cook";
+  if (blockReason === "not_cooking" && NON_COOKING_ACTIONS.has(currentAction)) return currentAction;
+  return "choose_inventory_meal";
+}
+
+function enforceConfirmedFoodExecution(plan) {
+  const assessment = ensureObject(plan, "targetAssessment");
+  const verdict = ensureObject(plan, "verdict");
+  const inventoryMatch = ensureObject(plan, "inventoryMatch");
+  const shoppingPlan = ensureObject(plan, "shoppingPlan");
+  const executionPlan = ensureObject(plan, "executionPlan");
+
+  assessment.status = "confirmed_food";
+  assessment.clarificationPrompt = "";
+
+  const missingCritical = Array.isArray(inventoryMatch.missingCritical)
+    ? inventoryMatch.missingCritical.filter(Boolean)
+    : [];
+  const mustBuy = Array.isArray(shoppingPlan.mustBuy)
+    ? shoppingPlan.mustBuy.filter((item) => ingredientKey(item))
+    : [];
+  const confirmAtHome = Array.isArray(shoppingPlan.confirmAtHome)
+    ? shoppingPlan.confirmAtHome.filter(Boolean)
+    : [];
+  const steps = Array.isArray(executionPlan.steps)
+    ? executionPlan.steps.filter((step) => String(step || "").trim())
+    : [];
+  const dishName = String(executionPlan.dishName || "").trim();
+  const primaryAction = verdict.primaryAction;
+
+  let blockReason = null;
+  if (missingCritical.length > 0 || mustBuy.length > 0) {
+    blockReason = "missing_materials";
+  } else if (confirmAtHome.length > 0) {
+    blockReason = "needs_confirmation";
+  } else if (executionPlan.isExecutableNow !== true) {
+    blockReason = executionPlan.blockReason === "none"
+      ? blockedReasonFromAction(primaryAction)
+      : normalizeConfirmedFoodBlockReason(executionPlan.blockReason);
+  } else if (!dishName || steps.length === 0) {
+    blockReason = "needs_confirmation";
+  } else if (!COOK_NOW_ACTIONS.has(primaryAction)) {
+    blockReason = blockedReasonFromAction(primaryAction);
+  } else if (executionPlan.blockReason !== "none") {
+    blockReason = normalizeConfirmedFoodBlockReason(executionPlan.blockReason);
+  }
+
+  if (!blockReason) {
+    executionPlan.isExecutableNow = true;
+    executionPlan.dishName = dishName;
+    executionPlan.blockReason = "none";
+    executionPlan.steps = steps;
+    return plan;
+  }
+
+  executionPlan.isExecutableNow = false;
+  executionPlan.blockReason = blockReason;
+  executionPlan.dishName = blockReason === "not_cooking" ? "" : dishName;
+  executionPlan.steps = blockReason === "not_cooking" ? [] : steps;
+  verdict.primaryAction = primaryActionForBlockedFood(blockReason, primaryAction);
+  return plan;
+}
+
 export function sanitizeTargetDishPlan(plan, { userContext = null } = {}) {
-  if (!Array.isArray(plan?.shoppingPlan?.confirmAtHome)) return plan;
+  if (!plan || typeof plan !== "object" || Array.isArray(plan)) return plan;
+
+  const assessmentStatus = plan?.targetAssessment?.status;
+  if (TARGET_ASSESSMENT_STATUSES.has(assessmentStatus) && assessmentStatus !== "confirmed_food") {
+    return enforceBlockedTarget(plan, assessmentStatus);
+  }
 
   const pantry = pantryConfirmationFrom(userContext);
-  // 这里只消解用户本轮明确确认的常备项；普通库存可能因数量不足仍被 Planner 判为缺口，不能在后处理中擅自删掉。
-  const confirmedAvailable = pantry.availableItems;
-  const resolvedPantry = [...pantry.availableItems, ...pantry.missingItems];
+  if (Array.isArray(plan?.shoppingPlan?.confirmAtHome)) {
+    // 这里只消解用户本轮明确确认的常备项；普通库存可能因数量不足仍被 Planner 判为缺口，不能在后处理中擅自删掉。
+    const confirmedAvailable = pantry.availableItems;
+    const resolvedPantry = [...pantry.availableItems, ...pantry.missingItems];
 
-  const pendingAtHome = [...new Set(
-    plan.shoppingPlan.confirmAtHome
-      .flatMap(splitCorruptedListEntry)
-      .filter((item) => item && !isCookwareEntry(item)),
-  )];
-  // 只有模型仍将「用户已确认没有」的材料列为待确认时，才确定性迁移到缺料与必买；
-  // 若模型已经省略该项，视为它调整了做法，不强行把材料塞回方案。
-  const confirmedMissingStillRequired = pendingAtHome.filter((item) => (
-    pantry.missingItems.some((missing) => ingredientMatches(missing, item))
-  ));
+    const pendingAtHome = [...new Set(
+      plan.shoppingPlan.confirmAtHome
+        .flatMap(splitCorruptedListEntry)
+        .filter((item) => item && !isCookwareEntry(item)),
+    )];
+    // 只有模型仍将「用户已确认没有」的材料列为待确认时，才确定性迁移到缺料与必买；
+    // 若模型已经省略该项，视为它调整了做法，不强行把材料塞回方案。
+    const confirmedMissingStillRequired = pendingAtHome.filter((item) => (
+      pantry.missingItems.some((missing) => ingredientMatches(missing, item))
+    ));
 
-  plan.shoppingPlan.confirmAtHome = pendingAtHome
-    .filter((item) => !resolvedPantry.some((resolved) => ingredientMatches(resolved, item)));
+    plan.shoppingPlan.confirmAtHome = pendingAtHome
+      .filter((item) => !resolvedPantry.some((resolved) => ingredientMatches(resolved, item)));
 
-  if (!plan.inventoryMatch || typeof plan.inventoryMatch !== "object") plan.inventoryMatch = {};
-  const missingCritical = Array.isArray(plan.inventoryMatch.missingCritical)
-    ? plan.inventoryMatch.missingCritical
-      .filter((item) => !confirmedAvailable.some((available) => ingredientMatches(available, item)))
-    : [];
-  for (const item of confirmedMissingStillRequired) {
-    if (!missingCritical.some((existing) => ingredientMatches(existing, item))) missingCritical.push(item);
-  }
-  plan.inventoryMatch.missingCritical = missingCritical;
-
-  const mustBuy = Array.isArray(plan.shoppingPlan.mustBuy)
-    ? plan.shoppingPlan.mustBuy
-      .filter((item) => !confirmedAvailable.some((available) => ingredientMatches(available, item)))
-    : [];
-  for (const item of confirmedMissingStillRequired) {
-    if (!mustBuy.some((existing) => ingredientMatches(existing, item))) {
-      mustBuy.push({ item, reason: "用户已确认家里没有" });
+    if (!plan.inventoryMatch || typeof plan.inventoryMatch !== "object") plan.inventoryMatch = {};
+    const missingCritical = Array.isArray(plan.inventoryMatch.missingCritical)
+      ? plan.inventoryMatch.missingCritical
+        .filter((item) => !confirmedAvailable.some((available) => ingredientMatches(available, item)))
+      : [];
+    for (const item of confirmedMissingStillRequired) {
+      if (!missingCritical.some((existing) => ingredientMatches(existing, item))) missingCritical.push(item);
     }
+    plan.inventoryMatch.missingCritical = missingCritical;
+
+    const mustBuy = Array.isArray(plan.shoppingPlan.mustBuy)
+      ? plan.shoppingPlan.mustBuy
+        .filter((item) => !confirmedAvailable.some((available) => ingredientMatches(available, item)))
+      : [];
+    for (const item of confirmedMissingStillRequired) {
+      if (!mustBuy.some((existing) => ingredientMatches(existing, item))) {
+        mustBuy.push({ item, reason: "用户已确认家里没有" });
+      }
+    }
+    plan.shoppingPlan.mustBuy = mustBuy;
   }
-  plan.shoppingPlan.mustBuy = mustBuy;
+
+  if (assessmentStatus === "confirmed_food") return enforceConfirmedFoodExecution(plan);
   return plan;
 }
 
@@ -114,6 +282,14 @@ export async function planTargetDish({ inventory, targetDish, userContext, retri
     "核心故事是：用户刷到想吃的，拍下冰箱，你判断今晚能不能尽量复刻。",
     "如果 targetDish.imageAnalysis 存在，它来自目标菜图片识别，只能作为参考；最终必须以用户确认或编辑后的 targetDish.text 为准。",
     "当 targetDish.text 里的菜名和 imageAnalysis.dishName 不一致时，忽略 imageAnalysis.dishName，不要把结果拉回图片识别菜名。",
+    "在规划食材和步骤前，必须先对用户确认文本做语义级目标判断，并填写 targetAssessment；不得用简单关键词黑名单代替语义判断。",
+    "targetAssessment.status 规则：明确且可作为食物的具体菜、点心或饮品是 confirmed_food；可能是角色、物体、口味昵称或缺少食物形态，无法确认具体吃什么时是 needs_clarification；明确不是食物时是 non_food；即使与食物有关、但目标本身存在普通家常处理无法合理消除的严重风险时是 unsafe。",
+    "边界示例只用于理解语义，不是关键词名单：「鸡屎」单独作为目标是非食物；「鸡屎藤饼」是具体传统食物，不得因包含相同字样误伤；「皮卡丘」单独不足以确定具体食物，应追问；「皮卡丘造型饭团」或「皮卡丘蛋糕」是明确造型食物，应按正常食物评估。",
+    "needs_clarification 必须给一句具体 clarificationPrompt；non_food 或 unsafe 也要给用户一个改成具体安全食物、或按库存选餐的出口。confirmed_food 的 clarificationPrompt 必须为空字符串。",
+    "只要 targetAssessment.status 不是 confirmed_food，就不得生成缺料、补购、商城卡或烹饪步骤；executionPlan 必须是 isExecutableNow=false、dishName=\"\"、steps=[]，并分别使用 target_unclear、non_food_target 或 unsafe_target 作为 blockReason。",
+    "confirmed_food 也不等于现在就能开火：只有实际执行菜明确、关键材料与必要确认均已解决、当前路线确实是 cook_now 或 cook_simplified、且存在可执行步骤时，executionPlan.isExecutableNow 才能为 true，blockReason 必须为 none。",
+    "confirmed_food 若仍缺关键材料，使用 blockReason=missing_materials；仍需用户确认常备项或关键事实时使用 needs_confirmation；本轮选择明天准备、外卖、即食或其他不进入做饭步骤的路线时使用 not_cooking。isExecutableNow=false 时 primaryAction 不得是 cook_now 或 cook_simplified，不能冒充已经可以开火。",
+    "executionPlan.dishName 是步骤真正对应的实际执行菜，不是机械复制用户原始输入；如果简化成另一道菜，应写简化后的真实菜名。missing_materials 或 needs_confirmation 可以保留补齐/确认后将执行的具体菜名和步骤，但当前必须由 isExecutableNow=false 与 blockReason 阻断；not_cooking 必须输出 dishName=\"\"、steps=[]。",
     "不要输出可做指数、分数、百分比或评分算法。",
     "必须尊重用户想吃这道菜的意愿，先尽量给出可执行路线；如果难度、时间、工具或食材不足，需要温和提醒，并给简化版本、明天准备路线或补买建议。",
     "用户是新手时，不要直接推荐高风险动作，例如油炸、长时间处理生肉、复杂刀工；但可以给低风险替代做法。",
@@ -135,7 +311,7 @@ export async function planTargetDish({ inventory, targetDish, userContext, retri
     "如果输入包含 retrievedCases，它们只是历史参考证据，不是当前事实；当前人工确认库存、目标菜文字和用户要求优先级最高。",
     "positive case 只能迁移相同约束下的做法，negative case 用于避免重复历史错误；缺关键主料时不能因为历史正例成功就声称当前也能完整做。",
     "必须只输出一个合法 JSON 对象，不要 Markdown，不要解释。",
-    'JSON 格式：{"targetDish":{"name":"番茄牛腩","intentTime":"tonight","coreTaste":"热乎、酸甜、下饭","estimatedTime":"90 分钟以上","difficulty":"中等偏难"},"verdict":{"title":"今晚不建议硬做，给你一条可执行替代路线","summary":"冰箱里有番茄和鸡蛋，但缺少牛腩、土豆等关键材料；如果今晚想吃热乎酸甜口，可以先做番茄鸡蛋面，补齐后再做完整版。","primaryAction":"cook_simplified"},"inventoryMatch":{"availableItems":["番茄","鸡蛋"],"missingCritical":["牛腩","土豆"],"missingOptional":["洋葱","八角"],"substitutions":[{"from":"牛腩","to":"鸡蛋","result":"今晚改成番茄鸡蛋面，保留酸甜热食体验"}]},"shoppingPlan":{"mustBuy":[{"item":"牛腩","reason":"完整版的核心肉类主料"},{"item":"土豆","reason":"完整版需要的主要配菜"}],"confirmAtHome":["食用油","盐","酱油"],"optionalUpgrades":["洋葱","八角"]},"executionPlan":{"recommendedVersion":"今晚做番茄鸡蛋面，补齐牛腩和土豆后再做完整版。","steps":["先确认番茄和鸡蛋可用。","用番茄炒出汤底。","加入面条和鸡蛋做成热汤面。"],"difficultyWarnings":["番茄牛腩需要长时间炖煮，不适合只剩 25 分钟时从零开始。"],"prepForTomorrow":"补买牛腩和土豆后，预留 90 分钟以上。"},"userFit":{"skillNote":"对新手来说，番茄牛腩从零开始偏难。","timeNote":"当前时间预算更适合 25 分钟内的简化版本。","profileNotes":["参考了当前厨艺和可用时间。","保留用户想吃酸甜热食的意愿。"]},"commerceCards":[{"type":"douyin_mall","title":"完整版需要补齐","item":"牛腩 + 土豆","reason":"这是番茄牛腩的完整必买清单。","cta":"加入模拟购物车并重新规划"}],"talkTrack":"刷到想吃的菜后，先看确认库存；系统区分已有、待确认和必须补买，并让补购结果真正进入下一轮规划。"}',
+    'JSON 格式：{"targetDish":{"name":"番茄牛腩","intentTime":"tonight","coreTaste":"热乎、酸甜、下饭","estimatedTime":"90 分钟以上","difficulty":"中等偏难"},"targetAssessment":{"status":"confirmed_food","reason":"这是明确的家常菜目标。","clarificationPrompt":""},"verdict":{"title":"今晚还不能直接开火，先补齐关键材料","summary":"冰箱里有番茄，但缺少牛腩和土豆；补齐后再按完整路线做。","primaryAction":"shop_then_cook"},"inventoryMatch":{"availableItems":["番茄"],"missingCritical":["牛腩","土豆"],"missingOptional":["洋葱","八角"],"substitutions":[]},"shoppingPlan":{"mustBuy":[{"item":"牛腩","reason":"目标菜的核心肉类主料"},{"item":"土豆","reason":"当前版本需要的主要配菜"}],"confirmAtHome":[],"optionalUpgrades":["洋葱","八角"]},"executionPlan":{"isExecutableNow":false,"dishName":"番茄牛腩","blockReason":"missing_materials","recommendedVersion":"补齐牛腩和土豆后再做完整番茄牛腩。","steps":["牛腩焯水后与番茄炒出香味。","加入热水小火炖至牛腩软烂。","加入土豆炖熟并调味收汁。"],"difficultyWarnings":["这些步骤只能在关键材料补齐并由用户确认后执行。"],"prepForTomorrow":"补买牛腩和土豆后，预留 90 分钟以上。"},"userFit":{"skillNote":"对新手来说，番茄牛腩从零开始偏难。","timeNote":"当前时间预算不足以完成完整炖煮。","profileNotes":["参考了当前厨艺和可用时间。","保留用户想吃酸甜热食的意愿。"]},"commerceCards":[{"type":"douyin_mall","title":"目标菜需要补齐","item":"牛腩 + 土豆","reason":"这是当前版本的完整关键缺口。","cta":"加入模拟购物车并重新规划"}],"talkTrack":"先确认目标是具体食物，再区分现在能开火、需要补齐或需要改目标。"}',
   ].join("\n");
 
   const payloadText = JSON.stringify(

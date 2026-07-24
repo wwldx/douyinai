@@ -2,7 +2,7 @@
 
 抖音 AI 创变者计划 2026 大区赛赛道四「视觉搜索」作品。
 
-当前公网为 CloudBase 013，平台 Base URL 已迁到 `rightapi.ai`。014 手机修复候选包已经冻结但尚未部署；013 是 014 的首选回滚，012 保留为最近一次完成严格公网冒烟、静态资源一致性与固定目标菜真实规划的历史基线。
+当前公网为 CloudBase 013，平台 Base URL 已迁到 `rightapi.ai`。015 是当前最新未部署候选，包含 014 的 iPhone 输入/常备确认修复，以及目标菜候选确认、语义执行门禁和上游瞬时 502 恢复。014 作为未上线的中间存档保留，013 仍是当前回滚点，012 保留为最近一次完成严格公网验证的历史基线。
 
 ```text
 抖音 Feed 刷到想吃的菜
@@ -75,7 +75,7 @@ DISABLE_RESPONSE_STORAGE=true
 CASE_RETRIEVAL_MODE=off
 API_RATE_LIMIT_MAX=80
 MODEL_RATE_LIMIT_MAX=30
-AGENT_APP_VERSION=014
+AGENT_APP_VERSION=015
 AGENT_RUNS_ENABLED=true
 AGENT_RUNS_BACKEND=cloudbase
 AGENT_RUNS_CAPTURE_CONTENT=true
@@ -90,18 +90,20 @@ AUDIO_TRANSCRIPTION_ENABLED=false
 
 Codex Pro 中可用的模型不等于部署应用自动拥有 API 权限；公网 H5 仍需要服务端 API Key。Key 只能放在平台 Secret 或本机 `.env.local`，不能写入前端和 Git。
 
-`AGENT_APP_VERSION` 必须与 CloudBase 服务版本一致。当前公网为 013；上传候选包时创建 014 并设置 `AGENT_APP_VERSION=014`。014 异常时优先切回 013；不在生产容器内手工改代码或密钥。
+`AGENT_APP_VERSION` 必须与 CloudBase 服务版本一致。当前公网为 013；上传最新候选包时创建 015 并设置 `AGENT_APP_VERSION=015`。015 异常时优先切回 013；014 与 012 继续保留，不在生产容器内手工改代码或密钥。
 
 ## 稳定性
 
 - 主展示端提供 Feed/冰箱双入口、示例冰箱和示例菜图，非现场评委无需准备图片即可走完任一路线。
 - 目标菜和冰箱均提供手机直接拍摄与相册选择；Feed 截图可手动框选菜品区域，结果页五类反馈可约束下一轮规划。
+- Feed 拍菜优先让用户在主识别和相似候选中确认；手动/语音改名是明确兜底。手改名不会沿用旧图材料，非食物或含糊目标不会进入做法、补购、救援或生活记录。
 - 视觉、规划和生活记录可独立配置模型；健康检查和开发台会显示当前任务路由。
 - 视觉识别先调用模型，命中演示图片且模型超时/失败时才使用预分析缓存。
 - 语音采用浏览器实时识别优先、腾讯云一句话识别服务端兜底；文本框始终可修改。Right Code 当前只承担视觉和规划，不作为已验证 ASR。
 - 无有效 Key 时，示例视觉链路仍可用缓存演示；任意新图片和真实规划需要有效 Key。
 - 开发检验台会显示 `model`、`model-timeout-cache` 或 `model-error-cache`，避免把缓存误当真实模型结果。
 - 服务端包含 12MB 请求体上限、分组限流、生产错误脱敏、安全头、request ID 和阶段 trace。
+- RightAPI Responses 的连接失败/502/503 在同一总超时预算内最多自动重试一次；二次均失败时保留当前方案和用户已选的常备确认，不伪造更新成功。
 - `agent_runs` 记录诊断编号、来源、阶段耗时、token 和白名单结构化输入输出；原始照片、原始音频、API Key、管理员令牌和鉴权头不进入运行记录。
 
 ## 评测

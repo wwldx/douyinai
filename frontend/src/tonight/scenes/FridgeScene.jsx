@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import SpeechInput from "../../components/SpeechInput";
 import { SourceBadge, TimeBudgetPicker, UnsurePanel } from "../bits";
-import { imageSourceLabel, itemDisplayName, loadInventorySnapshot, namesMatch, snapshotAgeLabel } from "../model";
+import { imageSourceLabel, ingredientNamesMatch, itemDisplayName, loadInventorySnapshot, normalizeName, snapshotAgeLabel } from "../model";
 
 function Dots({ steps, current }) {
   return (
@@ -17,7 +17,7 @@ function Dots({ steps, current }) {
 }
 
 export default function FridgeScene({
-  route, dishName, dishAnalysis, fridge, fixedDemo,
+  route, dishName, dishNameSource, dishAnalysis, fridge, fixedDemo,
   inventory, inventoryMode, inventoryConfirmed, eatFirstMarks, onToggleEatFirst,
   timeBudgetId, setTimeBudgetId, note, setNote,
   reshootResult, onCapture, onSampleFridge, onUseLast, onReshoot,
@@ -34,7 +34,8 @@ export default function FridgeScene({
   const [overrides, setOverrides] = useState({});
   const [addingName, setAddingName] = useState("");
   const [manualMode, setManualMode] = useState(false);
-  const [benchDish, setBenchDish] = useState("");
+  const [benchDish, setBenchDish] = useState(() => (isFeed ? "" : String(dishName || "")));
+  const [benchDishSource, setBenchDishSource] = useState(() => (isFeed ? "fridge_text" : dishNameSource || "fridge_text"));
   const [eatFirstOpen, setEatFirstOpen] = useState(false);
 
   const visionItems = useMemo(() => (fridge?.vision?.items || []), [fridge]);
@@ -71,22 +72,30 @@ export default function FridgeScene({
     return [...new Set(names)];
   }, [baseItems, excluded, manualAdds]);
   const standaloneManualAdds = useMemo(
-    () => manualAdds.filter((name) => !baseItems.some((item) => !excluded.includes(itemDisplayName(item)) && namesMatch(name, itemDisplayName(item)))),
+    () => manualAdds.filter((name) => !baseItems.some((item) => !excluded.includes(itemDisplayName(item)) && ingredientNamesMatch(name, itemDisplayName(item)))),
     [manualAdds, baseItems, excluded],
   );
 
-  // Feed 对照：目标菜关键材料 vs 已确认库存
+  const selectedNameUsesPrimaryAnalysis = dishNameSource === "vision_primary";
+  const dishAnalysisMatches = Boolean(
+    isFeed
+    && selectedNameUsesPrimaryAnalysis
+    && normalizeName(dishAnalysis?.dishName) === normalizeName(dishName),
+  );
+
+  // Feed 对照只使用与用户最终确认菜名一致的主视觉结果；
+  // 候选目前只有名字，没有候选专属材料，不能复用主结果的 likelyIngredients。
   const needNames = useMemo(() => {
-    if (!isFeed) return [];
+    if (!dishAnalysisMatches) return [];
     const raw = dishAnalysis?.likelyIngredients;
     if (!Array.isArray(raw)) return [];
     return raw.map(itemDisplayName).filter(Boolean).slice(0, 8);
-  }, [isFeed, dishAnalysis]);
+  }, [dishAnalysis, dishAnalysisMatches]);
 
   function needStatus(name) {
     const forced = overrides[name];
     if (forced) return forced;
-    return includedNames.some((held) => namesMatch(held, name)) ? "have" : "missing";
+    return includedNames.some((held) => ingredientNamesMatch(held, name)) ? "have" : "missing";
   }
 
   function addManual(name) {
@@ -108,13 +117,13 @@ export default function FridgeScene({
       }));
     const fromManual = standaloneManualAdds.map((name) => ({ name, category: "", quantityEstimate: "", state: "用户手动确认", notes: "" }));
     const fromOverrides = needNames
-      .filter((name) => overrides[name] === "have" && !includedNames.some((held) => namesMatch(held, name)))
+      .filter((name) => overrides[name] === "have" && !includedNames.some((held) => ingredientNamesMatch(held, name)))
       .map((name) => ({ name, category: "", quantityEstimate: "", state: "用户确认家里有", notes: "" }));
     const explicitlyMissing = Object.entries(overrides)
       .filter(([, value]) => value === "missing")
       .map(([name]) => name);
     const withoutMissing = [...fromVision, ...fromManual, ...fromOverrides]
-      .filter((item) => !explicitlyMissing.some((name) => namesMatch(name, item.name)));
+      .filter((item) => !explicitlyMissing.some((name) => ingredientNamesMatch(name, item.name)));
     const seen = new Set();
     return withoutMissing.filter((item) => {
       if (!item.name || seen.has(item.name)) return false;
@@ -288,11 +297,11 @@ export default function FridgeScene({
               <input
                 className="tn-note-input"
                 value={benchDish}
-                onChange={(e) => setBenchDish(e.target.value)}
+                onChange={(e) => { setBenchDish(e.target.value); setBenchDishSource("fridge_text"); }}
                 placeholder="输入菜名，比如 番茄牛腩"
                 aria-label="想吃的菜（可选）"
               />
-              <SpeechInput onTranscript={(text) => setBenchDish(text)} />
+              <SpeechInput onTranscript={(text) => { setBenchDish(text); setBenchDishSource("fridge_voice"); }} />
             </div>
           </div>
 
@@ -316,7 +325,7 @@ export default function FridgeScene({
               type="button"
               className="tn-btn tn-btn-primary tn-btn-xl"
               disabled={!canPlan}
-              onClick={() => onBenchConfirm({ intentType: "target_dish", dishName: benchDishName, timeId: timeBudgetId, note })}
+              onClick={() => onBenchConfirm({ intentType: "target_dish", dishName: benchDishName, dishNameSource: benchDishSource, timeId: timeBudgetId, note })}
             >
               看看家里够不够做「{benchDishName}」
             </button>
@@ -411,6 +420,12 @@ export default function FridgeScene({
           </ul>
           <p className="tn-compare-note">冰箱里没看到不代表家里一定没有；盐、油、酱油等常备调味会在行动单里请你确认。</p>
         </div>
+      )}
+
+      {isFeed && !dishAnalysisMatches && dishName && !manualMode && (
+        <p className="tn-compare-honest" role="note">
+          你确认的是「{dishName}」，原图片的材料判断不再用于对照。先核对冰箱，后续会按你确认的菜名规划。
+        </p>
       )}
 
       {!noRecognized && (
