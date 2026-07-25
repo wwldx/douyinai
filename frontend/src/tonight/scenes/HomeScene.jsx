@@ -1,8 +1,7 @@
 import { useState } from "react";
 import { SAMPLE_DISH, SAMPLE_FRIDGE } from "../model";
 
-export default function HomeScene({ onWantThis, onFridgeFirst }) {
-  const [stage, setStage] = useState("dish"); // dish | fridge
+export default function HomeScene({ stage = "dish", onStageChange, onWantThis, onFridgeFirst }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
@@ -54,7 +53,7 @@ export default function HomeScene({ onWantThis, onFridgeFirst }) {
         </button>
         {error && <p className="tn-error" role="alert">{error}</p>}
 
-        <button type="button" className="tn-momentband" onClick={() => setStage(isDish ? "fridge" : "dish")}>
+        <button type="button" className="tn-momentband" onClick={() => onStageChange?.(isDish ? "fridge" : "dish")}>
           <img src={isDish ? SAMPLE_FRIDGE.url : SAMPLE_DISH.url} alt="" aria-hidden="true" />
           <span className="tn-momentband-text">
             {isDish ? "或者——你正站在冰箱前，不知道吃什么" : "或者——你刷到了一道想吃的菜"}

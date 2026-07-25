@@ -61,7 +61,7 @@ export function VersionStepper({ plans, activeId, onSelect }) {
   );
 }
 
-// 不确定项：最多主动突出 1-2 项，其余折叠可整体跳过；候选确认后才进库存
+// 不确定项：最多主动突出 1-2 项，其余折叠；候选确认后才进库存
 export function UnsurePanel({ items, onAddNamed, onReshoot, reshootBusyId, reshootResult, onClearReshoot }) {
   const [states, setStates] = useState({});
   const [namingId, setNamingId] = useState(null);
@@ -88,12 +88,12 @@ export function UnsurePanel({ items, onAddNamed, onReshoot, reshootBusyId, resho
   function renderItem(item, index) {
     const key = keyOf(item, index);
     const state = states[key];
-    if (state?.kind === "ignored" || state?.kind === "added") {
+    if (state?.kind === "added") {
       return (
         <div key={key} className="tn-unsure-item is-done">
           <p>
             <strong>{item.description}</strong>
-            <span>{state.kind === "added" ? `已确认是${state.name}，已加入库存` : "已忽略，不进库存"}</span>
+            <span>已确认是{state.name}，已加入库存</span>
           </p>
         </div>
       );
@@ -105,16 +105,20 @@ export function UnsurePanel({ items, onAddNamed, onReshoot, reshootBusyId, resho
           <span>{item.reason}</span>
         </p>
         {namingId === key ? (
-          <div className="tn-unsure-namebox">
-            <div className="tn-note">
+          <div className="tn-unsure-namebox tn-addrow">
+            <div className="tn-note tn-inline-speech tn-addrow-entry tn-unsure-inlineinput">
               <input
                 className="tn-note-input"
                 value={names[key] || ""}
                 onChange={(e) => setNames((cur) => ({ ...cur, [key]: e.target.value }))}
-                placeholder="说出或输入它是什么"
+                placeholder="输入它是什么"
                 aria-label={`${item.description} 是什么`}
               />
-              <SpeechInput onTranscript={(text) => setNames((cur) => ({ ...cur, [key]: text }))} />
+              <SpeechInput
+                iconOnly
+                className="tn-inline-speech-btn"
+                onTranscript={(text) => setNames((cur) => ({ ...cur, [key]: cur[key] ? `${cur[key]} ${text}` : text }))}
+              />
             </div>
             <button
               type="button"
@@ -133,7 +137,7 @@ export function UnsurePanel({ items, onAddNamed, onReshoot, reshootBusyId, resho
           </div>
         ) : (
           <div className="tn-unsure-actions">
-            <button type="button" className="tn-chip tn-chip-mini" onClick={() => setNamingId(key)}>说出 / 输入是什么</button>
+            <button type="button" className="tn-chip tn-chip-mini" onClick={() => setNamingId(key)}>我来确认是什么</button>
             <button
               type="button"
               className="tn-chip tn-chip-mini"
@@ -142,7 +146,6 @@ export function UnsurePanel({ items, onAddNamed, onReshoot, reshootBusyId, resho
             >
               {reshootBusyId === key ? "识别中…" : "补拍这一处"}
             </button>
-            <button type="button" className="tn-chip tn-chip-mini" onClick={() => setStates((cur) => ({ ...cur, [key]: { kind: "ignored" } }))}>忽略</button>
           </div>
         )}
         {reshootResult?.key === key && (
@@ -168,7 +171,7 @@ export function UnsurePanel({ items, onAddNamed, onReshoot, reshootBusyId, resho
                 </div>
               </>
             ) : (
-              <p className="tn-unsure-lead">补拍还是没看清。这一项仍不进库存，你也可以说出它是什么或稍后再试。</p>
+              <p className="tn-unsure-lead">补拍还是没看清。这一项仍不进库存，你也可以输入它是什么或稍后再试。</p>
             )}
           </div>
         )}
@@ -197,13 +200,6 @@ export function UnsurePanel({ items, onAddNamed, onReshoot, reshootBusyId, resho
         <div className="tn-unsure-more">
           <button type="button" className="tn-link" onClick={() => setExpanded(true)}>
             还有 {rest.length} 处暂未展开（默认不进库存）
-          </button>
-          <button type="button" className="tn-link" onClick={() => {
-            const all = {};
-            items.forEach((item, i) => { all[keyOf(item, i)] = true; });
-            setStates(Object.fromEntries(Object.keys(all).map((key) => [key, { kind: "ignored" }])));
-          }}>
-            全部跳过
           </button>
         </div>
       )}

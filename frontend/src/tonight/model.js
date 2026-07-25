@@ -522,7 +522,7 @@ export function snapshotAgeLabel(isoTime) {
   return `${Math.round(hours / 24)} 天前`;
 }
 
-// ---------- 会话恢复（不含原始照片） ----------
+// ---------- 会话恢复（仅本标签页；包含前端压缩后的预览图，不保存原始照片） ----------
 
 const SESSION_STATE_KEY = "fridgeDinner:tonightSession:v1";
 
