@@ -1,0 +1,86 @@
+{
+  "version": 1,
+  "updatedAt": "2026-07-15T00:00:00.000Z",
+  "entries": [
+    {
+      "id": "dish-rescue-watery-tomato-eggs-demo",
+      "fileName": "tomato-eggs-too-watery-demo.png",
+      "cacheKeys": ["sample-rescue-watery"],
+      "sourcePath": "assets/dish-rescue/tomato-eggs-too-watery-demo.png",
+      "requestSignature": "state|太稀",
+      "cachedAt": "2026-07-15T00:00:00.000Z",
+      "provenance": "AI 生成演示图片；gpt-5.6-terra 真实模型结果；人工核对能力边界。",
+      "dishRescue": {
+        "headline": "先开盖收汁，不再加任何材料",
+        "visualObservations": [
+          "锅中番茄汁液明显较多，能在锅底形成连续液面。",
+          "鸡蛋和番茄已混合，未见明显焦糊迹象。",
+          "当前处于倒回鸡蛋后、等待收汁的阶段。"
+        ],
+        "assessment": {
+          "category": "state",
+          "likelyIssue": "番茄释放的水分尚未蒸发，成菜汁液偏多。",
+          "confidence": "high",
+          "needsConfirmation": false
+        },
+        "actions": [
+          {
+            "title": "立即动作：开盖中大火收汁",
+            "instruction": "保持开盖，调到中大火，让汤汁持续明显冒泡；先不要加水、淀粉或调料。用锅铲间隔翻动，避免鸡蛋粘底。",
+            "check": "观察锅中液面是否逐渐下降，汤汁是否从清亮流动变为能挂在番茄和鸡蛋表面的状态。"
+          },
+          {
+            "title": "观察点：收至合适浓度就停",
+            "instruction": "当用锅铲推开食材后，锅底只剩薄薄一层汁、不会立刻回流铺满锅底时，立刻转小火或关火。",
+            "check": "番茄和鸡蛋表面有汁但不泡在一层汤里，即为收汁完成。"
+          },
+          {
+            "title": "后续动作：再调味出锅",
+            "instruction": "收汁完成后再按原计划少量分次调味，拌匀一次后确认，再决定是否补加。",
+            "check": "调味后没有继续大量出水，即可出锅。"
+          }
+        ],
+        "nextStep": "现在只做开盖中大火收汁，先观察液面下降再进行下一步。",
+        "askUser": "",
+        "boundaryReminder": "图片只能判断汁液偏多和烹饪阶段，不能判断味道；调味请以你自己的尝味结果为准。"
+      }
+    },
+    {
+      "id": "dish-rescue-scorched-chicken-demo",
+      "fileName": "chicken-stir-fry-scorched-demo.png",
+      "cacheKeys": ["sample-rescue-scorched"],
+      "sourcePath": "assets/dish-rescue/chicken-stir-fry-scorched-demo.png",
+      "requestSignature": "state|粘锅/糊锅",
+      "cachedAt": "2026-07-15T00:00:00.000Z",
+      "provenance": "AI 生成演示图片；gpt-5.6-terra 真实模型结果；人工收紧肉类熟度措辞。",
+      "dishRescue": {
+        "headline": "先把未焦的食材与焦黑锅底分开，避免焦渣继续混入。",
+        "visualObservations": [
+          "锅底中央有明显焦黑黏附层。",
+          "鸡肉、青椒和洋葱大多集中在锅的一侧，表面仍有酱汁，没有看到大面积发黑。"
+        ],
+        "assessment": {
+          "category": "state",
+          "likelyIssue": "酱汁在锅底收得过干并已焦化；继续在原锅翻炒会使焦黑残渣粘到食材上。",
+          "confidence": "high",
+          "needsConfirmation": false
+        },
+        "actions": [
+          {
+            "title": "立刻离火并转移食材",
+            "instruction": "关火，用铲子把上层鸡肉、青椒、洋葱和酱汁轻轻盛到干净的碗或另一口干净锅里；不要刮、不要铲起锅底焦黑的一块。",
+            "check": "转移后观察食材中是否没有明显黑色焦屑，原锅焦黑层仍留在锅底。"
+          },
+          {
+            "title": "确认后再决定出锅",
+            "instruction": "若食材未沾焦屑，可在干净锅中用小火短暂翻匀；肉类是否熟透不能凭画面判断，请另按可靠烹饪方式确认后再食用。",
+            "check": "确认没有焦屑混入；肉类熟度需另行按可靠方式确认，不能只看颜色或图片。"
+          }
+        ],
+        "nextStep": "现在先关火，把未焦的食材转移出原锅，焦黑锅底不要混进去。",
+        "askUser": "转移后，食材里有没有已经混入明显的黑色焦屑？",
+        "boundaryReminder": "我只能根据画面判断焦黑、液体和形态；无法仅凭图片判断味道或鸡肉是否安全熟透。"
+      }
+    }
+  ]
+}

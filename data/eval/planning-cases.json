@@ -1,0 +1,249 @@
+{
+  "version": 1,
+  "updatedAt": "2026-07-13",
+  "cases": [
+    {
+      "id": "target-huangmenji-missing-chicken",
+      "endpoint": "/api/plan-target-dish",
+      "input": {
+        "inventory": [
+          { "name": "土豆", "category": "蔬菜", "quantityEstimate": "2 个", "confidence": 1, "state": "用户已确认", "notes": "" },
+          { "name": "香菇", "category": "蔬菜", "quantityEstimate": "1 盒", "confidence": 1, "state": "用户已确认", "notes": "" }
+        ],
+        "targetDish": { "text": "我今晚想吃黄焖鸡", "intentTime": "tonight", "imageAnalysis": null },
+        "userContext": { "user": { "name": "评测用户", "cookingLevel": "新手", "preferences": ["少洗锅"], "avoid": ["油炸"], "recentMeals": [], "goal": "今晚吃上热饭" }, "context": { "time": "19:00", "mealSlot": "晚餐", "availableCookingTime": "40 分钟", "energyLevel": "中", "nextSchedule": "无" } }
+      },
+      "expectations": { "allowedActions": ["shop_then_cook", "cook_simplified", "prep_for_tomorrow"], "requiredAny": ["黄焖鸡", "鸡腿", "鸡肉"], "missingCriticalAny": ["鸡腿肉", "鸡肉"], "forbiddenAny": ["土豆就是鸡肉"] }
+    },
+    {
+      "id": "target-tomato-eggs-complete",
+      "endpoint": "/api/plan-target-dish",
+      "input": {
+        "inventory": [
+          { "name": "番茄", "category": "蔬菜", "quantityEstimate": "2 个", "confidence": 1, "state": "用户已确认", "notes": "" },
+          { "name": "鸡蛋", "category": "蛋奶", "quantityEstimate": "3 个", "confidence": 1, "state": "用户已确认", "notes": "" }
+        ],
+        "targetDish": { "text": "我晚餐想吃番茄炒蛋", "intentTime": "tonight", "imageAnalysis": null },
+        "userContext": { "user": { "name": "评测用户", "cookingLevel": "新手", "preferences": ["快手"], "avoid": ["复杂刀工"], "recentMeals": [], "goal": "15 分钟内吃饭" }, "context": { "time": "19:30", "mealSlot": "晚餐", "availableCookingTime": "15 分钟", "energyLevel": "中", "nextSchedule": "20:00 开会" } }
+      },
+      "expectations": { "allowedActions": ["cook_now", "cook_simplified"], "requiredAny": ["番茄", "鸡蛋"], "forbiddenAny": ["必须购买番茄", "必须购买鸡蛋"] }
+    },
+    {
+      "id": "target-beef-stew-time-short",
+      "endpoint": "/api/plan-target-dish",
+      "input": {
+        "inventory": [
+          { "name": "牛肉", "category": "蛋白质", "quantityEstimate": "300 克", "confidence": 1, "state": "用户已确认", "notes": "" },
+          { "name": "番茄", "category": "蔬菜", "quantityEstimate": "2 个", "confidence": 1, "state": "用户已确认", "notes": "" },
+          { "name": "土豆", "category": "蔬菜", "quantityEstimate": "2 个", "confidence": 1, "state": "用户已确认", "notes": "" }
+        ],
+        "targetDish": { "text": "我想吃番茄牛腩，但只有 20 分钟", "intentTime": "tonight", "imageAnalysis": null },
+        "userContext": { "user": { "name": "评测用户", "cookingLevel": "新手", "preferences": ["快手"], "avoid": ["长时间炖煮"], "recentMeals": [], "goal": "尽快吃饭" }, "context": { "time": "21:00", "mealSlot": "晚餐", "availableCookingTime": "20 分钟", "energyLevel": "低", "nextSchedule": "22:00 工作" } }
+      },
+      "expectations": { "allowedActions": ["cook_simplified", "prep_for_tomorrow", "delivery_or_ready_meal"], "requiredAny": ["时间", "分钟", "明天", "简化"], "forbiddenAny": ["20 分钟炖烂牛腩"] }
+    },
+    {
+      "id": "target-huiguorou-missing-pork",
+      "endpoint": "/api/plan-target-dish",
+      "input": {
+        "inventory": [
+          { "name": "青椒", "category": "蔬菜", "quantityEstimate": "2 个", "confidence": 1, "state": "用户已确认", "notes": "" },
+          { "name": "豆瓣酱", "category": "调味", "quantityEstimate": "1 瓶", "confidence": 1, "state": "用户已确认", "notes": "" }
+        ],
+        "targetDish": { "text": "今晚想做回锅肉", "intentTime": "tonight", "imageAnalysis": null },
+        "userContext": { "user": { "name": "评测用户", "cookingLevel": "入门", "preferences": ["下饭"], "avoid": [], "recentMeals": [], "goal": "复刻刷到的菜" }, "context": { "time": "18:30", "mealSlot": "晚餐", "availableCookingTime": "45 分钟", "energyLevel": "中", "nextSchedule": "无" } }
+      },
+      "expectations": { "allowedActions": ["shop_then_cook", "prep_for_tomorrow", "cook_simplified"], "requiredAny": ["五花肉", "猪肉"], "missingCriticalAny": ["五花肉", "猪肉"], "forbiddenAny": ["青椒可以替代五花肉"] }
+    },
+    {
+      "id": "target-fried-rice-complete",
+      "endpoint": "/api/plan-target-dish",
+      "input": {
+        "inventory": [
+          { "name": "剩米饭", "category": "主食", "quantityEstimate": "1 碗", "confidence": 1, "state": "用户已确认", "notes": "冷藏" },
+          { "name": "鸡蛋", "category": "蛋奶", "quantityEstimate": "2 个", "confidence": 1, "state": "用户已确认", "notes": "" },
+          { "name": "胡萝卜", "category": "蔬菜", "quantityEstimate": "半根", "confidence": 1, "state": "用户已确认", "notes": "" }
+        ],
+        "targetDish": { "text": "夜宵想吃蛋炒饭", "intentTime": "tonight", "imageAnalysis": null },
+        "userContext": { "user": { "name": "评测用户", "cookingLevel": "新手", "preferences": ["少洗锅", "抗饿"], "avoid": ["重油"], "recentMeals": [], "goal": "快速夜宵" }, "context": { "time": "23:10", "mealSlot": "夜宵", "availableCookingTime": "15 分钟", "energyLevel": "低", "nextSchedule": "准备睡觉" } }
+      },
+      "expectations": { "allowedActions": ["cook_now", "cook_simplified"], "requiredAny": ["米饭", "鸡蛋"], "forbiddenAny": ["油炸"] }
+    },
+    {
+      "id": "target-mapo-tofu-vegetarian",
+      "endpoint": "/api/plan-target-dish",
+      "input": {
+        "inventory": [
+          { "name": "豆腐", "category": "蛋白质", "quantityEstimate": "1 盒", "confidence": 1, "state": "用户已确认", "notes": "" },
+          { "name": "豆瓣酱", "category": "调味", "quantityEstimate": "1 瓶", "confidence": 1, "state": "用户已确认", "notes": "" }
+        ],
+        "targetDish": { "text": "想吃麻婆豆腐，不吃肉", "intentTime": "tonight", "imageAnalysis": null },
+        "userContext": { "user": { "name": "评测用户", "cookingLevel": "新手", "preferences": ["素食"], "avoid": ["猪肉", "牛肉", "鸡肉"], "recentMeals": [], "goal": "做一份素版热菜" }, "context": { "time": "18:00", "mealSlot": "晚餐", "availableCookingTime": "25 分钟", "energyLevel": "中", "nextSchedule": "无" } }
+      },
+      "expectations": { "allowedActions": ["cook_now", "cook_simplified"], "requiredAny": ["素", "豆腐"], "forbiddenAny": ["必须加入肉末", "必须购买猪肉"] }
+    },
+    {
+      "id": "target-gongbao-missing-peanut",
+      "endpoint": "/api/plan-target-dish",
+      "input": {
+        "inventory": [
+          { "name": "鸡胸肉", "category": "蛋白质", "quantityEstimate": "250 克", "confidence": 1, "state": "用户已确认", "notes": "" },
+          { "name": "黄瓜", "category": "蔬菜", "quantityEstimate": "1 根", "confidence": 1, "state": "用户已确认", "notes": "" },
+          { "name": "辣椒", "category": "蔬菜", "quantityEstimate": "2 个", "confidence": 1, "state": "用户已确认", "notes": "" }
+        ],
+        "targetDish": { "text": "我今晚想做宫保鸡丁", "intentTime": "tonight", "imageAnalysis": null },
+        "userContext": { "user": { "name": "评测用户", "cookingLevel": "入门", "preferences": ["下饭"], "avoid": [], "recentMeals": [], "goal": "接近原菜" }, "context": { "time": "19:00", "mealSlot": "晚餐", "availableCookingTime": "35 分钟", "energyLevel": "中", "nextSchedule": "无" } }
+      },
+      "expectations": { "allowedActions": ["shop_then_cook", "cook_simplified", "cook_now"], "requiredAny": ["花生", "鸡"], "forbiddenAny": ["黄瓜就是花生"] }
+    },
+    {
+      "id": "target-fish-fragrant-complete",
+      "endpoint": "/api/plan-target-dish",
+      "input": {
+        "inventory": [
+          { "name": "猪肉", "category": "蛋白质", "quantityEstimate": "200 克", "confidence": 1, "state": "用户已确认", "notes": "" },
+          { "name": "胡萝卜", "category": "蔬菜", "quantityEstimate": "1 根", "confidence": 1, "state": "用户已确认", "notes": "" },
+          { "name": "木耳", "category": "蔬菜", "quantityEstimate": "1 小碗", "confidence": 1, "state": "用户已确认", "notes": "" },
+          { "name": "辣椒", "category": "蔬菜", "quantityEstimate": "2 个", "confidence": 1, "state": "用户已确认", "notes": "" }
+        ],
+        "targetDish": { "text": "想吃鱼香肉丝", "intentTime": "tonight", "imageAnalysis": null },
+        "userContext": { "user": { "name": "评测用户", "cookingLevel": "入门", "preferences": ["酸甜", "下饭"], "avoid": [], "recentMeals": [], "goal": "自己做晚饭" }, "context": { "time": "18:20", "mealSlot": "晚餐", "availableCookingTime": "40 分钟", "energyLevel": "中高", "nextSchedule": "无" } }
+      },
+      "expectations": { "allowedActions": ["cook_now", "cook_simplified", "shop_then_cook"], "requiredAny": ["肉丝", "木耳", "胡萝卜"], "forbiddenAny": ["需要买鱼"] }
+    },
+    {
+      "id": "target-chicken-wings-food-safety",
+      "endpoint": "/api/plan-target-dish",
+      "input": {
+        "inventory": [
+          { "name": "鸡翅", "category": "蛋白质", "quantityEstimate": "8 个", "confidence": 1, "state": "用户已确认仍冷冻", "notes": "未解冻" },
+          { "name": "可乐", "category": "饮料", "quantityEstimate": "1 罐", "confidence": 1, "state": "用户已确认", "notes": "" }
+        ],
+        "targetDish": { "text": "20 分钟内做可乐鸡翅", "intentTime": "tonight", "imageAnalysis": null },
+        "userContext": { "user": { "name": "评测用户", "cookingLevel": "新手", "preferences": ["甜口"], "avoid": ["高风险操作"], "recentMeals": [], "goal": "安全做熟" }, "context": { "time": "20:00", "mealSlot": "晚餐", "availableCookingTime": "20 分钟", "energyLevel": "中", "nextSchedule": "无" } }
+      },
+      "expectations": { "allowedActions": ["cook_simplified", "prep_for_tomorrow", "delivery_or_ready_meal"], "requiredAny": ["解冻", "熟", "时间"], "forbiddenAny": ["半生", "不用解冻直接短时间焖"] }
+    },
+    {
+      "id": "target-unknown-dish-ask-clarification",
+      "endpoint": "/api/plan-target-dish",
+      "input": {
+        "inventory": [
+          { "name": "鸡蛋", "category": "蛋奶", "quantityEstimate": "2 个", "confidence": 1, "state": "用户已确认", "notes": "" }
+        ],
+        "targetDish": { "text": "我想吃视频里那个金黄的东西", "intentTime": "tonight", "imageAnalysis": null },
+        "userContext": { "user": { "name": "评测用户", "cookingLevel": "新手", "preferences": [], "avoid": [], "recentMeals": [], "goal": "先弄清是什么" }, "context": { "time": "19:00", "mealSlot": "晚餐", "availableCookingTime": "30 分钟", "energyLevel": "中", "nextSchedule": "无" } }
+      },
+      "expectations": { "allowedActions": ["cook_simplified", "prep_for_tomorrow", "delivery_or_ready_meal", "shop_then_cook"], "requiredAny": ["确认", "不确定", "主料", "补充"], "forbiddenAny": ["确定就是蛋炒饭"] }
+    },
+    {
+      "id": "dinner-fast-tomato-eggs",
+      "endpoint": "/api/plan-dinner",
+      "input": {
+        "inventory": [
+          { "name": "番茄", "category": "蔬菜", "quantityEstimate": "2 个", "confidence": 1, "state": "用户已确认", "notes": "" },
+          { "name": "鸡蛋", "category": "蛋奶", "quantityEstimate": "3 个", "confidence": 1, "state": "用户已确认", "notes": "" }
+        ],
+        "userContext": { "user": { "name": "评测用户", "cookingLevel": "新手", "preferences": ["快手", "热乎"], "avoid": ["复杂刀工"], "recentMeals": [], "goal": "15 分钟吃饭" }, "context": { "time": "19:00", "mealSlot": "晚餐", "availableCookingTime": "15 分钟", "energyLevel": "中", "nextSchedule": "20:00 开会" } }
+      },
+      "expectations": { "allowedActions": ["cook_with_existing_items", "quick_meal_first"], "requiredAny": ["番茄", "鸡蛋"], "forbiddenAny": ["油炸"] }
+    },
+    {
+      "id": "dinner-late-night-low-energy",
+      "endpoint": "/api/plan-dinner",
+      "input": {
+        "inventory": [
+          { "name": "面条", "category": "主食", "quantityEstimate": "1 把", "confidence": 1, "state": "用户已确认", "notes": "" },
+          { "name": "鸡蛋", "category": "蛋奶", "quantityEstimate": "2 个", "confidence": 1, "state": "用户已确认", "notes": "" },
+          { "name": "青菜", "category": "蔬菜", "quantityEstimate": "1 把", "confidence": 1, "state": "用户已确认", "notes": "" }
+        ],
+        "userContext": { "user": { "name": "评测用户", "cookingLevel": "新手", "preferences": ["热乎", "少洗锅"], "avoid": ["重油", "重辣"], "recentMeals": [], "goal": "简单夜宵" }, "context": { "time": "23:40", "mealSlot": "夜宵", "availableCookingTime": "15 分钟", "energyLevel": "低", "nextSchedule": "准备睡觉" } }
+      },
+      "expectations": { "allowedActions": ["cook_with_existing_items", "quick_meal_first"], "requiredAny": ["面", "鸡蛋", "青菜"], "forbiddenAny": ["油炸", "重辣"] }
+    },
+    {
+      "id": "dinner-empty-fridge",
+      "endpoint": "/api/plan-dinner",
+      "input": {
+        "inventory": [],
+        "userContext": { "user": { "name": "评测用户", "cookingLevel": "新手", "preferences": ["省事"], "avoid": [], "recentMeals": [], "goal": "今晚有饭吃" }, "context": { "time": "21:30", "mealSlot": "晚餐", "availableCookingTime": "15 分钟", "energyLevel": "低", "nextSchedule": "无" } }
+      },
+      "expectations": { "allowedActions": ["cook_with_small_purchase", "quick_meal_first", "delivery_recommended"], "requiredAny": ["补", "购买", "外卖", "速食"], "forbiddenAny": ["现有食材很丰富"] }
+    },
+    {
+      "id": "dinner-rich-fridge-balanced",
+      "endpoint": "/api/plan-dinner",
+      "input": {
+        "inventory": [
+          { "name": "鸡胸肉", "category": "蛋白质", "quantityEstimate": "250 克", "confidence": 1, "state": "用户已确认", "notes": "" },
+          { "name": "西兰花", "category": "蔬菜", "quantityEstimate": "1 颗", "confidence": 1, "state": "用户已确认", "notes": "" },
+          { "name": "米饭", "category": "主食", "quantityEstimate": "1 碗", "confidence": 1, "state": "用户已确认", "notes": "" }
+        ],
+        "userContext": { "user": { "name": "评测用户", "cookingLevel": "入门", "preferences": ["清淡", "高蛋白"], "avoid": ["重油"], "recentMeals": [], "goal": "运动后正餐" }, "context": { "time": "18:30", "mealSlot": "晚餐", "availableCookingTime": "30 分钟", "energyLevel": "中高", "nextSchedule": "无" } }
+      },
+      "expectations": { "allowedActions": ["cook_with_existing_items"], "requiredAny": ["鸡", "西兰花", "米饭"], "forbiddenAny": ["油炸"] }
+    },
+    {
+      "id": "dinner-breakfast-minimal",
+      "endpoint": "/api/plan-dinner",
+      "input": {
+        "inventory": [
+          { "name": "面包", "category": "主食", "quantityEstimate": "4 片", "confidence": 1, "state": "用户已确认", "notes": "" },
+          { "name": "牛奶", "category": "蛋奶", "quantityEstimate": "1 盒", "confidence": 1, "state": "用户已确认", "notes": "" },
+          { "name": "鸡蛋", "category": "蛋奶", "quantityEstimate": "2 个", "confidence": 1, "state": "用户已确认", "notes": "" }
+        ],
+        "userContext": { "user": { "name": "评测用户", "cookingLevel": "新手", "preferences": ["快手"], "avoid": [], "recentMeals": [], "goal": "上班前吃完" }, "context": { "time": "07:30", "mealSlot": "早餐", "availableCookingTime": "10 分钟", "energyLevel": "中", "nextSchedule": "08:00 出门" } }
+      },
+      "expectations": { "allowedActions": ["cook_with_existing_items", "quick_meal_first"], "requiredAny": ["面包", "牛奶", "鸡蛋"], "forbiddenAny": ["炖 1 小时"] }
+    },
+    {
+      "id": "dinner-uncertain-meat-safety",
+      "endpoint": "/api/plan-dinner",
+      "input": {
+        "inventory": [
+          { "name": "肉排", "category": "蛋白质", "quantityEstimate": "1 盒", "confidence": 0.6, "state": "存放时间不确定", "notes": "用户未确认新鲜度" },
+          { "name": "生菜", "category": "蔬菜", "quantityEstimate": "1 颗", "confidence": 1, "state": "用户已确认", "notes": "" }
+        ],
+        "userContext": { "user": { "name": "评测用户", "cookingLevel": "新手", "preferences": ["安全"], "avoid": ["高风险食材"], "recentMeals": [], "goal": "安全优先" }, "context": { "time": "20:00", "mealSlot": "晚餐", "availableCookingTime": "25 分钟", "energyLevel": "中", "nextSchedule": "无" } }
+      },
+      "expectations": { "allowedActions": ["cook_with_small_purchase", "quick_meal_first", "delivery_recommended", "cook_with_existing_items"], "requiredAny": ["确认", "新鲜", "安全", "肉"], "forbiddenAny": ["一定新鲜", "生吃肉排"] }
+    },
+    {
+      "id": "dinner-no-washing-preference",
+      "endpoint": "/api/plan-dinner",
+      "input": {
+        "inventory": [
+          { "name": "速冻饺子", "category": "速食", "quantityEstimate": "20 个", "confidence": 1, "state": "用户已确认", "notes": "" },
+          { "name": "青菜", "category": "蔬菜", "quantityEstimate": "1 把", "confidence": 1, "state": "用户已确认", "notes": "" }
+        ],
+        "userContext": { "user": { "name": "评测用户", "cookingLevel": "新手", "preferences": ["不想洗锅", "省事"], "avoid": ["多锅并行"], "recentMeals": [], "goal": "一锅解决" }, "context": { "time": "22:00", "mealSlot": "晚餐", "availableCookingTime": "15 分钟", "energyLevel": "低", "nextSchedule": "无" } }
+      },
+      "expectations": { "allowedActions": ["cook_with_existing_items", "quick_meal_first"], "requiredAny": ["饺子", "一锅", "青菜"], "forbiddenAny": ["多锅"] }
+    },
+    {
+      "id": "dinner-practice-new-dish",
+      "endpoint": "/api/plan-dinner",
+      "input": {
+        "inventory": [
+          { "name": "豆腐", "category": "蛋白质", "quantityEstimate": "1 盒", "confidence": 1, "state": "用户已确认", "notes": "" },
+          { "name": "番茄", "category": "蔬菜", "quantityEstimate": "2 个", "confidence": 1, "state": "用户已确认", "notes": "" },
+          { "name": "青菜", "category": "蔬菜", "quantityEstimate": "1 把", "confidence": 1, "state": "用户已确认", "notes": "" }
+        ],
+        "userContext": { "user": { "name": "评测用户", "cookingLevel": "入门", "preferences": ["愿意练习", "清淡"], "avoid": ["油炸"], "recentMeals": [], "goal": "尝试一道新菜" }, "context": { "time": "17:30", "mealSlot": "晚餐", "availableCookingTime": "40 分钟", "energyLevel": "中高", "nextSchedule": "无" } }
+      },
+      "expectations": { "allowedActions": ["cook_with_existing_items", "cook_with_small_purchase"], "requiredAny": ["豆腐", "番茄", "青菜"], "forbiddenAny": ["油炸"] }
+    },
+    {
+      "id": "dinner-only-fruit-not-a-meal",
+      "endpoint": "/api/plan-dinner",
+      "input": {
+        "inventory": [
+          { "name": "苹果", "category": "其他", "quantityEstimate": "2 个", "confidence": 1, "state": "用户已确认", "notes": "" },
+          { "name": "橙子", "category": "其他", "quantityEstimate": "2 个", "confidence": 1, "state": "用户已确认", "notes": "" }
+        ],
+        "userContext": { "user": { "name": "评测用户", "cookingLevel": "新手", "preferences": ["抗饿"], "avoid": [], "recentMeals": [], "goal": "吃一顿正餐" }, "context": { "time": "19:30", "mealSlot": "晚餐", "availableCookingTime": "20 分钟", "energyLevel": "中", "nextSchedule": "无" } }
+      },
+      "expectations": { "allowedActions": ["cook_with_small_purchase", "quick_meal_first", "delivery_recommended"], "requiredAny": ["主食", "蛋白", "补", "购买"], "forbiddenAny": ["只吃水果就是完整晚餐"] }
+    }
+  ]
+}

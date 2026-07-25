@@ -1,0 +1,132 @@
+{
+  "generatedAt": "2026-07-14T12:19:54.501Z",
+  "baseUrl": "http://localhost:4186",
+  "selection": {
+    "suite": "vision",
+    "preset": "mixed-smoke",
+    "caseIds": [],
+    "limit": null,
+    "requireModelSource": true,
+    "timeoutMs": 120000
+  },
+  "total": 4,
+  "passed": 0,
+  "failed": 4,
+  "passRate": 0,
+  "latencyMs": {
+    "average": 30661,
+    "p50": 11731,
+    "p95": 72607,
+    "vision": {
+      "count": 4,
+      "average": 30661,
+      "p50": 11731,
+      "p95": 72607
+    },
+    "planning": {
+      "count": 0,
+      "average": 0,
+      "p50": 0,
+      "p95": 0
+    }
+  },
+  "sourceCounts": {
+    "error": 1,
+    "model": 3
+  },
+  "failureCounts": {
+    "quality": 3,
+    "upstream": 1
+  },
+  "metrics": {
+    "visionSchemaRate": 0.75,
+    "planningSchemaRate": 0,
+    "planningActionRate": 0,
+    "planningSafetyRate": 0
+  },
+  "results": [
+    {
+      "id": "vision-fridge-real-fridge-f63de1",
+      "suite": "vision",
+      "endpoint": "/api/analyze-fridge",
+      "durationMs": 27996,
+      "status": 502,
+      "requestId": "b057f7a8-5fde-43cb-a82b-87795aa1bd36",
+      "passed": false,
+      "failures": [
+        "模型服务连接失败：fetch failed / EPIPE / write EPIPE"
+      ],
+      "failureTypes": [
+        "upstream"
+      ],
+      "metrics": {},
+      "source": "error"
+    },
+    {
+      "id": "vision-fridge-imgs-ai-day3",
+      "suite": "vision",
+      "endpoint": "/api/analyze-fridge",
+      "durationMs": 72607,
+      "status": 200,
+      "requestId": "869af56e-e3c3-440c-8b63-5859120a9b1d",
+      "serverTiming": "vision;dur=72588",
+      "passed": false,
+      "failures": [
+        "食材召回率 0.4 < 0.5"
+      ],
+      "metrics": {
+        "schemaValid": true,
+        "itemRecall": 0.4
+      },
+      "source": "model",
+      "failureTypes": [
+        "quality"
+      ]
+    },
+    {
+      "id": "vision-target-dish-huangmenji",
+      "suite": "vision",
+      "endpoint": "/api/analyze-target-dish",
+      "durationMs": 11731,
+      "status": 200,
+      "requestId": "e9d32ee7-4090-47f9-b83b-36f71ed6d70e",
+      "serverTiming": "vision;dur=11713",
+      "passed": false,
+      "failures": [
+        "菜名不匹配：疑似干锅香辣鸡",
+        "关键材料召回率 0.25 < 0.5"
+      ],
+      "metrics": {
+        "schemaValid": true,
+        "dishNameMatch": false,
+        "ingredientRecall": 0.25
+      },
+      "source": "model",
+      "failureTypes": [
+        "quality"
+      ]
+    },
+    {
+      "id": "vision-target-dish-huiguorou",
+      "suite": "vision",
+      "endpoint": "/api/analyze-target-dish",
+      "durationMs": 10309,
+      "status": 200,
+      "requestId": "abddf1fc-57ad-40ea-807e-675dad4b2597",
+      "serverTiming": "vision;dur=10293",
+      "passed": false,
+      "failures": [
+        "菜名不匹配：疑似辣椒炒五花肉"
+      ],
+      "metrics": {
+        "schemaValid": true,
+        "dishNameMatch": false,
+        "ingredientRecall": 0.75
+      },
+      "source": "model",
+      "failureTypes": [
+        "quality"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,262 @@
+{
+  "generatedAt": "2026-07-18T11:52:09.435Z",
+  "baseUrl": "http://127.0.0.1:4181",
+  "selection": {
+    "suite": "vision",
+    "preset": null,
+    "caseIds": [
+      "vision-fridge-real-fridge-330d23",
+      "vision-target-dish-huangmenji"
+    ],
+    "limit": null,
+    "requireModelSource": true,
+    "retrievalMode": "off",
+    "timeoutMs": 70000,
+    "visionInput": "jpeg-max1400-showcase-equivalent"
+  },
+  "total": 2,
+  "passed": 2,
+  "failed": 0,
+  "passRate": 1,
+  "latencyMs": {
+    "average": 17764,
+    "p50": 8906,
+    "p95": 26621,
+    "vision": {
+      "count": 2,
+      "average": 17764,
+      "p50": 8906,
+      "p95": 26621
+    },
+    "planning": {
+      "count": 0,
+      "average": 0,
+      "p50": 0,
+      "p95": 0
+    }
+  },
+  "sourceCounts": {
+    "model": 2
+  },
+  "providerCounts": {
+    "rightcode_responses_stream": 2
+  },
+  "modelCounts": {
+    "gpt-5.6-terra": 2
+  },
+  "failureCounts": {},
+  "usage": {
+    "casesWithUsage": 2,
+    "inputTokens": 4282,
+    "outputTokens": 4540,
+    "totalTokens": 8822,
+    "cachedInputTokens": 0,
+    "reasoningTokens": 0
+  },
+  "metrics": {
+    "visionSchemaRate": 1,
+    "planningSchemaRate": 0,
+    "planningActionRate": 0,
+    "planningSafetyRate": 0
+  },
+  "results": [
+    {
+      "id": "vision-fridge-real-fridge-330d23",
+      "suite": "vision",
+      "endpoint": "/api/analyze-fridge",
+      "durationMs": 26621,
+      "status": 200,
+      "requestId": "e8466ba2-9d5c-4bd7-a3db-6bb7f6fd2d78",
+      "serverTiming": "vision;dur=26456",
+      "passed": true,
+      "failures": [],
+      "metrics": {
+        "schemaValid": true,
+        "confirmedItemRecall": 0.714,
+        "acknowledgedItemRecall": 0.857,
+        "itemRecall": 0.857
+      },
+      "source": "model",
+      "provider": "rightcode_responses_stream",
+      "model": "gpt-5.6-terra",
+      "usage": {
+        "inputTokens": 2291,
+        "outputTokens": 4179,
+        "totalTokens": 6470,
+        "cachedInputTokens": 0,
+        "reasoningTokens": 0
+      },
+      "retrieval": null,
+      "output": {
+        "items": [
+          {
+            "name": "亨氏番茄酱",
+            "category": "调味",
+            "quantityEstimate": "1 瓶",
+            "confidence": 0.9,
+            "state": "需确认保质期",
+            "notes": "冷藏室左上方可见亨氏标签的挤压瓶"
+          },
+          {
+            "name": "柠檬块",
+            "category": "蔬菜",
+            "quantityEstimate": "约5块",
+            "confidence": 0.93,
+            "state": "看起来可用，需确认新鲜度",
+            "notes": "中层右侧透明盒内"
+          },
+          {
+            "name": "卷心菜",
+            "category": "蔬菜",
+            "quantityEstimate": "1 个",
+            "confidence": 0.95,
+            "state": "看起来可用，需确认新鲜度",
+            "notes": "下层左侧蔬菜收纳盒内"
+          },
+          {
+            "name": "花椰菜",
+            "category": "蔬菜",
+            "quantityEstimate": "1 个",
+            "confidence": 0.94,
+            "state": "看起来可用，需确认新鲜度",
+            "notes": "下层左侧蔬菜收纳盒内"
+          },
+          {
+            "name": "四季豆",
+            "category": "蔬菜",
+            "quantityEstimate": "1 袋",
+            "confidence": 0.82,
+            "state": "看起来可用，需确认新鲜度",
+            "notes": "下层中间偏右的透明袋内"
+          },
+          {
+            "name": "白萝卜",
+            "category": "蔬菜",
+            "quantityEstimate": "约2 根",
+            "confidence": 0.8,
+            "state": "看起来可用，需确认新鲜度",
+            "notes": "下层右侧蔬菜收纳盒内"
+          },
+          {
+            "name": "百事可乐",
+            "category": "饮料",
+            "quantityEstimate": "1 瓶",
+            "confidence": 0.88,
+            "state": "需确认开封状态及保质期",
+            "notes": "冰箱门右侧下方可见百事标识的塑料瓶"
+          }
+        ],
+        "uncertainItems": [
+          {
+            "description": "上层多罐红色、黑色及绿色罐装饮料",
+            "reason": "可见罐装包装，但品牌和具体饮品种类无法完全确认"
+          },
+          {
+            "description": "中层两盒带盖食物",
+            "reason": "内容物被容器和遮挡物遮住，无法可靠辨认"
+          },
+          {
+            "description": "下层中间左侧透明袋中的白色食材",
+            "reason": "袋内食材外观受遮挡，无法确认具体种类"
+          },
+          {
+            "description": "下层右侧透明袋中的长条绿色食材",
+            "reason": "可能是黄瓜、辣椒或其他蔬菜，无法明确确认"
+          },
+          {
+            "description": "下层最右侧的绿叶蔬菜",
+            "reason": "可判断为绿叶菜，但具体品种被塑料袋遮挡"
+          },
+          {
+            "description": "冰箱门左下方的红色包装食品",
+            "reason": "只能看到包装，无法确认具体食品内容物"
+          },
+          {
+            "description": "中层左侧带红盖的瓶装/罐装食品",
+            "reason": "标签与内容物不够清晰，无法确认品类"
+          }
+        ],
+        "warnings": [
+          "图片无法判断食材是否过期、是否已开封或完全新鲜，食用前请自行检查气味、外观、保质期及储存状态。"
+        ]
+      },
+      "failureTypes": []
+    },
+    {
+      "id": "vision-target-dish-huangmenji",
+      "suite": "vision",
+      "endpoint": "/api/analyze-target-dish",
+      "durationMs": 8906,
+      "status": 200,
+      "requestId": "af7203c2-1d7e-45a8-b333-98fc975261ba",
+      "serverTiming": "vision;dur=8777",
+      "passed": true,
+      "failures": [],
+      "metrics": {
+        "schemaValid": true,
+        "dishNameMatch": true,
+        "ingredientRecall": 0.75,
+        "dishNameUncertaintyAcknowledged": false,
+        "dishNameAccepted": true
+      },
+      "source": "model",
+      "provider": "rightcode_responses_stream",
+      "model": "gpt-5.6-terra",
+      "usage": {
+        "inputTokens": 1991,
+        "outputTokens": 361,
+        "totalTokens": 2352,
+        "cachedInputTokens": 0,
+        "reasoningTokens": 0
+      },
+      "retrieval": null,
+      "output": {
+        "dishName": "疑似香菇土豆焖鸡（黄焖鸡风味）",
+        "confidence": 0.9,
+        "dishType": "砂锅焖菜",
+        "coreTaste": "咸鲜浓郁、酱香微甜、鸡肉软嫩、土豆绵软",
+        "likelyIngredients": [
+          "带骨鸡块（鸡腿或鸡翅根）",
+          "土豆",
+          "鲜香菇",
+          "青椒",
+          "生姜",
+          "蒜",
+          "生抽",
+          "老抽",
+          "料酒",
+          "白糖或冰糖"
+        ],
+        "optionalIngredients": [
+          "干香菇",
+          "洋葱",
+          "小米椒或干辣椒",
+          "蚝油",
+          "八角",
+          "香叶",
+          "鸡精或白胡椒粉"
+        ],
+        "requiredTools": [
+          "炒锅或砂锅",
+          "锅铲",
+          "菜刀",
+          "砧板"
+        ],
+        "estimatedTime": "45—60 分钟",
+        "difficulty": "中等",
+        "visualEvidence": [
+          "黑色砂锅中盛放酱色焖鸡块",
+          "可见大块土豆、整朵或对半鲜香菇及青椒块",
+          "汤汁呈浓稠油亮的棕褐色，符合酱烧焖制菜肴特征",
+          "鸡块带骨且表面裹有浓汁"
+        ],
+        "warnings": [
+          "图片无法确认鸡肉具体部位，以及是否使用黄焖鸡酱、豆瓣酱或香料包。",
+          "青椒应在收汁前短时间加入，避免久焖发黄变软；土豆需控制焖煮时间以免碎烂。",
+          "鸡块须彻底焖熟，带骨部位中心无血水。"
+        ]
+      },
+      "failureTypes": []
+    }
+  ]
+}

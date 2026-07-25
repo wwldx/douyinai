@@ -1,0 +1,380 @@
+.dev-shell {
+  width: min(1440px, 100%);
+  margin: 0 auto;
+  padding: 24px;
+}
+
+.dev-topbar,
+.dev-section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.dev-nav {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.dev-nav a,
+.dev-nav span,
+.dev-meta,
+.dev-status {
+  border: 1px solid rgba(47, 111, 94, 0.28);
+  border-radius: 999px;
+  background: var(--green-soft);
+  color: var(--green);
+  font-size: 13px;
+  font-weight: 800;
+  padding: 9px 12px;
+  text-decoration: none;
+}
+
+.dev-grid {
+  display: grid;
+  grid-template-columns: minmax(320px, 430px) minmax(360px, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.dev-panel {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: var(--shadow);
+  padding: 18px;
+}
+
+.dev-panel.wide {
+  grid-column: 1 / -1;
+}
+
+.dev-upload {
+  min-height: 280px;
+}
+
+.dev-status {
+  display: block;
+  margin-top: 12px;
+  border-radius: 8px;
+  line-height: 1.5;
+}
+
+.dev-profile {
+  margin-top: 14px;
+}
+
+.dev-retrieval-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 8px;
+  margin: 10px 0;
+}
+
+.dev-retrieval-row label {
+  display: grid;
+  gap: 5px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.dev-retrieval-row select {
+  min-width: 0;
+  min-height: 38px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--ink);
+  padding: 0 8px;
+}
+
+.dev-meta {
+  display: inline-flex;
+  margin: 12px 0 0;
+  border-radius: 8px;
+}
+
+.target-focus-row {
+  display: grid;
+  grid-template-columns: 110px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.target-focus-row select {
+  min-width: 0;
+  min-height: 40px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--ink);
+  padding: 0 10px;
+}
+
+.target-focus-row select:disabled {
+  background: #f1eee8;
+  color: var(--muted);
+}
+
+.json-view {
+  min-height: 240px;
+  max-height: 440px;
+  overflow: auto;
+  margin: 12px 0 0;
+  border: 1px solid #2b332f;
+  border-radius: 8px;
+  background: #171b19;
+  color: #d8f2e3;
+  font-size: 12px;
+  line-height: 1.6;
+  padding: 14px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.life-log-dev-layout {
+  display: grid;
+  grid-template-columns: minmax(260px, 360px) minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.life-log-dev-inputs,
+.life-log-dev-inputs label {
+  display: grid;
+  gap: 8px;
+}
+
+.life-log-dev-inputs {
+  gap: 12px;
+}
+
+.life-log-dev-inputs label span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.life-log-dev-inputs input {
+  min-width: 0;
+  min-height: 40px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--ink);
+  padding: 8px 10px;
+}
+
+.life-log-dev-inputs img {
+  display: none;
+  width: min(240px, 100%);
+  aspect-ratio: 4 / 3;
+  border-radius: 8px;
+  object-fit: cover;
+}
+
+.life-log-dev-inputs p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.life-log-json {
+  margin-top: 0;
+}
+
+.review-boundary {
+  margin: -4px 0 14px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.review-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.review-summary span {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  min-height: 54px;
+  border-bottom: 2px solid rgba(47, 111, 94, 0.2);
+  color: var(--muted);
+  padding: 8px 4px;
+  font-size: 12px;
+}
+
+.review-summary strong {
+  color: var(--green);
+  font-size: 24px;
+}
+
+.review-layout {
+  display: grid;
+  grid-template-columns: minmax(250px, 0.72fr) minmax(0, 1.28fr);
+  gap: 18px;
+}
+
+.review-layout h3 {
+  margin: 0 0 10px;
+  font-size: 14px;
+}
+
+.review-users > div,
+.review-provenance > div {
+  display: grid;
+  gap: 8px;
+}
+
+.review-users button {
+  display: grid;
+  gap: 4px;
+  width: 100%;
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--ink);
+  padding: 10px;
+  text-align: left;
+}
+
+.review-users button.active {
+  border-color: var(--green);
+  background: var(--green-soft);
+}
+
+.review-users button span,
+.review-users button small {
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.review-source-group {
+  display: grid;
+  gap: 7px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--line);
+}
+
+.review-source-group > div:first-child {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.review-source-group h4,
+.review-source-group p {
+  margin: 0;
+}
+
+.review-source-group ul {
+  display: grid;
+  gap: 5px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.review-source-group li {
+  display: grid;
+  grid-template-columns: minmax(100px, 0.55fr) minmax(0, 1.45fr);
+  gap: 8px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.review-source-group li span,
+.review-source-group p {
+  color: var(--muted);
+}
+
+.review-source-tag {
+  flex: 0 0 auto;
+  border-radius: 999px;
+  padding: 4px 7px;
+  font-size: 10px;
+  font-weight: 850;
+}
+
+.review-source-tag.seed {
+  background: var(--yellow-soft);
+  color: #735d1f;
+}
+
+.review-source-tag.event {
+  background: #edf1fb;
+  color: #40558d;
+}
+
+.review-source-tag.rule {
+  background: var(--green-soft);
+  color: var(--green);
+}
+
+.review-raw {
+  margin-top: 16px;
+}
+
+.review-raw summary {
+  cursor: pointer;
+  color: var(--green);
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.review-raw .json-view {
+  min-height: 180px;
+}
+
+@media (max-width: 900px) {
+  .dev-shell {
+    padding: 16px;
+  }
+
+  .dev-topbar,
+  .dev-section-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .dev-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .dev-retrieval-row {
+    grid-template-columns: 1fr;
+  }
+
+  .target-focus-row {
+    grid-template-columns: 1fr;
+  }
+
+  .life-log-dev-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .review-summary,
+  .review-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .review-source-group li {
+    grid-template-columns: 1fr;
+    gap: 2px;
+  }
+}

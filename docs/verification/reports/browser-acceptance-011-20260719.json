@@ -1,0 +1,250 @@
+{
+  "generatedAt": "2026-07-18T20:49:04.656Z",
+  "baseUrl": "http://127.0.0.1:4182",
+  "viewportMatrix": [
+    "1280x720",
+    "390x844"
+  ],
+  "passed": 47,
+  "total": 47,
+  "failed": 0,
+  "checks": [
+    {
+      "name": "首页 HTTP 200",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "页面标题",
+      "passed": true,
+      "detail": "今晚开饭 - 视觉晚餐助手"
+    },
+    {
+      "name": "home desktop 无横向溢出",
+      "passed": true,
+      "detail": "{\"viewport\":1280,\"documentWidth\":1280,\"bodyWidth\":1280}"
+    },
+    {
+      "name": "home 390px 无横向溢出",
+      "passed": true,
+      "detail": "{\"viewport\":390,\"documentWidth\":390,\"bodyWidth\":390}"
+    },
+    {
+      "name": "Feed 入口 唯一",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "示例黄焖鸡按钮 唯一",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "示例菜名与素材一致",
+      "passed": true,
+      "detail": "我早餐想吃黄焖鸡"
+    },
+    {
+      "name": "feed-dish desktop 无横向溢出",
+      "passed": true,
+      "detail": "{\"viewport\":1280,\"documentWidth\":1280,\"bodyWidth\":1280}"
+    },
+    {
+      "name": "feed-dish 390px 无横向溢出",
+      "passed": true,
+      "detail": "{\"viewport\":390,\"documentWidth\":390,\"bodyWidth\":390}"
+    },
+    {
+      "name": "下一步看冰箱 唯一",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "示例冰箱按钮 唯一",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "识别冰箱按钮 唯一",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "inventory desktop 无横向溢出",
+      "passed": true,
+      "detail": "{\"viewport\":1280,\"documentWidth\":1280,\"bodyWidth\":1280}"
+    },
+    {
+      "name": "inventory 390px 无横向溢出",
+      "passed": true,
+      "detail": "{\"viewport\":390,\"documentWidth\":390,\"bodyWidth\":390}"
+    },
+    {
+      "name": "局部补拍保留或合并库存",
+      "passed": true,
+      "detail": "补拍后新确认：可口可乐罐装饮料、百事可乐、柠檬、卷心菜、花椰菜、白萝卜、绿叶蔬菜、亨氏番茄酱。已并入当前库存，请再点选确认。"
+    },
+    {
+      "name": "生成目标菜方案按钮 唯一",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "result desktop 无横向溢出",
+      "passed": true,
+      "detail": "{\"viewport\":1280,\"documentWidth\":1280,\"bodyWidth\":1280}"
+    },
+    {
+      "name": "result 390px 无横向溢出",
+      "passed": true,
+      "detail": "{\"viewport\":390,\"documentWidth\":390,\"bodyWidth\":390}"
+    },
+    {
+      "name": "最近确认库存快照",
+      "passed": true,
+      "detail": "16 items @ 2026-07-18T20:47:34.065Z"
+    },
+    {
+      "name": "调整条件按钮 唯一",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "查看当前方案按钮 唯一",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "结果与库存阶段往返保留当前方案",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "补购重规划进入方案历史",
+      "passed": true,
+      "detail": "本次已保留 2 个方案 最多保留最近 3 个，可以直接切回 方案 1 黄焖鸡 方案 2 黄焖鸡"
+    },
+    {
+      "name": "shopping-replan desktop 无横向溢出",
+      "passed": true,
+      "detail": "{\"viewport\":1280,\"documentWidth\":1280,\"bodyWidth\":1280}"
+    },
+    {
+      "name": "shopping-replan 390px 无横向溢出",
+      "passed": true,
+      "detail": "{\"viewport\":390,\"documentWidth\":390,\"bodyWidth\":390}"
+    },
+    {
+      "name": "展开做饭救援 唯一",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "救援固定样例 唯一",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "rescue-form desktop 无横向溢出",
+      "passed": true,
+      "detail": "{\"viewport\":1280,\"documentWidth\":1280,\"bodyWidth\":1280}"
+    },
+    {
+      "name": "rescue-form 390px 无横向溢出",
+      "passed": true,
+      "detail": "{\"viewport\":390,\"documentWidth\":390,\"bodyWidth\":390}"
+    },
+    {
+      "name": "开始救援按钮 唯一",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "rescue-result desktop 无横向溢出",
+      "passed": true,
+      "detail": "{\"viewport\":1280,\"documentWidth\":1280,\"bodyWidth\":1280}"
+    },
+    {
+      "name": "rescue-result 390px 无横向溢出",
+      "passed": true,
+      "detail": "{\"viewport\":390,\"documentWidth\":390,\"bodyWidth\":390}"
+    },
+    {
+      "name": "没改善二轮入口 唯一",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "二轮复查按钮 唯一",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "做饭救援最多两轮闭环",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "rescue-round2 desktop 无横向溢出",
+      "passed": true,
+      "detail": "{\"viewport\":1280,\"documentWidth\":1280,\"bodyWidth\":1280}"
+    },
+    {
+      "name": "rescue-round2 390px 无横向溢出",
+      "passed": true,
+      "detail": "{\"viewport\":390,\"documentWidth\":390,\"bodyWidth\":390}"
+    },
+    {
+      "name": "展开生活记录 唯一",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "生活记录示例 唯一",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "生成生活记录草稿 唯一",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "生活记录可编辑草稿",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "life-log desktop 无横向溢出",
+      "passed": true,
+      "detail": "{\"viewport\":1280,\"documentWidth\":1280,\"bodyWidth\":1280}"
+    },
+    {
+      "name": "life-log 390px 无横向溢出",
+      "passed": true,
+      "detail": "{\"viewport\":390,\"documentWidth\":390,\"bodyWidth\":390}"
+    },
+    {
+      "name": "开发检验台",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "运维台",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "011 健康版本",
+      "passed": true,
+      "detail": "{\"enabled\":false,\"backend\":\"cloudbase\",\"state\":\"disabled\",\"captureContent\":false,\"retentionDays\":7,\"collection\":\"agent_runs\",\"adminApiEnabled\":false,\"appVersion\":\"011\",\"lastWriteAt\":null,\"lastErrorAt\":null,\"lastErrorCode\":null}"
+    },
+    {
+      "name": "展示端隐藏内部模型信息",
+      "passed": true,
+      "detail": ""
+    }
+  ],
+  "consoleErrors": [],
+  "pageErrors": []
+}

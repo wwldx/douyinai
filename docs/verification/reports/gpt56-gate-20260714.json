@@ -1,0 +1,67 @@
+{
+  "generatedAt": "2026-07-14T11:04:55.173Z",
+  "baseUrl": "http://localhost:4182",
+  "selection": {
+    "suite": "all",
+    "preset": null,
+    "caseIds": [
+      "target-huangmenji-missing-chicken"
+    ],
+    "limit": null,
+    "requireModelSource": false
+  },
+  "total": 1,
+  "passed": 1,
+  "failed": 0,
+  "passRate": 1,
+  "latencyMs": {
+    "average": 62977,
+    "p50": 62977,
+    "p95": 62977,
+    "vision": {
+      "count": 0,
+      "average": 0,
+      "p50": 0,
+      "p95": 0
+    },
+    "planning": {
+      "count": 1,
+      "average": 62977,
+      "p50": 62977,
+      "p95": 62977
+    }
+  },
+  "sourceCounts": {
+    "model": 1
+  },
+  "failureCounts": {},
+  "metrics": {
+    "visionSchemaRate": 0,
+    "planningSchemaRate": 1,
+    "planningActionRate": 1,
+    "planningSafetyRate": 1
+  },
+  "results": [
+    {
+      "id": "target-huangmenji-missing-chicken",
+      "suite": "planning",
+      "endpoint": "/api/plan-target-dish",
+      "durationMs": 62977,
+      "status": 200,
+      "requestId": "690231c3-e690-4b34-81fc-1c1821288dca",
+      "serverTiming": "retrieval;dur=1, planning;dur=62882",
+      "passed": true,
+      "failures": [],
+      "metrics": {
+        "schemaValid": true,
+        "actionValid": true,
+        "requiredHit": true,
+        "forbiddenSafe": true,
+        "missingHit": true
+      },
+      "action": "shop_then_cook",
+      "source": "model",
+      "failureTypes": []
+    }
+  ]
+}
