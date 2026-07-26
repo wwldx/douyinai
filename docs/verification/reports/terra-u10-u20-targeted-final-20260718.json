@@ -1,0 +1,142 @@
+{
+  "generatedAt": "2026-07-18T13:50:01.231Z",
+  "baseUrl": "http://127.0.0.1:4181",
+  "modelCalls": 2,
+  "passed": 2,
+  "total": 2,
+  "results": {
+    "lifeLog": {
+      "status": 200,
+      "durationMs": 26648,
+      "requestId": "7e059f27-061a-463d-8b6a-f5655e55730d",
+      "serverTiming": "draft;dur=26563",
+      "payload": {
+        "provider": "rightcode_responses_stream",
+        "model": "gpt-5.6-terra",
+        "agent": "lifeLogDraftAgent",
+        "source": "model",
+        "cache": null,
+        "modelError": null,
+        "usage": {
+          "inputTokens": 2360,
+          "outputTokens": 868,
+          "totalTokens": 3228,
+          "cachedInputTokens": 0,
+          "reasoningTokens": 0
+        },
+        "lifeLog": {
+          "dishName": "黄焖鸡",
+          "confidence": 0.98,
+          "visualSummary": "黑色砂锅置于木桌上，棕褐色汤汁包裹鸡块和土豆块，搭配绿色椒块与深色香菇，整体色泽明亮有光泽。",
+          "titleOptions": [
+            "一锅黄焖鸡上桌",
+            "今天的黄焖鸡",
+            "砂锅里的家常菜"
+          ],
+          "coverText": "黄焖鸡上桌",
+          "voiceoverDraft": "今天这一锅黄焖鸡装进黑砂锅，鸡块、土豆、青椒和香菇都在镜头里。记录一份刚完成的家常饭。",
+          "suggestedShots": [
+            {
+              "shot": "补拍砂锅成品的俯拍镜头，缓慢环绕展示整体摆盘。",
+              "onScreenText": "黄焖鸡上桌"
+            },
+            {
+              "shot": "补拍筷子夹起一块鸡肉或土豆的近景，画面聚焦食材表面的酱汁光泽。",
+              "onScreenText": "鸡块和土豆"
+            },
+            {
+              "shot": "补拍从砂锅边缘推进至青椒、香菇和鸡块的特写镜头。",
+              "onScreenText": "一锅家常菜"
+            },
+            {
+              "shot": "补拍木桌与砂锅的静态收尾镜头，可保留自然环境声。",
+              "onScreenText": "今日份记录"
+            }
+          ],
+          "tags": [
+            "#黄焖鸡",
+            "#家常菜",
+            "#下厨日记",
+            "#美食记录",
+            "#砂锅菜"
+          ],
+          "warnings": [
+            "草稿需由用户确认并编辑后再发布。",
+            "镜头列表均为后续补拍建议，请以实际拍摄内容为准。"
+          ]
+        },
+        "trace": {
+          "totalMs": 26563,
+          "source": "model"
+        }
+      },
+      "assessment": {
+        "passed": true,
+        "failures": []
+      }
+    },
+    "unknownStepRescue": {
+      "status": 200,
+      "durationMs": 24504,
+      "requestId": "f1963dc9-cc28-4739-a332-a33da4204507",
+      "serverTiming": "rescue;dur=24414",
+      "payload": {
+        "provider": "rightcode_responses_stream",
+        "model": "gpt-5.6-terra",
+        "agent": "dishRescueAgent",
+        "source": "model",
+        "cache": null,
+        "modelError": null,
+        "usage": {
+          "inputTokens": 2397,
+          "outputTokens": 412,
+          "totalTokens": 2809,
+          "cachedInputTokens": 0,
+          "reasoningTokens": 0
+        },
+        "dishRescue": {
+          "actions": [
+            {
+              "check": "锅中番茄和鸡蛋已经混在一起，汤汁较多、未见明显焦糊。",
+              "instruction": "先开中火，不加水也不加调料，用锅铲每隔几秒轻轻翻动一次，让汤汁保持均匀沸腾并开始收浓。",
+              "title": "立即收汁"
+            },
+            {
+              "check": "观察锅铲划过锅底后，汤汁能短暂露出锅底，且不再像清水一样迅速流平。",
+              "instruction": "达到这个状态就关小火，先不要继续收。",
+              "title": "用稠度确认"
+            },
+            {
+              "check": "收汁后再尝一小口汤汁；如果确认鸡蛋已按可靠方式熟透，再决定是否需要少量分次补盐或其他调味。",
+              "instruction": "一次只补一种调味，拌匀后再尝。",
+              "title": "后续调味"
+            }
+          ],
+          "askUser": "请确认刚完成的最后一个动作；如果仍说不清，先按上面的观察点只做一步再回来复查。",
+          "assessment": {
+            "category": "next_step",
+            "confidence": "medium",
+            "likelyIssue": "看起来已进入鸡蛋回锅与番茄合炒后的收汁阶段，目前主要是汤汁偏多。",
+            "needsConfirmation": true
+          },
+          "boundaryReminder": "照片只能判断汤汁和形态，无法判断咸淡或鸡蛋是否完全熟透；鸡蛋熟度请按可靠烹饪方式自行确认。",
+          "headline": "现在最稳妥的一步：中火轻翻，先把番茄汤汁收浓。",
+          "nextStep": "中火收汁，直到锅铲划过后锅底能短暂露出，再转小火。",
+          "visualObservations": [
+            "番茄块和鸡蛋已混合，符合合炒阶段。",
+            "锅内有较多橙红色汤汁，整体偏稀。",
+            "未见明显焦黑或粘底迹象。"
+          ]
+        },
+        "trace": {
+          "totalMs": 24414,
+          "source": "model"
+        }
+      },
+      "assessment": {
+        "passed": true,
+        "failures": []
+      }
+    }
+  }
+}

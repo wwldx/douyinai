@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex,nofollow" />
+    <title>Agent 运行记录</title>
+    <link rel="stylesheet" href="/ops.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div>
+        <p>今晚开饭 · 运维</p>
+        <h1>Agent 运行记录</h1>
+      </div>
+      <span id="connectionBadge" class="status-badge idle">未连接</span>
+    </header>
+
+    <main>
+      <section class="auth-strip" aria-label="管理员连接">
+        <label>
+          <span>管理员令牌</span>
+          <input id="tokenInput" type="password" autocomplete="off" placeholder="AGENT_RUNS_ADMIN_TOKEN" />
+        </label>
+        <button id="connectButton" class="primary" type="button">连接</button>
+        <button id="refreshButton" type="button" disabled>刷新</button>
+        <button id="clearExpiredButton" type="button" disabled>清理过期</button>
+        <button id="clearAllButton" class="danger" type="button" disabled>清空全部</button>
+      </section>
+
+      <p id="message" class="message" role="status"></p>
+
+      <section class="metrics" aria-label="运行概览">
+        <div><span>记录数</span><strong id="runCount">0</strong></div>
+        <div><span>成功率</span><strong id="successRate">-</strong></div>
+        <div><span>平均耗时</span><strong id="averageLatency">-</strong></div>
+        <div><span>采集级别</span><strong id="captureMode">-</strong></div>
+        <div><span>存储状态</span><strong id="storeState">-</strong></div>
+      </section>
+
+      <section class="filters" aria-label="筛选运行记录">
+        <input id="searchInput" type="search" placeholder="搜索请求 ID、会话、路由或来源" />
+        <select id="routeFilter" aria-label="按路由筛选">
+          <option value="">全部路由</option>
+        </select>
+        <select id="statusFilter" aria-label="按状态筛选">
+          <option value="">全部状态</option>
+          <option value="success">成功</option>
+          <option value="error">失败</option>
+        </select>
+      </section>
+
+      <section class="table-shell" aria-label="运行记录表格">
+        <table>
+          <thead>
+            <tr>
+              <th>时间</th>
+              <th>路由</th>
+              <th>来源</th>
+              <th>状态</th>
+              <th>耗时</th>
+              <th>输入 / 输出摘要</th>
+              <th>请求</th>
+            </tr>
+          </thead>
+          <tbody id="runRows"></tbody>
+        </table>
+        <p id="emptyState" class="empty">连接后显示最近运行记录。</p>
+      </section>
+
+      <section id="detailPanel" class="detail-panel" hidden>
+        <div class="detail-heading">
+          <div>
+            <span>结构化详情</span>
+            <strong id="detailTitle"></strong>
+          </div>
+          <button id="closeDetailButton" type="button" aria-label="关闭详情">关闭</button>
+        </div>
+        <pre id="detailJson"></pre>
+      </section>
+    </main>
+
+    <script type="module" src="/ops.js"></script>
+  </body>
+</html>

@@ -4,5 +4,10 @@ dist/
 build/
 .env
 .env.*
+!.env.example
 *.log
-
+data/local-users/
+data/local-cache/
+data/local-agent-runs/
+data/eval-results/
+临时存放/

@@ -1,0 +1,170 @@
+[
+  {
+    "id": "zone-01-top",
+    "input": { "inventory": [{ "name": "牛奶", "category": "蛋奶", "notes": "上层左侧" }] },
+    "expectedZones": { "牛奶": "top" },
+    "expectedSuggestions": []
+  },
+  {
+    "id": "zone-02-middle",
+    "input": { "inventory": [{ "name": "番茄", "category": "蔬菜", "notes": "中层右侧" }] },
+    "expectedZones": { "番茄": "middle" },
+    "expectedSuggestions": []
+  },
+  {
+    "id": "zone-03-bottom",
+    "input": { "inventory": [{ "name": "白菜", "category": "蔬菜", "notes": "右下层托盘" }] },
+    "expectedZones": { "白菜": "bottom" },
+    "expectedSuggestions": []
+  },
+  {
+    "id": "zone-04-crisper-specific",
+    "input": { "inventory": [{ "name": "胡萝卜", "category": "蔬菜", "notes": "底部右侧抽屉" }] },
+    "expectedZones": { "胡萝卜": "crisper" },
+    "expectedSuggestions": []
+  },
+  {
+    "id": "zone-05-door",
+    "input": { "inventory": [{ "name": "果汁", "category": "饮料", "notes": "门架右侧" }] },
+    "expectedZones": { "果汁": "door" },
+    "expectedSuggestions": []
+  },
+  {
+    "id": "zone-06-freezer",
+    "input": { "inventory": [{ "name": "速冻饺子", "category": "速食", "notes": "冷冻室下层" }] },
+    "expectedZones": { "速冻饺子": "freezer" },
+    "expectedSuggestions": []
+  },
+  {
+    "id": "zone-07-ambiguous-door-shelf",
+    "input": { "inventory": [{ "name": "饮料", "category": "饮料", "notes": "门架和上层" }] },
+    "expectedZones": { "饮料": "unknown" },
+    "expectedSuggestions": []
+  },
+  {
+    "id": "zone-08-ambiguous-levels",
+    "input": { "inventory": [{ "name": "苹果", "category": "其他", "notes": "中层和下层" }] },
+    "expectedZones": { "苹果": "unknown" },
+    "expectedSuggestions": []
+  },
+  {
+    "id": "zone-09-priority-front",
+    "input": {
+      "inventory": [{ "name": "豆腐", "category": "蛋白质", "notes": "下层左侧" }],
+      "itemStates": [{ "name": "豆腐", "status": "opened" }]
+    },
+    "expectedZones": { "豆腐": "bottom" },
+    "expectedSuggestions": [{ "item": "豆腐", "type": "same_zone_front", "suggestedZone": "bottom" }],
+    "expectedLayout": [{ "item": "豆腐", "beforeZone": "bottom", "afterZone": "bottom", "moved": true }]
+  },
+  {
+    "id": "zone-10-already-front",
+    "input": {
+      "inventory": [{ "name": "番茄", "category": "蔬菜", "notes": "中层前方" }],
+      "itemStates": [{ "name": "番茄", "status": "label_soon" }]
+    },
+    "expectedZones": { "番茄": "middle" },
+    "expectedSuggestions": []
+  },
+  {
+    "id": "zone-11-priority-unknown",
+    "input": {
+      "inventory": [{ "name": "酸奶", "category": "蛋奶", "notes": "包装后方" }],
+      "itemStates": [{ "name": "酸奶", "status": "opened" }]
+    },
+    "expectedZones": { "酸奶": "unknown" },
+    "expectedSuggestions": []
+  },
+  {
+    "id": "zone-12-egg-confirm-first",
+    "input": {
+      "inventory": [
+        { "name": "鸡蛋", "category": "蛋奶", "notes": "门架右侧" },
+        { "name": "牛奶", "category": "蛋奶", "notes": "中层左侧" }
+      ]
+    },
+    "expectedZones": { "鸡蛋": "door", "牛奶": "middle" },
+    "expectedSuggestions": [{ "item": "鸡蛋", "type": "confirm_first", "suggestedZone": "middle" }],
+    "expectedLayout": [{ "item": "鸡蛋", "beforeZone": "door", "afterZone": "door", "moved": false }]
+  },
+  {
+    "id": "zone-13-egg-move",
+    "input": {
+      "inventory": [
+        { "name": "鸡蛋", "category": "蛋奶", "notes": "门架右侧" },
+        { "name": "牛奶", "category": "蛋奶", "notes": "中层左侧" }
+      ],
+      "storageConfirmations": [{ "name": "鸡蛋", "confirmation": "original_carton" }]
+    },
+    "expectedZones": { "鸡蛋": "door", "牛奶": "middle" },
+    "expectedSuggestions": [{ "item": "鸡蛋", "type": "move_zone", "suggestedZone": "middle" }],
+    "expectedLayout": [{ "item": "鸡蛋", "beforeZone": "door", "afterZone": "middle", "moved": true }]
+  },
+  {
+    "id": "zone-14-raw-confirm-first",
+    "input": {
+      "inventory": [
+        { "name": "鸡胸肉", "category": "蛋白质", "notes": "上层左侧" },
+        { "name": "白菜", "category": "蔬菜", "notes": "下层右侧" }
+      ]
+    },
+    "expectedZones": { "鸡胸肉": "top", "白菜": "bottom" },
+    "expectedSuggestions": [{ "item": "鸡胸肉", "type": "confirm_first", "suggestedZone": "bottom" }]
+  },
+  {
+    "id": "zone-15-raw-move",
+    "input": {
+      "inventory": [
+        { "name": "鸡胸肉", "category": "蛋白质", "notes": "上层左侧" },
+        { "name": "白菜", "category": "蔬菜", "notes": "下层右侧" }
+      ],
+      "storageConfirmations": [{ "name": "鸡胸肉", "confirmation": "raw_sealed_leakproof" }]
+    },
+    "expectedZones": { "鸡胸肉": "top", "白菜": "bottom" },
+    "expectedSuggestions": [{ "item": "鸡胸肉", "type": "move_zone", "suggestedZone": "bottom" }],
+    "expectedLayout": [{ "item": "鸡胸肉", "beforeZone": "top", "afterZone": "bottom", "moved": true }]
+  },
+  {
+    "id": "zone-16-produce-crisper",
+    "input": {
+      "inventory": [
+        { "name": "胡萝卜", "category": "蔬菜", "notes": "中层左侧" },
+        { "name": "生菜", "category": "蔬菜", "notes": "底部抽屉" }
+      ],
+      "storageConfirmations": [{ "name": "胡萝卜", "confirmation": "uncut_produce" }]
+    },
+    "expectedZones": { "胡萝卜": "middle", "生菜": "crisper" },
+    "expectedSuggestions": [{ "item": "胡萝卜", "type": "move_zone", "suggestedZone": "crisper" }],
+    "expectedLayout": [{ "item": "胡萝卜", "beforeZone": "middle", "afterZone": "crisper", "moved": true }]
+  },
+  {
+    "id": "zone-17-max-three",
+    "input": {
+      "inventory": [
+        { "name": "豆腐", "category": "其他", "notes": "上层左侧" },
+        { "name": "牛奶", "category": "蛋奶", "notes": "中层左侧" },
+        { "name": "酸奶", "category": "蛋奶", "notes": "下层左侧" },
+        { "name": "玉米", "category": "其他", "notes": "下层右侧" }
+      ],
+      "itemStates": [
+        { "name": "豆腐", "status": "opened" },
+        { "name": "牛奶", "status": "opened" },
+        { "name": "酸奶", "status": "label_soon" },
+        { "name": "玉米", "status": "opened_label_soon" }
+      ]
+    },
+    "expectedZones": { "豆腐": "top", "牛奶": "middle", "酸奶": "bottom", "玉米": "bottom" },
+    "expectedSuggestionCount": 3
+  },
+  {
+    "id": "zone-18-no-tofu-raw-inference",
+    "input": {
+      "inventory": [
+        { "name": "豆腐", "category": "蛋白质", "notes": "上层左侧" },
+        { "name": "白菜", "category": "蔬菜", "notes": "下层右侧" }
+      ]
+    },
+    "expectedZones": { "豆腐": "top", "白菜": "bottom" },
+    "expectedSuggestions": []
+  }
+]

@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>冰箱晚餐 Agent 开发检验台</title>
+    <link rel="stylesheet" href="./styles.css" />
+    <link rel="stylesheet" href="./dev.css" />
+  </head>
+  <body>
+    <main class="dev-shell">
+      <header class="dev-topbar">
+        <div>
+          <p class="eyebrow">开发检验台</p>
+          <h1>冰箱晚餐 Agent 链路检查</h1>
+        </div>
+        <nav class="dev-nav" aria-label="页面切换">
+          <a href="./">展示界面</a>
+          <span id="healthBadge">检查服务中</span>
+        </nav>
+      </header>
+
+      <section class="dev-grid" aria-label="调试流程">
+        <section class="dev-panel">
+          <div class="panel-heading">
+            <div>
+              <p class="section-kicker">Step 1</p>
+              <h2>上传原图</h2>
+            </div>
+          </div>
+          <div class="upload-zone dev-upload">
+            <input id="fridgeUpload" type="file" accept="image/*" />
+            <div class="upload-copy">
+              <span class="upload-icon" aria-hidden="true">+</span>
+              <strong>选择冰箱图片</strong>
+              <span>建议使用 assets/fridge-images 的图片测试</span>
+            </div>
+            <img id="uploadPreview" alt="上传的冰箱照片预览" />
+          </div>
+          <div class="agent-actions">
+            <button class="primary-button" id="analyzeButton" type="button" disabled>调用视觉识别</button>
+            <button class="primary-button secondary" id="planButton" type="button" disabled>调用晚餐规划</button>
+            <button class="primary-button tertiary" id="organizationButton" type="button" disabled>检查粗分区</button>
+            <button class="primary-button tertiary" id="cacheVisionButton" type="button" disabled>加载上次识别</button>
+          </div>
+          <section class="target-dish-card" aria-label="目标菜复刻规划">
+            <div>
+              <p class="section-kicker">目标菜复刻</p>
+              <h2>刷到想吃的，先看能不能做</h2>
+            </div>
+            <div class="target-upload-zone">
+              <input id="targetDishUpload" type="file" accept="image/*" />
+              <div class="upload-copy">
+                <span class="upload-icon" aria-hidden="true">+</span>
+                <strong>选择目标菜图</strong>
+                <span>用于识别菜名和关键材料</span>
+              </div>
+              <img id="targetDishPreview" alt="上传的目标菜图片预览" />
+            </div>
+            <div class="target-dish-guess" id="targetDishGuess">可直接输入目标菜，也可以上传菜图后点击「识别目标菜」。</div>
+            <textarea id="targetDishText" rows="3">我今晚想吃番茄牛腩</textarea>
+            <div class="voice-input-row">
+              <button class="voice-button" id="targetVoiceButton" type="button">语音输入</button>
+              <span id="targetVoiceStatus">可说出想吃的菜或补充要求。</span>
+            </div>
+            <label class="target-focus-row">
+              <span>画面关键食材</span>
+              <select id="targetIngredientFocus" aria-label="画面关键食材" disabled>
+                <option value="">识别目标菜后选择</option>
+              </select>
+            </label>
+            <div class="target-controls">
+              <select id="targetDishTime" aria-label="目标时间">
+                <option value="tonight">今晚</option>
+                <option value="tomorrow">明天</option>
+                <option value="this_week">这周</option>
+              </select>
+              <button class="primary-button" id="targetDishAnalyzeButton" type="button" disabled>识别目标菜</button>
+              <button class="primary-button secondary" id="targetDishButton" type="button" disabled>调用目标菜规划</button>
+            </div>
+          </section>
+          <div class="dev-status" id="statusText">等待上传图片。</div>
+          <div class="dev-profile">
+            <p class="section-kicker">用户画像 MVP</p>
+            <label class="user-select-row">
+              <span>演示用户</span>
+              <select id="userSelect"></select>
+            </label>
+            <div class="dev-retrieval-row">
+              <label>
+                <span>检索模式</span>
+                <select id="retrievalMode">
+                  <option value="off">V0 无检索</option>
+                  <option value="positive">V1 仅正例</option>
+                  <option value="contrast" selected>V1.1 正反例</option>
+                </select>
+              </label>
+              <label>
+                <span>预览路线</span>
+                <select id="retrievalRoute">
+                  <option value="target" selected>目标菜路线</option>
+                  <option value="dinner">自由晚餐路线</option>
+                </select>
+              </label>
+              <button class="small-button" id="retrievalPreviewButton" type="button">只看 Top-K</button>
+            </div>
+            <div class="trait-list" id="profileTraits"></div>
+            <div class="feedback-actions" id="feedbackActions"></div>
+          </div>
+        </section>
+
+        <section class="dev-panel">
+          <p class="section-kicker">Step 2</p>
+          <h2>归一化库存与人工确认</h2>
+          <div class="dev-meta" id="visionMeta">暂无模型结果</div>
+          <div class="inventory-list" id="inventoryList">
+            <div class="inventory-empty">识别完成后，食材会出现在这里。勾选结果会作为晚餐规划输入。</div>
+          </div>
+          <div class="uncertain-box" id="uncertainBox">
+            <strong>不确定项与安全边界</strong>
+            <ul><li>暂无。</li></ul>
+          </div>
+        </section>
+
+        <section class="dev-panel wide review-console" aria-label="本机评审数据台">
+          <div class="dev-section-heading">
+            <div>
+              <p class="section-kicker">Local review only</p>
+              <h2>评审数据台</h2>
+            </div>
+            <button class="small-button" id="reviewRefreshButton" type="button">刷新画像数据</button>
+          </div>
+          <p class="review-boundary">只展示内置演示画像与本机会话事件；生产环境不提供此页面、用户列表或画像读取接口。
+          </p>
+          <div class="review-summary" id="reviewSummary">正在读取本机演示数据。</div>
+          <div class="review-layout">
+            <section class="review-users" aria-label="演示用户列表">
+              <h3>演示画像</h3>
+              <div id="reviewUserList"></div>
+            </section>
+            <section class="review-provenance" aria-label="当前画像来源">
+              <h3>当前画像与证据来源</h3>
+              <div id="reviewProfileDetails"></div>
+            </section>
+          </div>
+          <details class="review-raw">
+            <summary>查看当前画像原始 JSON</summary>
+            <pre class="json-view" id="reviewProfileRaw">暂无。</pre>
+          </details>
+        </section>
+
+        <section class="dev-panel wide">
+          <div class="dev-section-heading">
+            <div>
+              <p class="section-kicker">Step 3</p>
+              <h2>视觉识别原始返回</h2>
+            </div>
+            <button class="small-button" data-copy-target="visionRaw" type="button">复制 JSON</button>
+          </div>
+          <pre class="json-view" id="visionRaw">暂无。</pre>
+        </section>
+
+        <section class="dev-panel wide">
+          <div class="dev-section-heading">
+            <div>
+              <p class="section-kicker">Rule evidence</p>
+              <h2>粗分区与移动规则原始返回</h2>
+            </div>
+            <button class="small-button" data-copy-target="organizationRaw" type="button">复制 JSON</button>
+          </div>
+          <pre class="json-view" id="organizationRaw">暂无。先完成视觉识别或加载上次识别，再点击「检查粗分区」。</pre>
+        </section>
+
+        <section class="dev-panel wide">
+          <div class="dev-section-heading">
+            <div>
+              <p class="section-kicker">Step 4</p>
+              <h2>晚餐规划输入与原始返回</h2>
+            </div>
+            <button class="small-button" data-copy-target="planRaw" type="button">复制 JSON</button>
+          </div>
+          <pre class="json-view" id="planRaw">暂无。</pre>
+        </section>
+
+        <section class="dev-panel wide">
+          <div class="dev-section-heading">
+            <div>
+              <p class="section-kicker">Step 5</p>
+              <h2>目标菜图识别与复刻原始返回</h2>
+            </div>
+            <button class="small-button" data-copy-target="targetRaw" type="button">复制 JSON</button>
+          </div>
+          <pre class="json-view" id="targetRaw">暂无。</pre>
+        </section>
+
+        <section class="dev-panel wide">
+          <div class="dev-section-heading">
+            <div>
+              <p class="section-kicker">Step 6</p>
+              <h2>成品图生活记录草稿原始返回</h2>
+            </div>
+            <button class="small-button" data-copy-target="lifeLogRaw" type="button">复制 JSON</button>
+          </div>
+          <div class="life-log-dev-layout">
+            <div class="life-log-dev-inputs">
+              <label>
+                <span>成品图</span>
+                <input id="lifeLogUpload" type="file" accept="image/*" />
+              </label>
+              <label>
+                <span>用户确认菜名</span>
+                <input id="lifeLogMealName" type="text" value="黄焖鸡" maxlength="40" />
+              </label>
+              <img id="lifeLogPreview" alt="成品图预览" />
+              <div class="agent-actions">
+                <button class="primary-button tertiary" id="lifeLogSampleButton" type="button">加载示例黄焖鸡</button>
+                <button class="primary-button" id="lifeLogGenerateButton" type="button" disabled>调用生活记录 Agent</button>
+              </div>
+              <p>只生成待确认草稿；不会自动发布，也不把口感、营养、制作过程或播放量写成事实。</p>
+            </div>
+            <pre class="json-view life-log-json" id="lifeLogRaw">暂无。上传成品图或加载示例后调用。</pre>
+          </div>
+        </section>
+      </section>
+    </main>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <script src="./profile-store.js"></script>
+    <script src="./speech-input.js"></script>
+    <script src="./dev.js"></script>
+  </body>
+</html>

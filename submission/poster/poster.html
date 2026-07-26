@@ -1,0 +1,556 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>今晚开饭 - 大区赛海报</title>
+    <style>
+      :root {
+        --ink: #18231f;
+        --muted: #5e6b65;
+        --line: #dfe5e1;
+        --paper: #f7f8f5;
+        --white: #ffffff;
+        --green: #275f4c;
+        --green-dark: #173c31;
+        --coral: #d9684d;
+        --coral-soft: #f6e2dc;
+        --yellow: #f1d77c;
+        --yellow-soft: #fbf4d8;
+      }
+
+      * { box-sizing: border-box; }
+
+      @page { size: 1800px 2546px; margin: 0; }
+
+      html,
+      body {
+        width: 1800px;
+        height: 2546px;
+        margin: 0;
+        overflow: hidden;
+        background: var(--paper);
+        color: var(--ink);
+        font-family: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", Arial, sans-serif;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+
+      body { position: relative; }
+
+      .poster {
+        width: 1800px;
+        height: 2546px;
+        padding: 74px 84px 62px;
+        display: grid;
+        grid-template-rows: auto auto auto auto 1fr auto;
+        gap: 28px;
+        background:
+          linear-gradient(90deg, var(--green-dark) 0 18px, transparent 18px),
+          var(--paper);
+      }
+
+      .topline {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding-bottom: 24px;
+        border-bottom: 2px solid var(--line);
+      }
+
+      .brand,
+      .track {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        font-size: 24px;
+        font-weight: 700;
+      }
+
+      .brand-dot {
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        background: var(--coral);
+        box-shadow: 0 0 0 8px var(--coral-soft);
+      }
+
+      .track {
+        color: var(--green);
+        font-size: 21px;
+      }
+
+      .hero {
+        display: grid;
+        grid-template-columns: 1.1fr 0.9fr;
+        gap: 58px;
+        align-items: end;
+      }
+
+      .eyebrow {
+        color: var(--green);
+        font-size: 24px;
+        font-weight: 700;
+        margin: 0 0 16px;
+      }
+
+      h1 {
+        margin: 0;
+        max-width: 980px;
+        font-size: 84px;
+        line-height: 1.08;
+        font-weight: 820;
+      }
+
+      .subtitle {
+        margin: 26px 0 0;
+        font-size: 30px;
+        line-height: 1.5;
+        color: var(--muted);
+      }
+
+      .hero-claim {
+        padding: 30px 34px;
+        border-left: 8px solid var(--coral);
+        background: var(--white);
+        font-size: 31px;
+        line-height: 1.52;
+        font-weight: 700;
+      }
+
+      .hero-claim span { color: var(--coral); }
+
+      .trigger-band {
+        display: grid;
+        grid-template-columns: 1fr 112px 1fr 112px 0.92fr;
+        align-items: stretch;
+        min-height: 340px;
+      }
+
+      .trigger-card,
+      .answer-card {
+        position: relative;
+        overflow: hidden;
+        min-width: 0;
+        border: 2px solid var(--line);
+        background: var(--white);
+      }
+
+      .trigger-card img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+        filter: saturate(0.9) contrast(1.02);
+      }
+
+      .trigger-card::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(180deg, transparent 35%, rgba(14, 24, 20, 0.85));
+      }
+
+      .trigger-copy {
+        position: absolute;
+        z-index: 1;
+        left: 30px;
+        right: 30px;
+        bottom: 26px;
+        color: white;
+      }
+
+      .trigger-copy small {
+        display: block;
+        margin-bottom: 8px;
+        font-size: 18px;
+        font-weight: 700;
+        opacity: 0.82;
+      }
+
+      .trigger-copy strong {
+        display: block;
+        font-size: 36px;
+        line-height: 1.22;
+      }
+
+      .arrow {
+        display: grid;
+        place-items: center;
+        color: var(--coral);
+        font-size: 64px;
+        font-weight: 400;
+      }
+
+      .answer-card {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        padding: 34px 36px;
+        border-color: var(--green-dark);
+        background: var(--green-dark);
+        color: white;
+      }
+
+      .answer-card small {
+        color: var(--yellow);
+        font-size: 19px;
+        font-weight: 700;
+      }
+
+      .answer-card strong {
+        margin-top: 12px;
+        font-size: 40px;
+        line-height: 1.25;
+      }
+
+      .answer-card p {
+        margin: 18px 0 0;
+        color: rgba(255,255,255,0.76);
+        font-size: 22px;
+        line-height: 1.5;
+      }
+
+      .section-title {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        margin-bottom: 20px;
+      }
+
+      .section-title h2 {
+        margin: 0;
+        font-size: 38px;
+      }
+
+      .section-title p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 20px;
+      }
+
+      .steps {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 24px;
+      }
+
+      .step {
+        position: relative;
+        min-width: 0;
+        padding: 22px;
+        border: 2px solid var(--line);
+        background: var(--white);
+      }
+
+      .step-number {
+        position: absolute;
+        top: 18px;
+        left: 18px;
+        z-index: 1;
+        width: 50px;
+        height: 50px;
+        display: grid;
+        place-items: center;
+        border-radius: 50%;
+        background: var(--coral);
+        color: white;
+        font-size: 23px;
+        font-weight: 800;
+      }
+
+      .step-image {
+        width: 100%;
+        aspect-ratio: 16 / 9;
+        object-fit: cover;
+        object-position: top;
+        display: block;
+        border: 1px solid var(--line);
+        background: #edf1ee;
+      }
+
+      .step h3 {
+        margin: 20px 0 6px;
+        font-size: 28px;
+      }
+
+      .step p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 20px;
+        line-height: 1.45;
+      }
+
+      .feature-grid {
+        display: grid;
+        grid-template-columns: 1.08fr 0.92fr;
+        gap: 24px;
+        min-height: 0;
+      }
+
+      .rescue,
+      .evidence {
+        min-height: 0;
+        border: 2px solid var(--line);
+        background: var(--white);
+      }
+
+      .rescue {
+        padding: 26px;
+        display: grid;
+        grid-template-columns: 0.82fr 1.18fr;
+        gap: 28px;
+        align-items: center;
+      }
+
+      .rescue-visual {
+        position: relative;
+        height: 100%;
+        min-height: 320px;
+        overflow: hidden;
+        background: var(--coral-soft);
+      }
+
+      .rescue-visual img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+
+      .rescue-copy h2,
+      .evidence h2 {
+        margin: 0;
+        font-size: 40px;
+      }
+
+      .rescue-copy .lead {
+        margin: 16px 0 22px;
+        color: var(--muted);
+        font-size: 22px;
+        line-height: 1.5;
+      }
+
+      .rescue-points {
+        display: grid;
+        gap: 12px;
+      }
+
+      .rescue-point {
+        padding: 14px 16px;
+        background: var(--coral-soft);
+        font-size: 20px;
+        line-height: 1.4;
+      }
+
+      .rescue-point strong { color: #9f432f; }
+
+      .boundary {
+        margin-top: 18px;
+        padding: 14px 16px;
+        border-left: 5px solid var(--yellow);
+        background: var(--yellow-soft);
+        font-size: 18px;
+        line-height: 1.45;
+      }
+
+      .evidence {
+        padding: 26px;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .flowline {
+        margin: 14px 0 18px;
+        padding: 14px 16px;
+        background: var(--green-dark);
+        color: white;
+        font-size: 19px;
+        font-weight: 700;
+        line-height: 1.5;
+      }
+
+      .evidence-list {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+
+      .evidence-item {
+        padding: 13px;
+        border: 1px solid var(--line);
+        min-height: 88px;
+      }
+
+      .evidence-item strong {
+        display: block;
+        color: var(--green);
+        font-size: 24px;
+      }
+
+      .evidence-item span {
+        display: block;
+        margin-top: 6px;
+        color: var(--muted);
+        font-size: 15px;
+        line-height: 1.35;
+      }
+
+      .evidence-note {
+        margin-top: auto;
+        padding-top: 12px;
+        color: var(--muted);
+        font-size: 15px;
+        line-height: 1.5;
+      }
+
+      .footer {
+        display: grid;
+        grid-template-columns: 1fr 250px;
+        gap: 42px;
+        align-items: center;
+        padding-top: 28px;
+        border-top: 2px solid var(--line);
+      }
+
+      .footer h2 {
+        margin: 0;
+        font-size: 43px;
+      }
+
+      .footer p {
+        margin: 12px 0 0;
+        color: var(--muted);
+        font-size: 21px;
+        line-height: 1.45;
+      }
+
+      .url {
+        margin-top: 16px;
+        display: inline-block;
+        padding: 11px 16px;
+        background: var(--white);
+        border: 1px solid var(--line);
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 16px;
+      }
+
+      .qr-wrap {
+        background: white;
+        padding: 14px;
+        border: 2px solid var(--ink);
+      }
+
+      .qr-wrap img {
+        width: 100%;
+        display: block;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="poster">
+      <header class="topline">
+        <div class="brand"><span class="brand-dot"></span>今晚开饭 · 冰箱晚餐 Agent</div>
+        <div class="track">抖音 AI 创变者计划 · 赛道四「视觉搜索」</div>
+      </header>
+
+      <section class="hero">
+        <div>
+          <p class="eyebrow">视觉 + 语音，所见即所想</p>
+          <h1>刷到想吃的，<br />看看家里能不能做</h1>
+          <p class="subtitle">菜图 + 冰箱 + 一句话，AI 帮你完成今晚这一餐。</p>
+        </div>
+        <div class="hero-claim">
+          不是停在“这是什么”，<br />而是回答：<span>今晚能不能照着做？</span>
+        </div>
+      </section>
+
+      <section class="trigger-band" aria-label="真实场景">
+        <article class="trigger-card">
+          <img src="../../assets/菜/黄焖鸡-示例.png" alt="黄焖鸡菜图" />
+          <div class="trigger-copy"><small>来自抖音 Feed</small><strong>刷到想吃的</strong></div>
+        </article>
+        <div class="arrow">+</div>
+        <article class="trigger-card">
+          <img src="../../assets/fridge-images/330d23dcca05ea8e54bbe6bace6677e7.png" alt="真实冰箱照片" />
+          <div class="trigger-copy"><small>来自相机</small><strong>打开冰箱没想法</strong></div>
+        </article>
+        <div class="arrow">→</div>
+        <article class="answer-card">
+          <small>AI 给行动，不只给识别</small>
+          <strong>已有 · 还差<br />怎么做 · 怎么补</strong>
+          <p>缺关键主料不硬凑；做完还能生成可编辑生活记录。</p>
+        </article>
+      </section>
+
+      <section>
+        <div class="section-title">
+          <h2>从一帧内容，到一顿真实晚餐</h2>
+          <p>用户确认始终是链路中的硬步骤</p>
+        </div>
+        <div class="steps">
+          <article class="step">
+            <span class="step-number">1</span>
+            <img class="step-image" src="../../assets/submission/screenshots/app-feed-dish-mobile.png" alt="菜图识别界面" />
+            <h3>看见想吃的</h3>
+            <p>暂停帧、菜图或语音表达目标；菜名与画面重点可修改。</p>
+          </article>
+          <article class="step">
+            <span class="step-number">2</span>
+            <img class="step-image" src="../../assets/submission/screenshots/app-inventory-mobile.png" alt="库存确认界面" />
+            <h3>确认现实库存</h3>
+            <p>拍冰箱后人工确认可用食材，不把视觉不确定项当成事实。</p>
+          </article>
+          <article class="step">
+            <span class="step-number">3</span>
+            <img class="step-image" src="../../assets/submission/screenshots/app-result-mobile.png" alt="晚餐方案界面" />
+            <h3>得到下一步行动</h3>
+            <p>给出做法、关键缺料、简化路线与必要的商城承接。</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="feature-grid">
+        <article class="rescue">
+          <div class="rescue-visual">
+            <img src="../../assets/dish-rescue/tomato-eggs-too-watery-demo.png" alt="番茄炒蛋太稀的固定演示素材" />
+          </div>
+          <div class="rescue-copy">
+            <p class="eyebrow">过程中的第二次视觉搜索</p>
+            <h2>做到一半卡住了？</h2>
+            <p class="lead">画面为 AI 生成固定演示素材。真实使用时拍下当前状态，再说一句哪里不对；视觉负责“看见”，语音负责“表达感觉”。</p>
+            <div class="rescue-points">
+              <div class="rescue-point"><strong>状态不对：</strong>太稀、太干、糊锅、分层、结块</div>
+              <div class="rescue-point"><strong>味道不对：</strong>由用户试味后明确告诉 AI</div>
+              <div class="rescue-point"><strong>只给下一步：</strong>立即动作 + 观察点 + 失败降级</div>
+            </div>
+            <div class="boundary">不从图片声称尝到味道，也不判断食材是否过期或已经安全熟透。</div>
+          </div>
+        </article>
+
+        <article class="evidence">
+          <p class="eyebrow">可落地，不靠一张写死页面</p>
+          <h2>Agent 最小闭环</h2>
+          <div class="flowline">需求理解 → 视觉理解 → 用户确认 → 工具/规则 → 结果生成 → 满意度判断</div>
+          <div class="evidence-list">
+            <div class="evidence-item"><strong>HTTPS 公网已部署</strong><span>固定示例可直接体验；当前版本 iPhone 仍待复验</span></div>
+            <div class="evidence-item"><strong>30/30 真模回归</strong><span>固定 11 例视觉 + 19 例规划；不代表真实用户准确率</span></div>
+            <div class="evidence-item"><strong>三任务 Terra</strong><span>视觉、规划与生活记录统一使用当前稳定路由</span></div>
+            <div class="evidence-item"><strong>Skill 可调用</strong><span>核心流程按官方格式独立打包</span></div>
+          </div>
+          <p class="evidence-note">算法取舍同样可审计：历史 Case 检索完成真实 A/B/C，小样本未测得质量增益且 token 增加，因此公网实验保持关闭，而不是为了堆技术强行上线。</p>
+        </article>
+      </section>
+
+      <footer class="footer">
+        <div>
+          <h2>扫码体验：从刷到一道菜开始</h2>
+          <p>可直接使用示例菜图、示例冰箱与 AI 生成的“番茄炒蛋太稀”固定救援样例。</p>
+          <span class="url">fridge-dinner-agent-281751-9-1304313771.sh.run.tcloudbase.com</span>
+        </div>
+        <div class="qr-wrap">
+          <img src="../../assets/submission/fridge-dinner-agent-qr.png" alt="公网体验二维码" />
+        </div>
+      </footer>
+    </main>
+  </body>
+</html>

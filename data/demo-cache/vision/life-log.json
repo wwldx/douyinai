@@ -1,0 +1,28 @@
+{
+  "version": 1,
+  "updatedAt": "2026-07-14T00:00:00.000Z",
+  "entries": [
+    {
+      "id": "life-log-yellow-braised-chicken-demo",
+      "fileName": "黄焖鸡-示例.png",
+      "cacheKeys": ["sample-life-log-huangmenji"],
+      "requestSignature": "meal:黄焖鸡",
+      "sourcePath": "assets/菜/黄焖鸡-示例.png",
+      "lifeLog": {
+        "dishName": "黄焖鸡",
+        "confidence": 0.91,
+        "visualSummary": "画面中是一份暖黄色汤汁的鸡肉与配菜成品，适合用近景记录这一餐。",
+        "titleOptions": ["刷到黄焖鸡后，我真的做了", "冰箱现有食材也能接住这一口", "今晚这锅，先从一张菜图开始"],
+        "coverText": "刷到后真的做了",
+        "voiceoverDraft": "刷到想吃的黄焖鸡后，我先看了眼冰箱，再按家里现有的材料做了这一份。成品先留个记录，具体口味和做法还可以按自己的习惯调整。",
+        "suggestedShots": [
+          { "shot": "补拍成品近景，缓慢推进到汤汁和主要食材", "onScreenText": "从刷到想吃，到今晚开饭" },
+          { "shot": "补拍冰箱里本次实际使用的食材", "onScreenText": "先看家里有什么" },
+          { "shot": "补拍夹起一块主食材的短镜头", "onScreenText": "这一口值得记录" }
+        ],
+        "tags": ["#今晚吃什么", "#冰箱晚餐", "#黄焖鸡", "#生活记录"],
+        "warnings": ["这是根据成品图生成的演示草稿，请确认菜名、事实和措辞后再发布。"]
+      }
+    }
+  ]
+}

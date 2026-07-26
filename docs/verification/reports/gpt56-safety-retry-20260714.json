@@ -1,0 +1,68 @@
+{
+  "generatedAt": "2026-07-14T12:01:58.281Z",
+  "baseUrl": "http://localhost:4185",
+  "selection": {
+    "suite": "all",
+    "preset": null,
+    "caseIds": [
+      "dinner-uncertain-meat-safety"
+    ],
+    "limit": null,
+    "requireModelSource": false,
+    "timeoutMs": 180000
+  },
+  "total": 1,
+  "passed": 1,
+  "failed": 0,
+  "passRate": 1,
+  "latencyMs": {
+    "average": 81191,
+    "p50": 81191,
+    "p95": 81191,
+    "vision": {
+      "count": 0,
+      "average": 0,
+      "p50": 0,
+      "p95": 0
+    },
+    "planning": {
+      "count": 1,
+      "average": 81191,
+      "p50": 81191,
+      "p95": 81191
+    }
+  },
+  "sourceCounts": {
+    "model": 1
+  },
+  "failureCounts": {},
+  "metrics": {
+    "visionSchemaRate": 0,
+    "planningSchemaRate": 1,
+    "planningActionRate": 1,
+    "planningSafetyRate": 1
+  },
+  "results": [
+    {
+      "id": "dinner-uncertain-meat-safety",
+      "suite": "planning",
+      "endpoint": "/api/plan-dinner",
+      "durationMs": 81191,
+      "status": 200,
+      "requestId": "15540096-02eb-4769-9c13-b2abf796671c",
+      "serverTiming": "retrieval;dur=0, planning;dur=81115",
+      "passed": true,
+      "failures": [],
+      "metrics": {
+        "schemaValid": true,
+        "actionValid": true,
+        "requiredHit": true,
+        "forbiddenSafe": true,
+        "missingHit": true
+      },
+      "action": "cook_with_small_purchase",
+      "source": "model",
+      "failureTypes": []
+    }
+  ]
+}

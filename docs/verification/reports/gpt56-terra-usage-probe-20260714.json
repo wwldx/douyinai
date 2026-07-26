@@ -1,0 +1,86 @@
+{
+  "generatedAt": "2026-07-14T12:34:32.900Z",
+  "baseUrl": "http://localhost:4187",
+  "selection": {
+    "suite": "all",
+    "preset": null,
+    "caseIds": [
+      "vision-target-dish-huiguorou"
+    ],
+    "limit": null,
+    "requireModelSource": true,
+    "timeoutMs": 120000
+  },
+  "total": 1,
+  "passed": 0,
+  "failed": 1,
+  "passRate": 0,
+  "latencyMs": {
+    "average": 33979,
+    "p50": 33979,
+    "p95": 33979,
+    "vision": {
+      "count": 1,
+      "average": 33979,
+      "p50": 33979,
+      "p95": 33979
+    },
+    "planning": {
+      "count": 0,
+      "average": 0,
+      "p50": 0,
+      "p95": 0
+    }
+  },
+  "sourceCounts": {
+    "model": 1
+  },
+  "failureCounts": {
+    "quality": 1
+  },
+  "usage": {
+    "casesWithUsage": 1,
+    "inputTokens": 2427,
+    "outputTokens": 302,
+    "totalTokens": 2729,
+    "cachedInputTokens": 0,
+    "reasoningTokens": 0
+  },
+  "metrics": {
+    "visionSchemaRate": 1,
+    "planningSchemaRate": 0,
+    "planningActionRate": 0,
+    "planningSafetyRate": 0
+  },
+  "results": [
+    {
+      "id": "vision-target-dish-huiguorou",
+      "suite": "vision",
+      "endpoint": "/api/analyze-target-dish",
+      "durationMs": 33979,
+      "status": 200,
+      "requestId": "0ed51f46-eb27-468c-90dc-1af10ce937a7",
+      "serverTiming": "vision;dur=33925",
+      "passed": false,
+      "failures": [
+        "菜名不匹配：疑似小炒肉（青红椒炒五花肉）"
+      ],
+      "metrics": {
+        "schemaValid": true,
+        "dishNameMatch": false,
+        "ingredientRecall": 0.75
+      },
+      "source": "model",
+      "usage": {
+        "inputTokens": 2427,
+        "outputTokens": 302,
+        "totalTokens": 2729,
+        "cachedInputTokens": 0,
+        "reasoningTokens": 0
+      },
+      "failureTypes": [
+        "quality"
+      ]
+    }
+  ]
+}

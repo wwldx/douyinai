@@ -1,0 +1,15 @@
+[
+  { "id": "sub-01", "targetIngredient": "五花肉", "inventory": ["猪里脊肉", "鸡蛋"], "expectedStatus": "adapt_recipe", "expectedTop": "猪里脊肉" },
+  { "id": "sub-02", "targetIngredient": "五花肉", "inventory": ["鸡蛋", "番茄"], "expectedStatus": "shop_needed" },
+  { "id": "sub-03", "targetIngredient": "鸡腿肉", "inventory": ["鸡胸肉", "土豆"], "expectedStatus": "adapt_recipe", "expectedTop": "鸡胸肉" },
+  { "id": "sub-04", "targetIngredient": "鸡肉", "inventory": ["鸡腿", "青椒"], "expectedStatus": "exact_match", "expectedTop": "鸡腿" },
+  { "id": "sub-05", "targetIngredient": "青椒", "inventory": ["彩椒", "洋葱"], "expectedStatus": "adapt_recipe", "expectedTop": "彩椒" },
+  { "id": "sub-06", "targetIngredient": "香菇", "inventory": ["口蘑", "鸡蛋"], "expectedStatus": "adapt_recipe", "expectedTop": "口蘑" },
+  { "id": "sub-07", "targetIngredient": "番茄", "inventory": ["番茄酱", "面条"], "expectedStatus": "adapt_recipe", "expectedTop": "番茄酱" },
+  { "id": "sub-08", "targetIngredient": "面条", "inventory": ["意大利面", "鸡蛋"], "expectedStatus": "adapt_recipe", "expectedTop": "意大利面" },
+  { "id": "sub-09", "targetIngredient": "花生", "inventory": ["腰果", "鸡肉"], "expectedStatus": "shop_needed" },
+  { "id": "sub-10", "targetIngredient": "豆腐", "inventory": ["嫩豆腐", "青菜"], "expectedStatus": "exact_match", "expectedTop": "嫩豆腐" },
+  { "id": "sub-11", "targetIngredient": "牛腩", "inventory": ["牛肉片", "土豆"], "expectedStatus": "adapt_recipe", "expectedTop": "牛肉片" },
+  { "id": "sub-12", "targetIngredient": "鸡蛋", "inventory": ["五花肉", "番茄"], "expectedStatus": "shop_needed" }
+]
+

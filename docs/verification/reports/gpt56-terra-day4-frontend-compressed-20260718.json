@@ -1,0 +1,261 @@
+{
+  "generatedAt": "2026-07-18T10:08:34.068Z",
+  "baseUrl": "http://127.0.0.1:4181",
+  "selection": {
+    "suite": "all",
+    "preset": null,
+    "caseIds": [
+      "vision-fridge-imgs-ai-day4"
+    ],
+    "limit": null,
+    "requireModelSource": true,
+    "retrievalMode": "off",
+    "timeoutMs": 70000
+  },
+  "total": 1,
+  "passed": 0,
+  "failed": 1,
+  "passRate": 0,
+  "latencyMs": {
+    "average": 23625,
+    "p50": 23625,
+    "p95": 23625,
+    "vision": {
+      "count": 1,
+      "average": 23625,
+      "p50": 23625,
+      "p95": 23625
+    },
+    "planning": {
+      "count": 0,
+      "average": 0,
+      "p50": 0,
+      "p95": 0
+    }
+  },
+  "sourceCounts": {
+    "model": 1
+  },
+  "providerCounts": {
+    "rightcode_responses_stream": 1
+  },
+  "modelCounts": {
+    "gpt-5.6-terra": 1
+  },
+  "failureCounts": {
+    "quality": 1
+  },
+  "usage": {
+    "casesWithUsage": 1,
+    "inputTokens": 2291,
+    "outputTokens": 1240,
+    "totalTokens": 3531,
+    "cachedInputTokens": 0,
+    "reasoningTokens": 0
+  },
+  "metrics": {
+    "visionSchemaRate": 1,
+    "planningSchemaRate": 0,
+    "planningActionRate": 0,
+    "planningSafetyRate": 0
+  },
+  "results": [
+    {
+      "id": "vision-fridge-imgs-ai-day4",
+      "suite": "vision",
+      "endpoint": "/api/analyze-fridge",
+      "durationMs": 23625,
+      "status": 200,
+      "requestId": "3a093e96-8395-403e-a8fd-dab6364e3d18",
+      "serverTiming": "vision;dur=23441",
+      "passed": false,
+      "failures": [
+        "食材召回率 0.462 < 0.5"
+      ],
+      "metrics": {
+        "schemaValid": true,
+        "itemRecall": 0.462
+      },
+      "source": "model",
+      "provider": "rightcode_responses_stream",
+      "model": "gpt-5.6-terra",
+      "usage": {
+        "inputTokens": 2291,
+        "outputTokens": 1240,
+        "totalTokens": 3531,
+        "cachedInputTokens": 0,
+        "reasoningTokens": 0
+      },
+      "retrieval": null,
+      "output": {
+        "items": [
+          {
+            "name": "鸡蛋",
+            "category": "蛋奶",
+            "quantityEstimate": "约10个",
+            "confidence": 0.99,
+            "state": "看起来可用",
+            "notes": "上层中央蛋托内"
+          },
+          {
+            "name": "牛奶",
+            "category": "蛋奶",
+            "quantityEstimate": "1大瓶",
+            "confidence": 0.98,
+            "state": "需确认保质期",
+            "notes": "右侧门下层"
+          },
+          {
+            "name": "黄油",
+            "category": "蛋奶",
+            "quantityEstimate": "约3块包装",
+            "confidence": 0.87,
+            "state": "需确认保质期",
+            "notes": "中下层右侧"
+          },
+          {
+            "name": "奶酪",
+            "category": "蛋奶",
+            "quantityEstimate": "约2块",
+            "confidence": 0.95,
+            "state": "需确认保质期",
+            "notes": "中下层右侧"
+          },
+          {
+            "name": "西兰花",
+            "category": "蔬菜",
+            "quantityEstimate": "约2颗",
+            "confidence": 0.98,
+            "state": "看起来可用",
+            "notes": "第二层左侧"
+          },
+          {
+            "name": "菜花",
+            "category": "蔬菜",
+            "quantityEstimate": "约2颗",
+            "confidence": 0.98,
+            "state": "看起来可用",
+            "notes": "第二层左侧及中下层左侧"
+          },
+          {
+            "name": "卷心菜",
+            "category": "蔬菜",
+            "quantityEstimate": "约1颗",
+            "confidence": 0.9,
+            "state": "看起来可用",
+            "notes": "第二层左侧"
+          },
+          {
+            "name": "红甜椒",
+            "category": "蔬菜",
+            "quantityEstimate": "约2个",
+            "confidence": 0.96,
+            "state": "看起来可用",
+            "notes": "第二层中央"
+          },
+          {
+            "name": "番茄",
+            "category": "蔬菜",
+            "quantityEstimate": "约3个",
+            "confidence": 0.98,
+            "state": "看起来可用",
+            "notes": "第二层前方"
+          },
+          {
+            "name": "黄瓜",
+            "category": "蔬菜",
+            "quantityEstimate": "约3根",
+            "confidence": 0.95,
+            "state": "看起来可用",
+            "notes": "中下层左侧"
+          },
+          {
+            "name": "生菜及其他叶菜",
+            "category": "蔬菜",
+            "quantityEstimate": "约3把",
+            "confidence": 0.86,
+            "state": "看起来可用",
+            "notes": "中下层和抽屉左侧"
+          },
+          {
+            "name": "胡萝卜",
+            "category": "蔬菜",
+            "quantityEstimate": "约10根",
+            "confidence": 0.99,
+            "state": "看起来可用",
+            "notes": "两个左侧抽屉内"
+          },
+          {
+            "name": "芹菜",
+            "category": "蔬菜",
+            "quantityEstimate": "约1把",
+            "confidence": 0.9,
+            "state": "看起来可用",
+            "notes": "上方左侧抽屉内"
+          },
+          {
+            "name": "苹果",
+            "category": "蔬菜",
+            "quantityEstimate": "约5个",
+            "confidence": 0.97,
+            "state": "看起来可用",
+            "notes": "第二层及中下层"
+          },
+          {
+            "name": "橙子",
+            "category": "蔬菜",
+            "quantityEstimate": "约5个",
+            "confidence": 0.98,
+            "state": "看起来可用",
+            "notes": "第二层及中下层"
+          },
+          {
+            "name": "柠檬",
+            "category": "蔬菜",
+            "quantityEstimate": "约1个",
+            "confidence": 0.98,
+            "state": "看起来可用",
+            "notes": "中下层左侧前方；按果蔬归类展示为蔬菜类目外的可食用农产品不适用，归入蔬菜类目仅为系统分类限制下的暂列项。 "
+          }
+        ],
+        "uncertainItems": [
+          {
+            "description": "多瓶橙色、绿色及红色饮品",
+            "reason": "可确认是瓶装饮料，但标签信息和具体品类不清晰。"
+          },
+          {
+            "description": "蓝白色塑料盒内乳制品",
+            "reason": "外观疑似酸奶或其他乳制品，但文字无法可靠辨认。"
+          },
+          {
+            "description": "上层黄色罐装物及多盒带盖食物",
+            "reason": "只能看到容器或包装，内容物无法确认。"
+          },
+          {
+            "description": "门架上的玻璃罐装食品",
+            "reason": "可见罐装内容物，但具体食材和调味方式无法可靠确认。"
+          },
+          {
+            "description": "右侧门架多瓶酱料",
+            "reason": "可大致辨认为调味酱，其中个别疑似番茄酱和芥末酱，但其余标签及实际品类不清晰。"
+          },
+          {
+            "description": "抽屉内生肉和整鱼",
+            "reason": "可确认存在生肉及整鱼，但肉类部位、鱼的品种和新鲜度无法仅凭图片确定。"
+          },
+          {
+            "description": "第二层中央的紫色葡萄",
+            "reason": "外观疑似葡萄，但部分被遮挡，数量及状态无法确认。"
+          }
+        ],
+        "warnings": [
+          "图片无法判断食材是否过期、是否完全新鲜或是否曾长时间常温放置；食用前请自行检查气味、外观、保质期和储存状态。",
+          "图中部分水果的系统分类受限；建议实际规划时将苹果、橙子、柠檬按水果处理。"
+        ]
+      },
+      "failureTypes": [
+        "quality"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,90 @@
+{
+  "version": 1,
+  "description": "结构化检索离线标签，与规划 19 例 holdout 分离。",
+  "labels": [
+    {
+      "queryId": "retrieval-001",
+      "route": "feed_to_fridge",
+      "targetDish": { "text": "今晚想吃黄焖鸡" },
+      "inventory": ["土豆", "米饭", "鸡蛋"],
+      "availableTime": "25 分钟",
+      "cookingLevel": "新手",
+      "energyLevel": "低",
+      "preferences": ["少洗锅"],
+      "expectedCaseIds": ["case-001", "case-003"]
+    },
+    {
+      "queryId": "retrieval-002",
+      "route": "feed_to_fridge",
+      "targetDish": { "text": "今晚想吃番茄牛腩" },
+      "inventory": ["番茄", "鸡蛋", "面条"],
+      "availableTime": "25 分钟",
+      "cookingLevel": "新手",
+      "energyLevel": "低",
+      "preferences": ["热乎", "快手"],
+      "expectedCaseIds": ["case-009"]
+    },
+    {
+      "queryId": "retrieval-003",
+      "route": "feed_to_fridge",
+      "targetDish": { "text": "我想做蛋炒饭" },
+      "inventory": ["剩饭", "鸡蛋", "胡萝卜", "青菜"],
+      "availableTime": "15 分钟",
+      "cookingLevel": "新手",
+      "energyLevel": "低",
+      "preferences": ["快手", "少洗锅"],
+      "expectedCaseIds": ["case-013"]
+    },
+    {
+      "queryId": "retrieval-004",
+      "route": "feed_to_fridge",
+      "targetDish": { "text": "刷到宫保鸡丁" },
+      "inventory": ["鸡胸肉", "黄瓜", "米饭", "辣椒"],
+      "availableTime": "25 分钟",
+      "cookingLevel": "新手",
+      "energyLevel": "中",
+      "preferences": ["快手"],
+      "expectedCaseIds": ["case-004"]
+    },
+    {
+      "queryId": "retrieval-005",
+      "route": "fridge_first",
+      "inventory": ["鸡蛋", "番茄", "挂面"],
+      "availableTime": "15 分钟",
+      "cookingLevel": "新手",
+      "energyLevel": "低",
+      "preferences": ["热乎", "少洗锅"],
+      "expectedCaseIds": ["case-019"]
+    },
+    {
+      "queryId": "retrieval-006",
+      "route": "fridge_first",
+      "inventory": ["豆腐", "蘑菇", "青菜", "面条"],
+      "availableTime": "25 分钟",
+      "cookingLevel": "新手",
+      "energyLevel": "低",
+      "preferences": ["清淡", "少洗锅"],
+      "expectedCaseIds": ["case-021"]
+    },
+    {
+      "queryId": "retrieval-007",
+      "route": "fridge_first",
+      "inventory": ["酸奶", "香蕉", "燕麦", "面包"],
+      "availableTime": "10 分钟",
+      "cookingLevel": "新手",
+      "energyLevel": "低",
+      "preferences": ["快手"],
+      "expectedCaseIds": ["case-023"]
+    },
+    {
+      "queryId": "retrieval-008",
+      "route": "fridge_first",
+      "inventory": ["整鱼", "青菜", "米饭"],
+      "availableTime": "25 分钟",
+      "cookingLevel": "新手",
+      "energyLevel": "低",
+      "preferences": ["快手"],
+      "expectedCaseIds": ["case-024"]
+    }
+  ]
+}

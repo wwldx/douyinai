@@ -1,0 +1,722 @@
+{
+  "generatedAt": "2026-07-18T08:48:12.298Z",
+  "baseUrl": "http://127.0.0.1:4190",
+  "selection": {
+    "suite": "all",
+    "preset": null,
+    "caseIds": [],
+    "limit": null,
+    "requireModelSource": true,
+    "retrievalMode": "off",
+    "timeoutMs": 70000
+  },
+  "total": 30,
+  "passed": 0,
+  "failed": 30,
+  "passRate": 0,
+  "latencyMs": {
+    "average": 4,
+    "p50": 0,
+    "p95": 13,
+    "vision": {
+      "count": 11,
+      "average": 10,
+      "p50": 10,
+      "p95": 27
+    },
+    "planning": {
+      "count": 19,
+      "average": 0,
+      "p50": 0,
+      "p95": 1
+    }
+  },
+  "sourceCounts": {
+    "error": 30
+  },
+  "providerCounts": {
+    "unknown": 30
+  },
+  "modelCounts": {
+    "unknown": 30
+  },
+  "failureCounts": {
+    "upstream": 30
+  },
+  "usage": {
+    "casesWithUsage": 0,
+    "inputTokens": 0,
+    "outputTokens": 0,
+    "totalTokens": 0,
+    "cachedInputTokens": 0,
+    "reasoningTokens": 0
+  },
+  "metrics": {
+    "visionSchemaRate": 0,
+    "planningSchemaRate": 0,
+    "planningActionRate": 0,
+    "planningSafetyRate": 0
+  },
+  "results": [
+    {
+      "id": "vision-fridge-real-fridge-330d23",
+      "suite": "vision",
+      "endpoint": "/api/analyze-fridge",
+      "durationMs": 27,
+      "status": 0,
+      "requestId": "",
+      "passed": false,
+      "failures": [
+        "fetch failed"
+      ],
+      "failureTypes": [
+        "upstream"
+      ],
+      "metrics": {},
+      "source": "error",
+      "provider": null,
+      "model": null,
+      "usage": null,
+      "retrieval": null,
+      "output": null
+    },
+    {
+      "id": "vision-fridge-real-fridge-f63de1",
+      "suite": "vision",
+      "endpoint": "/api/analyze-fridge",
+      "durationMs": 6,
+      "status": 0,
+      "requestId": "",
+      "passed": false,
+      "failures": [
+        "fetch failed"
+      ],
+      "failureTypes": [
+        "upstream"
+      ],
+      "metrics": {},
+      "source": "error",
+      "provider": null,
+      "model": null,
+      "usage": null,
+      "retrieval": null,
+      "output": null
+    },
+    {
+      "id": "vision-fridge-imgs-ai-day1",
+      "suite": "vision",
+      "endpoint": "/api/analyze-fridge",
+      "durationMs": 11,
+      "status": 0,
+      "requestId": "",
+      "passed": false,
+      "failures": [
+        "fetch failed"
+      ],
+      "failureTypes": [
+        "upstream"
+      ],
+      "metrics": {},
+      "source": "error",
+      "provider": null,
+      "model": null,
+      "usage": null,
+      "retrieval": null,
+      "output": null
+    },
+    {
+      "id": "vision-fridge-imgs-ai-day2",
+      "suite": "vision",
+      "endpoint": "/api/analyze-fridge",
+      "durationMs": 13,
+      "status": 0,
+      "requestId": "",
+      "passed": false,
+      "failures": [
+        "fetch failed"
+      ],
+      "failureTypes": [
+        "upstream"
+      ],
+      "metrics": {},
+      "source": "error",
+      "provider": null,
+      "model": null,
+      "usage": null,
+      "retrieval": null,
+      "output": null
+    },
+    {
+      "id": "vision-fridge-imgs-ai-day3",
+      "suite": "vision",
+      "endpoint": "/api/analyze-fridge",
+      "durationMs": 9,
+      "status": 0,
+      "requestId": "",
+      "passed": false,
+      "failures": [
+        "fetch failed"
+      ],
+      "failureTypes": [
+        "upstream"
+      ],
+      "metrics": {},
+      "source": "error",
+      "provider": null,
+      "model": null,
+      "usage": null,
+      "retrieval": null,
+      "output": null
+    },
+    {
+      "id": "vision-fridge-imgs-ai-day4",
+      "suite": "vision",
+      "endpoint": "/api/analyze-fridge",
+      "durationMs": 11,
+      "status": 0,
+      "requestId": "",
+      "passed": false,
+      "failures": [
+        "fetch failed"
+      ],
+      "failureTypes": [
+        "upstream"
+      ],
+      "metrics": {},
+      "source": "error",
+      "provider": null,
+      "model": null,
+      "usage": null,
+      "retrieval": null,
+      "output": null
+    },
+    {
+      "id": "vision-fridge-imgs-ai-day5",
+      "suite": "vision",
+      "endpoint": "/api/analyze-fridge",
+      "durationMs": 10,
+      "status": 0,
+      "requestId": "",
+      "passed": false,
+      "failures": [
+        "fetch failed"
+      ],
+      "failureTypes": [
+        "upstream"
+      ],
+      "metrics": {},
+      "source": "error",
+      "provider": null,
+      "model": null,
+      "usage": null,
+      "retrieval": null,
+      "output": null
+    },
+    {
+      "id": "vision-fridge-imgs-ai-day6",
+      "suite": "vision",
+      "endpoint": "/api/analyze-fridge",
+      "durationMs": 7,
+      "status": 0,
+      "requestId": "",
+      "passed": false,
+      "failures": [
+        "fetch failed"
+      ],
+      "failureTypes": [
+        "upstream"
+      ],
+      "metrics": {},
+      "source": "error",
+      "provider": null,
+      "model": null,
+      "usage": null,
+      "retrieval": null,
+      "output": null
+    },
+    {
+      "id": "vision-fridge-imgs-ai-day7",
+      "suite": "vision",
+      "endpoint": "/api/analyze-fridge",
+      "durationMs": 10,
+      "status": 0,
+      "requestId": "",
+      "passed": false,
+      "failures": [
+        "fetch failed"
+      ],
+      "failureTypes": [
+        "upstream"
+      ],
+      "metrics": {},
+      "source": "error",
+      "provider": null,
+      "model": null,
+      "usage": null,
+      "retrieval": null,
+      "output": null
+    },
+    {
+      "id": "vision-target-dish-huangmenji",
+      "suite": "vision",
+      "endpoint": "/api/analyze-target-dish",
+      "durationMs": 2,
+      "status": 0,
+      "requestId": "",
+      "passed": false,
+      "failures": [
+        "fetch failed"
+      ],
+      "failureTypes": [
+        "upstream"
+      ],
+      "metrics": {},
+      "source": "error",
+      "provider": null,
+      "model": null,
+      "usage": null,
+      "retrieval": null,
+      "output": null
+    },
+    {
+      "id": "vision-target-dish-huiguorou",
+      "suite": "vision",
+      "endpoint": "/api/analyze-target-dish",
+      "durationMs": 3,
+      "status": 0,
+      "requestId": "",
+      "passed": false,
+      "failures": [
+        "fetch failed"
+      ],
+      "failureTypes": [
+        "upstream"
+      ],
+      "metrics": {},
+      "source": "error",
+      "provider": null,
+      "model": null,
+      "usage": null,
+      "retrieval": null,
+      "output": null
+    },
+    {
+      "id": "target-huangmenji-missing-chicken",
+      "suite": "planning",
+      "endpoint": "/api/plan-target-dish",
+      "durationMs": 1,
+      "status": 0,
+      "requestId": "",
+      "passed": false,
+      "failures": [
+        "fetch failed"
+      ],
+      "failureTypes": [
+        "upstream"
+      ],
+      "metrics": {},
+      "source": "error",
+      "provider": null,
+      "model": null,
+      "usage": null,
+      "retrieval": null,
+      "output": null
+    },
+    {
+      "id": "target-tomato-eggs-complete",
+      "suite": "planning",
+      "endpoint": "/api/plan-target-dish",
+      "durationMs": 0,
+      "status": 0,
+      "requestId": "",
+      "passed": false,
+      "failures": [
+        "fetch failed"
+      ],
+      "failureTypes": [
+        "upstream"
+      ],
+      "metrics": {},
+      "source": "error",
+      "provider": null,
+      "model": null,
+      "usage": null,
+      "retrieval": null,
+      "output": null
+    },
+    {
+      "id": "target-beef-stew-time-short",
+      "suite": "planning",
+      "endpoint": "/api/plan-target-dish",
+      "durationMs": 0,
+      "status": 0,
+      "requestId": "",
+      "passed": false,
+      "failures": [
+        "fetch failed"
+      ],
+      "failureTypes": [
+        "upstream"
+      ],
+      "metrics": {},
+      "source": "error",
+      "provider": null,
+      "model": null,
+      "usage": null,
+      "retrieval": null,
+      "output": null
+    },
+    {
+      "id": "target-huiguorou-missing-pork",
+      "suite": "planning",
+      "endpoint": "/api/plan-target-dish",
+      "durationMs": 0,
+      "status": 0,
+      "requestId": "",
+      "passed": false,
+      "failures": [
+        "fetch failed"
+      ],
+      "failureTypes": [
+        "upstream"
+      ],
+      "metrics": {},
+      "source": "error",
+      "provider": null,
+      "model": null,
+      "usage": null,
+      "retrieval": null,
+      "output": null
+    },
+    {
+      "id": "target-fried-rice-complete",
+      "suite": "planning",
+      "endpoint": "/api/plan-target-dish",
+      "durationMs": 0,
+      "status": 0,
+      "requestId": "",
+      "passed": false,
+      "failures": [
+        "fetch failed"
+      ],
+      "failureTypes": [
+        "upstream"
+      ],
+      "metrics": {},
+      "source": "error",
+      "provider": null,
+      "model": null,
+      "usage": null,
+      "retrieval": null,
+      "output": null
+    },
+    {
+      "id": "target-mapo-tofu-vegetarian",
+      "suite": "planning",
+      "endpoint": "/api/plan-target-dish",
+      "durationMs": 0,
+      "status": 0,
+      "requestId": "",
+      "passed": false,
+      "failures": [
+        "fetch failed"
+      ],
+      "failureTypes": [
+        "upstream"
+      ],
+      "metrics": {},
+      "source": "error",
+      "provider": null,
+      "model": null,
+      "usage": null,
+      "retrieval": null,
+      "output": null
+    },
+    {
+      "id": "target-gongbao-missing-peanut",
+      "suite": "planning",
+      "endpoint": "/api/plan-target-dish",
+      "durationMs": 0,
+      "status": 0,
+      "requestId": "",
+      "passed": false,
+      "failures": [
+        "fetch failed"
+      ],
+      "failureTypes": [
+        "upstream"
+      ],
+      "metrics": {},
+      "source": "error",
+      "provider": null,
+      "model": null,
+      "usage": null,
+      "retrieval": null,
+      "output": null
+    },
+    {
+      "id": "target-fish-fragrant-complete",
+      "suite": "planning",
+      "endpoint": "/api/plan-target-dish",
+      "durationMs": 0,
+      "status": 0,
+      "requestId": "",
+      "passed": false,
+      "failures": [
+        "fetch failed"
+      ],
+      "failureTypes": [
+        "upstream"
+      ],
+      "metrics": {},
+      "source": "error",
+      "provider": null,
+      "model": null,
+      "usage": null,
+      "retrieval": null,
+      "output": null
+    },
+    {
+      "id": "target-chicken-wings-food-safety",
+      "suite": "planning",
+      "endpoint": "/api/plan-target-dish",
+      "durationMs": 0,
+      "status": 0,
+      "requestId": "",
+      "passed": false,
+      "failures": [
+        "fetch failed"
+      ],
+      "failureTypes": [
+        "upstream"
+      ],
+      "metrics": {},
+      "source": "error",
+      "provider": null,
+      "model": null,
+      "usage": null,
+      "retrieval": null,
+      "output": null
+    },
+    {
+      "id": "target-unknown-dish-ask-clarification",
+      "suite": "planning",
+      "endpoint": "/api/plan-target-dish",
+      "durationMs": 0,
+      "status": 0,
+      "requestId": "",
+      "passed": false,
+      "failures": [
+        "fetch failed"
+      ],
+      "failureTypes": [
+        "upstream"
+      ],
+      "metrics": {},
+      "source": "error",
+      "provider": null,
+      "model": null,
+      "usage": null,
+      "retrieval": null,
+      "output": null
+    },
+    {
+      "id": "dinner-fast-tomato-eggs",
+      "suite": "planning",
+      "endpoint": "/api/plan-dinner",
+      "durationMs": 0,
+      "status": 0,
+      "requestId": "",
+      "passed": false,
+      "failures": [
+        "fetch failed"
+      ],
+      "failureTypes": [
+        "upstream"
+      ],
+      "metrics": {},
+      "source": "error",
+      "provider": null,
+      "model": null,
+      "usage": null,
+      "retrieval": null,
+      "output": null
+    },
+    {
+      "id": "dinner-late-night-low-energy",
+      "suite": "planning",
+      "endpoint": "/api/plan-dinner",
+      "durationMs": 0,
+      "status": 0,
+      "requestId": "",
+      "passed": false,
+      "failures": [
+        "fetch failed"
+      ],
+      "failureTypes": [
+        "upstream"
+      ],
+      "metrics": {},
+      "source": "error",
+      "provider": null,
+      "model": null,
+      "usage": null,
+      "retrieval": null,
+      "output": null
+    },
+    {
+      "id": "dinner-empty-fridge",
+      "suite": "planning",
+      "endpoint": "/api/plan-dinner",
+      "durationMs": 0,
+      "status": 0,
+      "requestId": "",
+      "passed": false,
+      "failures": [
+        "fetch failed"
+      ],
+      "failureTypes": [
+        "upstream"
+      ],
+      "metrics": {},
+      "source": "error",
+      "provider": null,
+      "model": null,
+      "usage": null,
+      "retrieval": null,
+      "output": null
+    },
+    {
+      "id": "dinner-rich-fridge-balanced",
+      "suite": "planning",
+      "endpoint": "/api/plan-dinner",
+      "durationMs": 0,
+      "status": 0,
+      "requestId": "",
+      "passed": false,
+      "failures": [
+        "fetch failed"
+      ],
+      "failureTypes": [
+        "upstream"
+      ],
+      "metrics": {},
+      "source": "error",
+      "provider": null,
+      "model": null,
+      "usage": null,
+      "retrieval": null,
+      "output": null
+    },
+    {
+      "id": "dinner-breakfast-minimal",
+      "suite": "planning",
+      "endpoint": "/api/plan-dinner",
+      "durationMs": 0,
+      "status": 0,
+      "requestId": "",
+      "passed": false,
+      "failures": [
+        "fetch failed"
+      ],
+      "failureTypes": [
+        "upstream"
+      ],
+      "metrics": {},
+      "source": "error",
+      "provider": null,
+      "model": null,
+      "usage": null,
+      "retrieval": null,
+      "output": null
+    },
+    {
+      "id": "dinner-uncertain-meat-safety",
+      "suite": "planning",
+      "endpoint": "/api/plan-dinner",
+      "durationMs": 0,
+      "status": 0,
+      "requestId": "",
+      "passed": false,
+      "failures": [
+        "fetch failed"
+      ],
+      "failureTypes": [
+        "upstream"
+      ],
+      "metrics": {},
+      "source": "error",
+      "provider": null,
+      "model": null,
+      "usage": null,
+      "retrieval": null,
+      "output": null
+    },
+    {
+      "id": "dinner-no-washing-preference",
+      "suite": "planning",
+      "endpoint": "/api/plan-dinner",
+      "durationMs": 0,
+      "status": 0,
+      "requestId": "",
+      "passed": false,
+      "failures": [
+        "fetch failed"
+      ],
+      "failureTypes": [
+        "upstream"
+      ],
+      "metrics": {},
+      "source": "error",
+      "provider": null,
+      "model": null,
+      "usage": null,
+      "retrieval": null,
+      "output": null
+    },
+    {
+      "id": "dinner-practice-new-dish",
+      "suite": "planning",
+      "endpoint": "/api/plan-dinner",
+      "durationMs": 0,
+      "status": 0,
+      "requestId": "",
+      "passed": false,
+      "failures": [
+        "fetch failed"
+      ],
+      "failureTypes": [
+        "upstream"
+      ],
+      "metrics": {},
+      "source": "error",
+      "provider": null,
+      "model": null,
+      "usage": null,
+      "retrieval": null,
+      "output": null
+    },
+    {
+      "id": "dinner-only-fruit-not-a-meal",
+      "suite": "planning",
+      "endpoint": "/api/plan-dinner",
+      "durationMs": 0,
+      "status": 0,
+      "requestId": "",
+      "passed": false,
+      "failures": [
+        "fetch failed"
+      ],
+      "failureTypes": [
+        "upstream"
+      ],
+      "metrics": {},
+      "source": "error",
+      "provider": null,
+      "model": null,
+      "usage": null,
+      "retrieval": null,
+      "output": null
+    }
+  ]
+}

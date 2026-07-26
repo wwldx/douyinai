@@ -1,0 +1,235 @@
+{
+  "generatedAt": "2026-07-16T04:04:28.282Z",
+  "baseUrl": "http://127.0.0.1:4194",
+  "selection": {
+    "suite": "planning",
+    "preset": null,
+    "caseIds": [
+      "target-huangmenji-missing-chicken",
+      "target-beef-stew-time-short",
+      "target-unknown-dish-ask-clarification",
+      "dinner-uncertain-meat-safety"
+    ],
+    "limit": null,
+    "requireModelSource": false,
+    "retrievalMode": "contrast",
+    "timeoutMs": 120000
+  },
+  "total": 4,
+  "passed": 4,
+  "failed": 0,
+  "passRate": 1,
+  "latencyMs": {
+    "average": 32738,
+    "p50": 30376,
+    "p95": 42173,
+    "vision": {
+      "count": 0,
+      "average": 0,
+      "p50": 0,
+      "p95": 0
+    },
+    "planning": {
+      "count": 4,
+      "average": 32738,
+      "p50": 30376,
+      "p95": 42173
+    }
+  },
+  "sourceCounts": {
+    "model": 4
+  },
+  "failureCounts": {},
+  "usage": {
+    "casesWithUsage": 4,
+    "inputTokens": 9544,
+    "outputTokens": 4995,
+    "totalTokens": 14539,
+    "cachedInputTokens": 0,
+    "reasoningTokens": 1535
+  },
+  "metrics": {
+    "visionSchemaRate": 0,
+    "planningSchemaRate": 1,
+    "planningActionRate": 1,
+    "planningSafetyRate": 1
+  },
+  "results": [
+    {
+      "id": "target-huangmenji-missing-chicken",
+      "suite": "planning",
+      "endpoint": "/api/plan-target-dish",
+      "durationMs": 42173,
+      "status": 200,
+      "requestId": "e5400903-be85-4d9c-a206-052d55b6374e",
+      "serverTiming": "retrieval;dur=1, planning;dur=42130",
+      "passed": true,
+      "failures": [],
+      "metrics": {
+        "schemaValid": true,
+        "actionValid": true,
+        "requiredHit": true,
+        "forbiddenSafe": true,
+        "missingHit": true
+      },
+      "action": "shop_then_cook",
+      "source": "model",
+      "usage": {
+        "inputTokens": 2626,
+        "outputTokens": 1435,
+        "totalTokens": 4061,
+        "cachedInputTokens": 0,
+        "reasoningTokens": 450
+      },
+      "retrieval": {
+        "mode": "contrast",
+        "caseCount": 4,
+        "caseIds": [
+          "case-002",
+          "case-003",
+          "case-001",
+          "case-011"
+        ],
+        "roles": [
+          "positive",
+          "negative",
+          "positive",
+          "positive"
+        ]
+      },
+      "failureTypes": []
+    },
+    {
+      "id": "target-beef-stew-time-short",
+      "suite": "planning",
+      "endpoint": "/api/plan-target-dish",
+      "durationMs": 32650,
+      "status": 200,
+      "requestId": "e2d1af15-e79a-4d34-88e9-ba030d8bc8d3",
+      "serverTiming": "retrieval;dur=2, planning;dur=32642",
+      "passed": true,
+      "failures": [],
+      "metrics": {
+        "schemaValid": true,
+        "actionValid": true,
+        "requiredHit": true,
+        "forbiddenSafe": true,
+        "missingHit": true
+      },
+      "action": "cook_simplified",
+      "source": "model",
+      "usage": {
+        "inputTokens": 2673,
+        "outputTokens": 1674,
+        "totalTokens": 4347,
+        "cachedInputTokens": 0,
+        "reasoningTokens": 723
+      },
+      "retrieval": {
+        "mode": "contrast",
+        "caseCount": 4,
+        "caseIds": [
+          "case-008",
+          "case-010",
+          "case-009",
+          "case-024"
+        ],
+        "roles": [
+          "positive",
+          "negative",
+          "positive",
+          "negative"
+        ]
+      },
+      "failureTypes": []
+    },
+    {
+      "id": "target-unknown-dish-ask-clarification",
+      "suite": "planning",
+      "endpoint": "/api/plan-target-dish",
+      "durationMs": 25754,
+      "status": 200,
+      "requestId": "907107a1-9987-4745-9818-286d284ecb1e",
+      "serverTiming": "retrieval;dur=0, planning;dur=25750",
+      "passed": true,
+      "failures": [],
+      "metrics": {
+        "schemaValid": true,
+        "actionValid": true,
+        "requiredHit": true,
+        "forbiddenSafe": true,
+        "missingHit": true
+      },
+      "action": "prep_for_tomorrow",
+      "source": "model",
+      "usage": {
+        "inputTokens": 2545,
+        "outputTokens": 998,
+        "totalTokens": 3543,
+        "cachedInputTokens": 0,
+        "reasoningTokens": 249
+      },
+      "retrieval": {
+        "mode": "contrast",
+        "caseCount": 4,
+        "caseIds": [
+          "case-020",
+          "case-005",
+          "case-017",
+          "case-006"
+        ],
+        "roles": [
+          "positive",
+          "negative",
+          "positive",
+          "positive"
+        ]
+      },
+      "failureTypes": []
+    },
+    {
+      "id": "dinner-uncertain-meat-safety",
+      "suite": "planning",
+      "endpoint": "/api/plan-dinner",
+      "durationMs": 30376,
+      "status": 200,
+      "requestId": "df2fcde6-aac7-4fdc-a74a-ef7228cd5474",
+      "serverTiming": "retrieval;dur=9, planning;dur=30360",
+      "passed": true,
+      "failures": [],
+      "metrics": {
+        "schemaValid": true,
+        "actionValid": true,
+        "requiredHit": true,
+        "forbiddenSafe": true,
+        "missingHit": true
+      },
+      "action": "cook_with_small_purchase",
+      "source": "model",
+      "usage": {
+        "inputTokens": 1700,
+        "outputTokens": 888,
+        "totalTokens": 2588,
+        "cachedInputTokens": 0,
+        "reasoningTokens": 113
+      },
+      "retrieval": {
+        "mode": "contrast",
+        "caseCount": 4,
+        "caseIds": [
+          "case-020",
+          "case-024",
+          "case-021",
+          "case-022"
+        ],
+        "roles": [
+          "positive",
+          "negative",
+          "positive",
+          "positive"
+        ]
+      },
+      "failureTypes": []
+    }
+  ]
+}

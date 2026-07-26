@@ -1,0 +1,36 @@
+{
+  "id": "xiaolin",
+  "name": "小林",
+  "label": "新手赶时间",
+  "description": "晚上还要继续改项目，想吃热的但不想洗太多锅。",
+  "userContext": {
+    "user": {
+      "name": "小林",
+      "cookingLevel": "新手",
+      "preferences": ["少油", "微辣", "不爱洗太多锅"],
+      "avoid": ["香菜", "复杂刀工", "油炸"],
+      "recentMeals": ["黄焖鸡外卖", "麻辣烫", "便利店饭团"],
+      "goal": "今晚想吃热的，但不要太麻烦"
+    },
+    "context": {
+      "time": "21:10",
+      "availableCookingTime": "25 分钟",
+      "energyLevel": "低",
+      "nextSchedule": "22:00 继续改项目文档",
+      "weather": "小雨"
+    }
+  },
+  "profile": {
+    "explicitPreferences": {
+      "cookingLevel": "新手",
+      "taste": ["少油", "微辣", "不爱洗太多锅"],
+      "avoid": ["香菜", "复杂刀工", "油炸"],
+      "tools": ["电磁炉", "炒锅"],
+      "cleaningTolerance": "低",
+      "timeBudget": "25 分钟"
+    },
+    "events": [],
+    "traits": [],
+    "updatedAt": "2026-05-23T00:00:00+08:00"
+  }
+}

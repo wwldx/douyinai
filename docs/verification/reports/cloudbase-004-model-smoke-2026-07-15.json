@@ -1,0 +1,109 @@
+{
+  "generatedAt": "2026-07-15T07:35:40.978Z",
+  "baseUrl": "https://fridge-dinner-agent-281751-9-1304313771.sh.run.tcloudbase.com",
+  "selection": {
+    "suite": "all",
+    "preset": null,
+    "caseIds": [
+      "vision-fridge-real-fridge-f63de1",
+      "dinner-fast-tomato-eggs"
+    ],
+    "limit": null,
+    "requireModelSource": true,
+    "timeoutMs": 120000
+  },
+  "total": 2,
+  "passed": 1,
+  "failed": 1,
+  "passRate": 0.5,
+  "latencyMs": {
+    "average": 20307,
+    "p50": 7098,
+    "p95": 33516,
+    "vision": {
+      "count": 1,
+      "average": 7098,
+      "p50": 7098,
+      "p95": 7098
+    },
+    "planning": {
+      "count": 1,
+      "average": 33516,
+      "p50": 33516,
+      "p95": 33516
+    }
+  },
+  "sourceCounts": {
+    "model": 1,
+    "model-timeout-cache": 1
+  },
+  "failureCounts": {
+    "source": 1
+  },
+  "usage": {
+    "casesWithUsage": 1,
+    "inputTokens": 1628,
+    "outputTokens": 1492,
+    "totalTokens": 3120,
+    "cachedInputTokens": 0,
+    "reasoningTokens": 0
+  },
+  "metrics": {
+    "visionSchemaRate": 1,
+    "planningSchemaRate": 1,
+    "planningActionRate": 1,
+    "planningSafetyRate": 1
+  },
+  "results": [
+    {
+      "id": "vision-fridge-real-fridge-f63de1",
+      "suite": "vision",
+      "endpoint": "/api/analyze-fridge",
+      "durationMs": 7098,
+      "status": 200,
+      "requestId": "972abd05-0122-4c62-b1d4-135bb054c0f1",
+      "serverTiming": "vision;dur=4508",
+      "passed": false,
+      "failures": [
+        "要求真实模型来源，实际为 model-timeout-cache"
+      ],
+      "metrics": {
+        "schemaValid": true,
+        "itemRecall": 1
+      },
+      "source": "model-timeout-cache",
+      "usage": null,
+      "failureTypes": [
+        "source"
+      ]
+    },
+    {
+      "id": "dinner-fast-tomato-eggs",
+      "suite": "planning",
+      "endpoint": "/api/plan-dinner",
+      "durationMs": 33516,
+      "status": 200,
+      "requestId": "50c0e6d2-6691-4ae6-9c79-20084d2d130c",
+      "serverTiming": "retrieval;dur=0, planning;dur=33405",
+      "passed": true,
+      "failures": [],
+      "metrics": {
+        "schemaValid": true,
+        "actionValid": true,
+        "requiredHit": true,
+        "forbiddenSafe": true,
+        "missingHit": true
+      },
+      "action": "cook_with_existing_items",
+      "source": "model",
+      "usage": {
+        "inputTokens": 1628,
+        "outputTokens": 1492,
+        "totalTokens": 3120,
+        "cachedInputTokens": 0,
+        "reasoningTokens": 0
+      },
+      "failureTypes": []
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+[
+  { "id": "eat-01", "itemStates": [{ "name": "牛奶", "status": "label_soon" }], "expectedTonight": ["牛奶"], "expectedSoon": [], "expectedNeeds": [] },
+  { "id": "eat-02", "itemStates": [{ "name": "豆腐", "status": "opened" }], "expectedTonight": [], "expectedSoon": ["豆腐"], "expectedNeeds": [] },
+  { "id": "eat-03", "itemStates": [{ "name": "剩菜盒", "status": "unknown" }], "expectedTonight": [], "expectedSoon": [], "expectedNeeds": ["剩菜盒"] },
+  { "id": "eat-04", "itemStates": [{ "name": "鸡蛋", "status": "recently_bought" }], "expectedTonight": [], "expectedSoon": [], "expectedNeeds": [] },
+  { "id": "eat-05", "itemStates": [{ "name": "土豆", "status": "no_reminder" }], "expectedTonight": [], "expectedSoon": [], "expectedNeeds": [] },
+  { "id": "eat-06", "itemStates": [{ "name": "酸奶", "status": "opened_label_soon" }], "expectedTonight": ["酸奶"], "expectedSoon": [], "expectedNeeds": [] },
+  { "id": "eat-07", "itemStates": [{ "name": "豆腐", "status": "opened" }, { "name": "牛奶", "status": "label_soon" }], "expectedTonight": ["牛奶"], "expectedSoon": ["豆腐"], "expectedNeeds": [] },
+  { "id": "eat-08", "itemStates": [{ "name": "生菜", "status": "unknown" }, { "name": "鸡胸肉", "status": "opened" }], "expectedTonight": [], "expectedSoon": ["鸡胸肉"], "expectedNeeds": ["生菜"] },
+  { "id": "eat-09", "itemStates": [{ "name": "酸奶", "status": "label_soon" }, { "name": "豆腐", "status": "opened_label_soon" }], "expectedTonight": ["豆腐", "酸奶"], "expectedSoon": [], "expectedNeeds": [] },
+  { "id": "eat-10", "itemStates": [{ "name": "面条", "status": "no_reminder" }, { "name": "番茄", "status": "recently_bought" }, { "name": "鸡蛋", "status": "opened" }], "expectedTonight": [], "expectedSoon": ["鸡蛋"], "expectedNeeds": [] }
+]
+

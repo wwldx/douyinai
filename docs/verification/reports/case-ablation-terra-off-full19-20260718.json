@@ -1,0 +1,2063 @@
+{
+  "generatedAt": "2026-07-18T09:30:02.914Z",
+  "baseUrl": "http://127.0.0.1:4181",
+  "selection": {
+    "suite": "planning",
+    "preset": null,
+    "caseIds": [],
+    "limit": null,
+    "requireModelSource": true,
+    "retrievalMode": "off",
+    "timeoutMs": 70000
+  },
+  "total": 19,
+  "passed": 19,
+  "failed": 0,
+  "passRate": 1,
+  "latencyMs": {
+    "average": 19324,
+    "p50": 17444,
+    "p95": 28034,
+    "vision": {
+      "count": 0,
+      "average": 0,
+      "p50": 0,
+      "p95": 0
+    },
+    "planning": {
+      "count": 19,
+      "average": 19324,
+      "p50": 17444,
+      "p95": 28034
+    }
+  },
+  "sourceCounts": {
+    "model": 19
+  },
+  "providerCounts": {
+    "rightcode_responses_stream": 19
+  },
+  "modelCounts": {
+    "gpt-5.6-terra": 19
+  },
+  "failureCounts": {},
+  "usage": {
+    "casesWithUsage": 19,
+    "inputTokens": 47078,
+    "outputTokens": 28409,
+    "totalTokens": 75487,
+    "cachedInputTokens": 4224,
+    "reasoningTokens": 0
+  },
+  "metrics": {
+    "visionSchemaRate": 0,
+    "planningSchemaRate": 1,
+    "planningActionRate": 1,
+    "planningSafetyRate": 1
+  },
+  "results": [
+    {
+      "id": "target-huangmenji-missing-chicken",
+      "suite": "planning",
+      "endpoint": "/api/plan-target-dish",
+      "durationMs": 22481,
+      "status": 200,
+      "requestId": "51445f50-d1a7-4252-87cf-1aac228a19c3",
+      "serverTiming": "retrieval;dur=1, planning;dur=22456",
+      "passed": true,
+      "failures": [],
+      "metrics": {
+        "schemaValid": true,
+        "actionValid": true,
+        "requiredHit": true,
+        "forbiddenSafe": true,
+        "missingHit": true
+      },
+      "action": "shop_then_cook",
+      "source": "model",
+      "provider": "rightcode_responses_stream",
+      "model": "gpt-5.6-terra",
+      "usage": {
+        "inputTokens": 3260,
+        "outputTokens": 1768,
+        "totalTokens": 5028,
+        "cachedInputTokens": 0,
+        "reasoningTokens": 0
+      },
+      "retrieval": {
+        "mode": "off",
+        "caseCount": 0,
+        "caseIds": [],
+        "roles": []
+      },
+      "output": {
+        "targetDish": {
+          "name": "黄焖鸡",
+          "intentTime": "tonight",
+          "coreTaste": "咸香浓郁、热乎下饭",
+          "estimatedTime": "补齐食材后约35分钟",
+          "difficulty": "新手可做"
+        },
+        "verdict": {
+          "title": "补一份鸡腿肉，今晚能做简化黄焖鸡",
+          "summary": "土豆和香菇已经齐了，关键只缺鸡肉。选去骨鸡腿肉能省去处理骨头和久炖的步骤，用一口锅焖熟即可，适合今晚想吃热饭、少洗锅的安排。",
+          "primaryAction": "shop_then_cook"
+        },
+        "inventoryMatch": {
+          "availableItems": [
+            "土豆",
+            "香菇"
+          ],
+          "missingCritical": [
+            "去骨鸡腿肉",
+            "生姜"
+          ],
+          "missingOptional": [
+            "青椒",
+            "干辣椒",
+            "黄焖鸡酱料包"
+          ],
+          "substitutions": [
+            {
+              "from": "带骨鸡块",
+              "to": "去骨鸡腿肉",
+              "result": "更容易切块和焖熟，今晚约35分钟可完成简化版"
+            }
+          ]
+        },
+        "shoppingPlan": {
+          "mustBuy": [
+            {
+              "item": "去骨鸡腿肉",
+              "reason": "黄焖鸡的核心主料"
+            },
+            {
+              "item": "生姜",
+              "reason": "简化版焖鸡需要的去腥增香辅料"
+            }
+          ],
+          "confirmAtHome": [
+            "食用油",
+            "盐",
+            "生抽",
+            "老抽",
+            "白糖",
+            "米饭"
+          ],
+          "optionalUpgrades": [
+            "青椒",
+            "干辣椒",
+            "黄焖鸡酱料包"
+          ]
+        },
+        "executionPlan": {
+          "recommendedVersion": "一锅简化黄焖鸡：去骨鸡腿肉、现有土豆和香菇，加基础酱油调味焖熟。",
+          "steps": [
+            "补买去骨鸡腿肉和生姜；鸡腿肉回家后切成适口块，土豆切小块，香菇对半切或切片，生姜切片。",
+            "一口锅放少量油，先下姜片和鸡腿肉，中小火翻炒至表面变色。",
+            "加入土豆和香菇，放生抽、少量老抽和白糖，加入刚没过食材的热水，拌匀后盖盖焖煮。",
+            "中小火焖约15至20分钟，期间查看水量并轻轻翻动一次，避免粘底。",
+            "土豆变软后开盖稍微收汁；鸡肉要继续充分加热至全熟后再盛出，配家中米饭即可。"
+          ],
+          "difficultyWarnings": [
+            "新手不必焯水或油炸鸡肉，直接小火翻炒后焖熟即可。",
+            "土豆切小块更容易在40分钟内熟透；收汁时守在锅边，避免汤汁烧干。",
+            "鸡肉需充分加热后食用；如对熟度没有把握，继续小火焖几分钟再确认。"
+          ],
+          "prepForTomorrow": "若今晚不方便补买，可先把土豆和香菇冷藏保存；明天买鸡腿肉和生姜后，按同样的一锅焖法制作。"
+        },
+        "userFit": {
+          "skillNote": "按去骨鸡腿肉的一锅焖法操作，能避开油炸、复杂刀工和长时间处理生肉。",
+          "timeNote": "食材买齐后控制在约35分钟，符合今晚40分钟的时间预算。",
+          "profileNotes": [
+            "参考了用户希望少洗锅和避免油炸的需求。",
+            "参考了用户想在今晚吃上热饭的目标。"
+          ]
+        },
+        "commerceCards": [
+          {
+            "type": "douyin_mall",
+            "title": "今晚黄焖鸡补齐食材",
+            "item": "去骨鸡腿肉 + 生姜",
+            "reason": "补齐当前简化黄焖鸡不可缺少的主料和增香辅料，家里的土豆、香菇可直接用上。",
+            "cta": "加入模拟购物车并重新规划"
+          }
+        ],
+        "talkTrack": "你现有的土豆和香菇正好适合黄焖鸡；买去骨鸡腿肉和生姜后，用基础酱油一锅焖熟，今晚就能吃上热乎的简化版。"
+      },
+      "failureTypes": []
+    },
+    {
+      "id": "target-tomato-eggs-complete",
+      "suite": "planning",
+      "endpoint": "/api/plan-target-dish",
+      "durationMs": 16070,
+      "status": 200,
+      "requestId": "b6f5ffe9-ed56-49c9-894c-158f5857dc4d",
+      "serverTiming": "retrieval;dur=1, planning;dur=16060",
+      "passed": true,
+      "failures": [],
+      "metrics": {
+        "schemaValid": true,
+        "actionValid": true,
+        "requiredHit": true,
+        "forbiddenSafe": true,
+        "missingHit": true
+      },
+      "action": "cook_now",
+      "source": "model",
+      "provider": "rightcode_responses_stream",
+      "model": "gpt-5.6-terra",
+      "usage": {
+        "inputTokens": 3265,
+        "outputTokens": 607,
+        "totalTokens": 3872,
+        "cachedInputTokens": 0,
+        "reasoningTokens": 0
+      },
+      "retrieval": {
+        "mode": "off",
+        "caseCount": 0,
+        "caseIds": [],
+        "roles": []
+      },
+      "output": {
+        "targetDish": {
+          "name": "番茄炒蛋",
+          "intentTime": "tonight",
+          "coreTaste": "酸甜鲜香、热乎下饭",
+          "estimatedTime": "10—15 分钟",
+          "difficulty": "新手友好"
+        },
+        "verdict": {
+          "title": "今晚可以直接做番茄炒蛋",
+          "summary": "番茄和鸡蛋都已确认，15 分钟内能完成。先确认家里有食用油和盐；有糖会更接近常见的酸甜口，但没有也能做成。",
+          "primaryAction": "cook_now"
+        },
+        "inventoryMatch": {
+          "availableItems": [
+            "番茄",
+            "鸡蛋"
+          ],
+          "missingCritical": [],
+          "missingOptional": [
+            "白糖",
+            "葱花"
+          ],
+          "substitutions": [
+            {
+              "from": "白糖",
+              "to": "不加糖",
+              "result": "利用番茄自然酸甜，成菜会更清爽"
+            }
+          ]
+        },
+        "shoppingPlan": {
+          "mustBuy": [],
+          "confirmAtHome": [
+            "食用油",
+            "盐",
+            "酱油"
+          ],
+          "optionalUpgrades": [
+            "白糖",
+            "葱花"
+          ]
+        },
+        "executionPlan": {
+          "recommendedVersion": "基础快手番茄炒蛋：用2个番茄和3个鸡蛋，少油快炒。",
+          "steps": [
+            "番茄洗净后切成大块；鸡蛋打散，加入一小撮盐搅匀。",
+            "锅烧热后放少量油，倒入蛋液，待底部凝固后轻轻推散，盛出备用。",
+            "原锅放少量油，下番茄翻炒，加入一小撮盐；如果家里有糖，可加一小撮平衡酸味。",
+            "番茄炒出汁后倒回鸡蛋，快速翻匀约30秒，鸡蛋整体充分加热后关火装盘。"
+          ],
+          "difficultyWarnings": [
+            "不用追求番茄切得均匀，大块切法更省时。",
+            "鸡蛋下锅后不要久炒，凝固后先盛出，最后回锅更嫩。",
+            "操作时注意锅铲和锅边高温，鸡蛋请充分加热后食用。"
+          ],
+          "prepForTomorrow": "无需额外准备；下次想更下饭可备葱花或白糖。"
+        },
+        "userFit": {
+          "skillNote": "步骤以少切、快炒为主，适合新手完成。",
+          "timeNote": "预计10—15分钟，能在20:00开会前吃上。",
+          "profileNotes": [
+            "参考了已确认的番茄和鸡蛋库存。",
+            "参考了15分钟用餐目标及避免复杂刀工的偏好。"
+          ]
+        },
+        "commerceCards": [],
+        "talkTrack": "这道今晚不用补买：番茄和鸡蛋直接做，先确认油和盐；想要更经典的酸甜味，再按需加白糖和葱花。"
+      },
+      "failureTypes": []
+    },
+    {
+      "id": "target-beef-stew-time-short",
+      "suite": "planning",
+      "endpoint": "/api/plan-target-dish",
+      "durationMs": 25476,
+      "status": 200,
+      "requestId": "8e0cbf67-ae91-4879-8e99-29fe37abe62d",
+      "serverTiming": "retrieval;dur=1, planning;dur=25467",
+      "passed": true,
+      "failures": [],
+      "metrics": {
+        "schemaValid": true,
+        "actionValid": true,
+        "requiredHit": true,
+        "forbiddenSafe": true,
+        "missingHit": true
+      },
+      "action": "cook_simplified",
+      "source": "model",
+      "provider": "rightcode_responses_stream",
+      "model": "gpt-5.6-terra",
+      "usage": {
+        "inputTokens": 3322,
+        "outputTokens": 2872,
+        "totalTokens": 6194,
+        "cachedInputTokens": 0,
+        "reasoningTokens": 0
+      },
+      "retrieval": {
+        "mode": "off",
+        "caseCount": 0,
+        "caseIds": [],
+        "roles": []
+      },
+      "output": {
+        "targetDish": {
+          "name": "番茄牛腩",
+          "intentTime": "tonight",
+          "coreTaste": "热乎、番茄酸甜、肉香下饭",
+          "estimatedTime": "20 分钟",
+          "difficulty": "简单"
+        },
+        "verdict": {
+          "title": "今晚不炖牛腩，20 分钟做番茄土豆滑牛肉",
+          "summary": "你已有牛肉、番茄和土豆，但传统番茄牛腩需要较长炖煮。今晚把牛肉切薄片快炒，保留番茄酸甜和土豆肉香，能赶在 22:00 工作前吃上热饭。",
+          "primaryAction": "cook_simplified"
+        },
+        "inventoryMatch": {
+          "availableItems": [
+            "牛肉",
+            "番茄",
+            "土豆"
+          ],
+          "missingCritical": [],
+          "missingOptional": [
+            "洋葱",
+            "姜"
+          ],
+          "substitutions": [
+            {
+              "from": "牛腩长时间炖煮",
+              "to": "薄切牛肉快炒",
+              "result": "保留番茄牛肉风味，避开长时间炖煮"
+            }
+          ]
+        },
+        "shoppingPlan": {
+          "mustBuy": [],
+          "confirmAtHome": [
+            "食用油",
+            "盐",
+            "生抽",
+            "白糖"
+          ],
+          "optionalUpgrades": [
+            "洋葱",
+            "姜",
+            "牛腩"
+          ]
+        },
+        "executionPlan": {
+          "recommendedVersion": "今晚做番茄土豆滑牛肉；若想要软烂炖牛腩口感，明天再用牛腩慢炖。",
+          "steps": [
+            "先确认家里有食用油、盐、生抽和白糖；牛肉若是整块且不方便安全切薄，今晚不要勉强处理，改做番茄土豆。",
+            "土豆洗净后切成尽量薄的小片；番茄切块。",
+            "锅中放少量油，先下土豆片翻炒约 1 分钟，加少量水并盖盖焖 5 至 7 分钟。",
+            "土豆变软后加入番茄，撒少量盐和白糖，炒出番茄汁。",
+            "把牛肉切成薄片后下锅，加入少量生抽，快速翻炒并持续加热至熟透后关火。",
+            "连汤汁盛出配家中现有主食即可。"
+          ],
+          "difficultyWarnings": [
+            "传统番茄牛腩无法在 20 分钟内炖出软烂口感。",
+            "新手不要为了赶时间处理难切的大块生牛肉；肉类需持续充分加热至熟透后再食用。",
+            "土豆切薄一些才来得及熟，不必追求整齐刀工。"
+          ],
+          "prepForTomorrow": "想复刻炖菜版可补一份牛腩和洋葱，预留 90 分钟以上；今晚剩下的番茄或土豆可明天继续用。"
+        },
+        "userFit": {
+          "skillNote": "按薄切牛肉快炒的做法，步骤少于炖牛腩，更适合新手和低精力晚餐。",
+          "timeNote": "21:00 开始做，按土豆切薄、牛肉易处理的前提，约 20 分钟可完成。",
+          "profileNotes": [
+            "参考了你希望尽快吃饭、避免长时间炖煮的要求。",
+            "保留了番茄酸甜、土豆和牛肉的核心搭配。"
+          ]
+        },
+        "commerceCards": [],
+        "talkTrack": "冰箱里的牛肉、番茄和土豆已经能做一份番茄土豆牛肉；今晚换成快炒版，明天有时间再复刻软烂的番茄牛腩。"
+      },
+      "failureTypes": []
+    },
+    {
+      "id": "target-huiguorou-missing-pork",
+      "suite": "planning",
+      "endpoint": "/api/plan-target-dish",
+      "durationMs": 21254,
+      "status": 200,
+      "requestId": "f7572ff5-183e-4a7a-8ffb-ba0dc1ed6a78",
+      "serverTiming": "retrieval;dur=1, planning;dur=21246",
+      "passed": true,
+      "failures": [],
+      "metrics": {
+        "schemaValid": true,
+        "actionValid": true,
+        "requiredHit": true,
+        "forbiddenSafe": true,
+        "missingHit": true
+      },
+      "action": "shop_then_cook",
+      "source": "model",
+      "provider": "rightcode_responses_stream",
+      "model": "gpt-5.6-terra",
+      "usage": {
+        "inputTokens": 3252,
+        "outputTokens": 1731,
+        "totalTokens": 4983,
+        "cachedInputTokens": 0,
+        "reasoningTokens": 0
+      },
+      "retrieval": {
+        "mode": "off",
+        "caseCount": 0,
+        "caseIds": [],
+        "roles": []
+      },
+      "output": {
+        "targetDish": {
+          "name": "回锅肉",
+          "intentTime": "tonight",
+          "coreTaste": "咸香微辣、油润下饭",
+          "estimatedTime": "35–45 分钟",
+          "difficulty": "中等"
+        },
+        "verdict": {
+          "title": "补一份五花肉，今晚可以做简化回锅肉",
+          "summary": "你已有青椒和豆瓣酱，补齐五花肉就能做出咸香下饭的简化版。对入门者建议买切片五花肉，省去煮肉后切薄片的步骤。",
+          "primaryAction": "shop_then_cook"
+        },
+        "inventoryMatch": {
+          "availableItems": [
+            "青椒",
+            "豆瓣酱"
+          ],
+          "missingCritical": [
+            "五花肉"
+          ],
+          "missingOptional": [
+            "蒜苗",
+            "甜面酱"
+          ],
+          "substitutions": [
+            {
+              "from": "蒜苗",
+              "to": "青椒",
+              "result": "用现有青椒做配菜，仍能做成青椒回锅肉风味。"
+            }
+          ]
+        },
+        "shoppingPlan": {
+          "mustBuy": [
+            {
+              "item": "五花肉",
+              "reason": "回锅肉的核心主料"
+            }
+          ],
+          "confirmAtHome": [
+            "食用油",
+            "盐",
+            "生抽",
+            "白糖",
+            "姜",
+            "料酒"
+          ],
+          "optionalUpgrades": [
+            "蒜苗",
+            "甜面酱"
+          ]
+        },
+        "executionPlan": {
+          "recommendedVersion": "今晚做青椒简化回锅肉：用切片五花肉、豆瓣酱和青椒完成。",
+          "steps": [
+            "买约 250–300 克切片五花肉；回家后将青椒去籽切块。",
+            "确认家里有姜、料酒、生抽和少量白糖；没有料酒也可直接焯水后沥干。",
+            "冷锅下五花肉，小火慢慢煸出部分油脂，肉片两面充分加热后盛出；油多可倒出一部分。",
+            "用锅中少量油炒香姜末和豆瓣酱，转小火避免酱料焦糊。",
+            "下青椒炒至断生，放回五花肉，加少量生抽和一小撮白糖，快速翻匀即可出锅。",
+            "全程将猪肉充分加热后再食用；新手不要急着大火爆炒，以免豆瓣酱糊锅或油溅。"
+          ],
+          "difficultyWarnings": [
+            "五花肉煸炒会有油溅，使用中小火并保持锅内和肉表面尽量干燥。",
+            "豆瓣酱本身有咸味，先少放生抽和盐，尝味后再调整。"
+          ],
+          "prepForTomorrow": "若今晚不方便买肉，可保留青椒和豆瓣酱；明天买五花肉和蒜苗后，按同样步骤做更接近传统口味的版本。"
+        },
+        "userFit": {
+          "skillNote": "入门阶段用切片五花肉更容易掌握，避免煮整块肉、放凉再切片的操作。",
+          "timeNote": "在 45 分钟内可完成；提前切配并使用切片肉会更从容。",
+          "profileNotes": [
+            "参考了用户偏好下饭菜。",
+            "参考了今晚 45 分钟和入门烹饪经验。",
+            "已优先利用确认库存中的青椒和豆瓣酱。"
+          ]
+        },
+        "commerceCards": [
+          {
+            "type": "douyin_mall",
+            "title": "今晚回锅肉补齐主料",
+            "item": "切片五花肉",
+            "reason": "补齐核心肉类后，现有青椒和豆瓣酱即可完成简化版。",
+            "cta": "加入模拟购物车并重新规划"
+          }
+        ],
+        "talkTrack": "这道菜不用放弃：青椒和豆瓣酱已经到位，补一份切片五花肉，按小火煸炒的低风险路线，今晚就能吃上咸香下饭的青椒回锅肉。"
+      },
+      "failureTypes": []
+    },
+    {
+      "id": "target-fried-rice-complete",
+      "suite": "planning",
+      "endpoint": "/api/plan-target-dish",
+      "durationMs": 15599,
+      "status": 200,
+      "requestId": "6363ddf4-aa9d-4adc-8be3-1acd50837909",
+      "serverTiming": "retrieval;dur=0, planning;dur=15592",
+      "passed": true,
+      "failures": [],
+      "metrics": {
+        "schemaValid": true,
+        "actionValid": true,
+        "requiredHit": true,
+        "forbiddenSafe": true,
+        "missingHit": true
+      },
+      "action": "cook_now",
+      "source": "model",
+      "provider": "rightcode_responses_stream",
+      "model": "gpt-5.6-terra",
+      "usage": {
+        "inputTokens": 3323,
+        "outputTokens": 770,
+        "totalTokens": 4093,
+        "cachedInputTokens": 0,
+        "reasoningTokens": 0
+      },
+      "retrieval": {
+        "mode": "off",
+        "caseCount": 0,
+        "caseIds": [],
+        "roles": []
+      },
+      "output": {
+        "targetDish": {
+          "name": "蛋炒饭",
+          "intentTime": "tonight",
+          "coreTaste": "热乎、咸香、抗饿",
+          "estimatedTime": "10–15 分钟",
+          "difficulty": "简单"
+        },
+        "verdict": {
+          "title": "今晚可以做一人份轻油蛋炒饭",
+          "summary": "确认有冷藏剩米饭、鸡蛋和胡萝卜，主料已经齐全。先确认家里有食用油、盐和酱油；有的话一口锅 15 分钟内能完成，适合睡前少洗锅。",
+          "primaryAction": "cook_now"
+        },
+        "inventoryMatch": {
+          "availableItems": [
+            "剩米饭",
+            "鸡蛋",
+            "胡萝卜"
+          ],
+          "missingCritical": [],
+          "missingOptional": [
+            "葱花",
+            "火腿肠或熟鸡肉"
+          ],
+          "substitutions": [
+            {
+              "from": "葱花",
+              "to": "不放",
+              "result": "仍可做成基础蛋炒饭，靠鸡蛋和胡萝卜提香提色"
+            },
+            {
+              "from": "火腿肠或熟鸡肉",
+              "to": "鸡蛋",
+              "result": "做双蛋胡萝卜炒饭，口感更扎实且无需额外处理生肉"
+            }
+          ]
+        },
+        "shoppingPlan": {
+          "mustBuy": [],
+          "confirmAtHome": [
+            "食用油",
+            "盐",
+            "酱油"
+          ],
+          "optionalUpgrades": [
+            "葱花",
+            "火腿肠或熟鸡肉",
+            "冷冻豌豆"
+          ]
+        },
+        "executionPlan": {
+          "recommendedVersion": "轻油胡萝卜鸡蛋炒饭：用现有食材做一人份，不额外买菜。",
+          "steps": [
+            "把半根胡萝卜尽量切成小丁；冷藏米饭用饭勺压散，鸡蛋打入碗中搅匀。",
+            "小锅或平底锅烧热，放少量食用油，倒入蛋液后快速炒成小块，先盛到碗里。",
+            "原锅放胡萝卜丁，小火翻炒约 2 分钟；锅干可加一小勺水焖 1 分钟，让胡萝卜变软。",
+            "加入米饭，持续压散并翻炒至饭粒热透、没有明显冷硬结块。",
+            "倒回鸡蛋，加少量盐；如有酱油，沿锅边加一点提香，翻匀后关火。"
+          ],
+          "difficultyWarnings": [
+            "冷藏米饭结块时不要急着加很多油，用饭勺边压边炒即可。",
+            "夜宵建议少油、少酱油；做完尽快吃，不要把炒好的饭在室温下久放。",
+            "鸡蛋要炒至完全凝固并充分加热后再食用。"
+          ],
+          "prepForTomorrow": "不用特意准备。若常做炒饭，可下次备一小袋冷冻豌豆和葱花，取用方便。"
+        },
+        "userFit": {
+          "skillNote": "这版只需切少量胡萝卜和一口锅翻炒，对新手友好。",
+          "timeNote": "预计 10–15 分钟，符合 23:10 的快速夜宵和准备睡觉安排。",
+          "profileNotes": [
+            "参考了用户希望少洗锅、避免重油的偏好。",
+            "参考了当前精力较低，优先保留现有食材的简化路线。"
+          ]
+        },
+        "commerceCards": [],
+        "talkTrack": "今晚不用补货：确认橱柜里的油、盐和酱油，就能用剩米饭、鸡蛋和胡萝卜做一份轻油蛋炒饭。"
+      },
+      "failureTypes": []
+    },
+    {
+      "id": "target-mapo-tofu-vegetarian",
+      "suite": "planning",
+      "endpoint": "/api/plan-target-dish",
+      "durationMs": 26215,
+      "status": 200,
+      "requestId": "a667ebd3-c8a2-46cb-9eba-45e9db6c3077",
+      "serverTiming": "retrieval;dur=0, planning;dur=26206",
+      "passed": true,
+      "failures": [],
+      "metrics": {
+        "schemaValid": true,
+        "actionValid": true,
+        "requiredHit": true,
+        "forbiddenSafe": true,
+        "missingHit": true
+      },
+      "action": "cook_now",
+      "source": "model",
+      "provider": "rightcode_responses_stream",
+      "model": "gpt-5.6-terra",
+      "usage": {
+        "inputTokens": 3274,
+        "outputTokens": 1783,
+        "totalTokens": 5057,
+        "cachedInputTokens": 0,
+        "reasoningTokens": 0
+      },
+      "retrieval": {
+        "mode": "off",
+        "caseCount": 0,
+        "caseIds": [],
+        "roles": []
+      },
+      "output": {
+        "targetDish": {
+          "name": "素麻婆豆腐",
+          "intentTime": "tonight",
+          "coreTaste": "香辣咸鲜、软嫩下饭",
+          "estimatedTime": "15—20 分钟",
+          "difficulty": "新手可做"
+        },
+        "verdict": {
+          "title": "今晚就能做素版麻婆豆腐",
+          "summary": "确认有豆腐和豆瓣酱，已经能做出不含肉的简化素麻婆豆腐。先确认家里有食用油和盐；花椒、蒜末和淀粉不是今晚成菜的硬性条件。",
+          "primaryAction": "cook_now"
+        },
+        "inventoryMatch": {
+          "availableItems": [
+            "豆腐",
+            "豆瓣酱"
+          ],
+          "missingCritical": [],
+          "missingOptional": [
+            "花椒粉",
+            "蒜",
+            "淀粉"
+          ],
+          "substitutions": [
+            {
+              "from": "肉末",
+              "to": "不添加肉类",
+              "result": "用豆瓣酱炒香并轻推豆腐，做成素版麻婆豆腐"
+            }
+          ]
+        },
+        "shoppingPlan": {
+          "mustBuy": [],
+          "confirmAtHome": [
+            "食用油",
+            "盐",
+            "白糖"
+          ],
+          "optionalUpgrades": [
+            "花椒粉",
+            "蒜",
+            "淀粉",
+            "葱花"
+          ]
+        },
+        "executionPlan": {
+          "recommendedVersion": "今晚做无肉、无复杂调味的简化素麻婆豆腐。",
+          "steps": [
+            "先查看豆瓣酱配料表，确认符合你的素食要求；豆腐切成约两厘米小块。",
+            "锅中放少量油，开小火加入一小勺豆瓣酱，慢慢炒出香味，避免火大炒焦。",
+            "加入半碗清水，尝一下再决定是否补少量盐和一小撮白糖。",
+            "轻轻放入豆腐块，转中小火煮约5—8分钟；用锅铲从锅边轻推，不要频繁翻炒。",
+            "关火后装盘；有花椒粉可撒一点增加麻香，有淀粉可先调成水淀粉、最后少量勾芡。"
+          ],
+          "difficultyWarnings": [
+            "豆瓣酱本身偏咸偏辣，先少放，尝味后再调整。",
+            "豆腐易碎，煮的时候以轻推锅身或轻推豆腐为主。",
+            "全程用中小火，豆腐要充分加热后再食用。"
+          ],
+          "prepForTomorrow": "如果想更接近麻辣鲜香的版本，明天补花椒粉、蒜和淀粉；仍然不需要添加肉类。"
+        },
+        "userFit": {
+          "skillNote": "这版不需要处理生肉，也不需要油炸或复杂刀工，适合新手完成。",
+          "timeNote": "18点开始制作，通常可在25分钟时间内上桌。",
+          "profileNotes": [
+            "依据用户明确的不吃肉需求规划为素版。",
+            "依据已确认的豆腐和豆瓣酱安排今晚可执行做法。"
+          ]
+        },
+        "commerceCards": [],
+        "talkTrack": "豆腐和豆瓣酱已经够做一份素版热菜；今晚先用低风险做法复刻香辣软嫩的口感，花椒和淀粉以后补齐即可升级。"
+      },
+      "failureTypes": []
+    },
+    {
+      "id": "target-gongbao-missing-peanut",
+      "suite": "planning",
+      "endpoint": "/api/plan-target-dish",
+      "durationMs": 28034,
+      "status": 200,
+      "requestId": "c4f83da6-9c87-4597-ba69-205ee1f5b52d",
+      "serverTiming": "retrieval;dur=0, planning;dur=28027",
+      "passed": true,
+      "failures": [],
+      "metrics": {
+        "schemaValid": true,
+        "actionValid": true,
+        "requiredHit": true,
+        "forbiddenSafe": true,
+        "missingHit": true
+      },
+      "action": "shop_then_cook",
+      "source": "model",
+      "provider": "rightcode_responses_stream",
+      "model": "gpt-5.6-terra",
+      "usage": {
+        "inputTokens": 3301,
+        "outputTokens": 2943,
+        "totalTokens": 6244,
+        "cachedInputTokens": 0,
+        "reasoningTokens": 0
+      },
+      "retrieval": {
+        "mode": "off",
+        "caseCount": 0,
+        "caseIds": [],
+        "roles": []
+      },
+      "output": {
+        "targetDish": {
+          "name": "宫保鸡丁",
+          "intentTime": "tonight",
+          "coreTaste": "酸甜微辣、咸香、下饭",
+          "estimatedTime": "25—35 分钟",
+          "difficulty": "入门可做"
+        },
+        "verdict": {
+          "title": "补一包熟花生米，今晚能做黄瓜辣椒宫保鸡丁",
+          "summary": "鸡胸肉、黄瓜和辣椒已经齐了；补上熟花生米，并确认家里有酱油、醋、糖和食用油，就能做出接近宫保风味的下饭菜。",
+          "primaryAction": "shop_then_cook"
+        },
+        "inventoryMatch": {
+          "availableItems": [
+            "鸡胸肉",
+            "黄瓜",
+            "辣椒"
+          ],
+          "missingCritical": [
+            "熟花生米"
+          ],
+          "missingOptional": [
+            "花椒",
+            "葱",
+            "姜",
+            "蒜",
+            "淀粉",
+            "料酒"
+          ],
+          "substitutions": [
+            {
+              "from": "鸡腿肉",
+              "to": "鸡胸肉",
+              "result": "减少腌制时间并避免久炒，成菜会更清爽"
+            },
+            {
+              "from": "干辣椒",
+              "to": "新鲜辣椒",
+              "result": "保留辣味，香气会比传统版本清新一些"
+            },
+            {
+              "from": "传统配菜",
+              "to": "黄瓜",
+              "result": "做成黄瓜辣椒宫保鸡丁，口感更脆爽"
+            }
+          ]
+        },
+        "shoppingPlan": {
+          "mustBuy": [
+            {
+              "item": "熟花生米",
+              "reason": "宫保鸡丁标志性的坚果香和脆口来源"
+            }
+          ],
+          "confirmAtHome": [
+            "食用油",
+            "盐",
+            "生抽",
+            "米醋",
+            "白糖"
+          ],
+          "optionalUpgrades": [
+            "花椒",
+            "葱",
+            "姜",
+            "蒜",
+            "淀粉",
+            "料酒"
+          ]
+        },
+        "executionPlan": {
+          "recommendedVersion": "今晚做黄瓜辣椒宫保鸡丁：用鸡胸肉、黄瓜和新鲜辣椒，加入熟花生米完成宫保风味。",
+          "steps": [
+            "鸡胸肉切成大小尽量一致的小丁；黄瓜切丁，辣椒切小段。",
+            "先调一碗汁：生抽、米醋、白糖和少量清水拌匀；口味按酸甜微辣调整。",
+            "锅烧热后放少量油，下鸡丁中火翻炒，持续翻动并确保鸡肉中心充分加热；不确定时继续加热。",
+            "鸡肉熟透后加入辣椒和黄瓜，快速翻炒约1分钟，避免黄瓜出水变软。",
+            "倒入调好的酱汁，快速翻匀至裹在食材表面，关火后拌入熟花生米。",
+            "配家里的米饭食用；米饭不是这道菜的必买缺口。"
+          ],
+          "difficultyWarnings": [
+            "鸡胸肉容易炒柴，切小块后中火快炒，不要长时间空炒。",
+            "入门操作时先把酱汁调好再开火，避免边找调料边让鸡肉炒过头。",
+            "若没有熟花生米，不建议把生花生直接下锅久炸；今晚可先做黄瓜辣椒鸡丁，但会少了宫保菜的标志性口感。"
+          ],
+          "prepForTomorrow": "若今晚不方便补花生米，可先将鸡胸肉分装冷藏；明天补齐熟花生米和可选的葱姜蒜后，按同样流程做完整版。"
+        },
+        "userFit": {
+          "skillNote": "这版避开油炸和复杂刀工，先调汁、再快炒，对入门阶段更稳妥。",
+          "timeNote": "食材齐全后约25—35分钟可完成；购买熟花生米的时间需另计。",
+          "profileNotes": [
+            "依据用户希望菜品尽量接近原菜，并保留酸甜微辣和下饭特点。",
+            "依据当前确认的鸡胸肉、黄瓜、辣椒和35分钟晚餐时间安排。"
+          ]
+        },
+        "commerceCards": [
+          {
+            "type": "douyin_mall",
+            "title": "补齐宫保关键口感",
+            "item": "熟花生米",
+            "reason": "当前确认库存只缺这一项关键食材。",
+            "cta": "加入模拟购物车并按补齐版做"
+          }
+        ],
+        "talkTrack": "你现有食材已经能支撑宫保风味的主体；补一包熟花生米、确认基础调味料后，今晚就能做一盘黄瓜辣椒宫保鸡丁。"
+      },
+      "failureTypes": []
+    },
+    {
+      "id": "target-fish-fragrant-complete",
+      "suite": "planning",
+      "endpoint": "/api/plan-target-dish",
+      "durationMs": 25258,
+      "status": 200,
+      "requestId": "a6c66d47-8c0c-4312-8275-c55460c17abf",
+      "serverTiming": "retrieval;dur=0, planning;dur=25250",
+      "passed": true,
+      "failures": [],
+      "metrics": {
+        "schemaValid": true,
+        "actionValid": true,
+        "requiredHit": true,
+        "forbiddenSafe": true,
+        "missingHit": true
+      },
+      "action": "cook_now",
+      "source": "model",
+      "provider": "rightcode_responses_stream",
+      "model": "gpt-5.6-terra",
+      "usage": {
+        "inputTokens": 3359,
+        "outputTokens": 1796,
+        "totalTokens": 5155,
+        "cachedInputTokens": 0,
+        "reasoningTokens": 0
+      },
+      "retrieval": {
+        "mode": "off",
+        "caseCount": 0,
+        "caseIds": [],
+        "roles": []
+      },
+      "output": {
+        "targetDish": {
+          "name": "鱼香肉丝",
+          "intentTime": "tonight",
+          "coreTaste": "酸甜微辣、咸香下饭",
+          "estimatedTime": "30～40 分钟",
+          "difficulty": "入门可做"
+        },
+        "verdict": {
+          "title": "今晚可以做一版家常鱼香肉丝",
+          "summary": "猪肉、胡萝卜、木耳和辣椒都已齐，主料组合足够成立。先确认家里有酱油、醋、糖和盐；用基础酸甜调味就能做出下饭版本，不必专门买调味包。",
+          "primaryAction": "cook_now"
+        },
+        "inventoryMatch": {
+          "availableItems": [
+            "猪肉",
+            "胡萝卜",
+            "木耳",
+            "辣椒"
+          ],
+          "missingCritical": [],
+          "missingOptional": [
+            "笋丝",
+            "蒜",
+            "姜",
+            "葱",
+            "豆瓣酱",
+            "淀粉"
+          ],
+          "substitutions": [
+            {
+              "from": "笋丝",
+              "to": "胡萝卜和木耳",
+              "result": "保留脆嫩口感，做家常版配菜组合"
+            },
+            {
+              "from": "豆瓣酱",
+              "to": "酱油、醋和糖",
+              "result": "能做出酸甜咸香的简化鱼香汁"
+            },
+            {
+              "from": "淀粉",
+              "to": "不勾芡直接收汁",
+              "result": "酱汁会更清爽，但仍可成菜"
+            }
+          ]
+        },
+        "shoppingPlan": {
+          "mustBuy": [],
+          "confirmAtHome": [
+            "食用油",
+            "盐",
+            "酱油",
+            "醋",
+            "白糖"
+          ],
+          "optionalUpgrades": [
+            "笋丝",
+            "蒜",
+            "姜",
+            "葱",
+            "豆瓣酱",
+            "淀粉"
+          ]
+        },
+        "executionPlan": {
+          "recommendedVersion": "今晚做基础调味的家常鱼香肉丝：猪肉、胡萝卜、木耳和辣椒炒香后，以酱油、醋、糖调出酸甜汁，收汁出锅。",
+          "steps": [
+            "木耳若是干货，先按包装说明泡发并洗净；胡萝卜、木耳、辣椒切成尽量细而均匀的丝。",
+            "猪肉切细丝，加入少量盐和酱油抓匀；有淀粉可加少量拌匀，没有也可以直接炒。",
+            "先调一小碗鱼香汁：酱油、醋、白糖和少量清水混合，口味按酸甜优先调整；有豆瓣酱可少量加入增香。",
+            "锅烧热后加油，放入肉丝快速划散，持续翻炒至肉丝全熟后盛出。",
+            "用锅中余油炒胡萝卜丝、木耳和辣椒，炒至断生；有蒜姜时先小火炒香再下菜。",
+            "倒回肉丝，倒入鱼香汁，翻炒并收至酱汁均匀裹住食材；有淀粉可用少量水淀粉薄薄勾芡后出锅。"
+          ],
+          "difficultyWarnings": [
+            "猪肉切丝时注意手指位置；不必追求特别细，切成细条即可。",
+            "肉丝下锅后要持续翻散，并充分加热至熟透再食用。",
+            "醋和糖先少放，尝过再补，避免一开始调得过酸或过甜。"
+          ],
+          "prepForTomorrow": "如果想更接近饭馆风味，明天补笋丝、蒜、姜、葱、豆瓣酱和淀粉；猪肉可提前切丝并冷藏密封，做饭时会更快。"
+        },
+        "userFit": {
+          "skillNote": "这版只需炒肉、炒配菜和调一碗酸甜汁，步骤清晰，适合入门阶段自己做。",
+          "timeNote": "在 40 分钟内可完成；若木耳需要泡发，优先用已泡发木耳或按包装说明安排。",
+          "profileNotes": [
+            "参考了用户偏好酸甜、下饭的口味方向。",
+            "参考了今晚有 40 分钟且希望自己做晚饭的安排。",
+            "以用户确认保留的猪肉、胡萝卜、木耳和辣椒作为现有食材。"
+          ]
+        },
+        "commerceCards": [
+          {
+            "type": "none",
+            "title": "现有食材优先做",
+            "item": "无需补买",
+            "reason": "主料已齐，基础调味确认在家后即可完成家常版。",
+            "cta": "先确认调味料并开做"
+          }
+        ],
+        "talkTrack": "这顿不用被“正宗配料”卡住：你冰箱里的猪肉、胡萝卜、木耳和辣椒已经能做出酸甜微辣、很下饭的家常鱼香肉丝。先翻一下橱柜确认酱油、醋和糖，齐了就今晚开炒。"
+      },
+      "failureTypes": []
+    },
+    {
+      "id": "target-chicken-wings-food-safety",
+      "suite": "planning",
+      "endpoint": "/api/plan-target-dish",
+      "durationMs": 20344,
+      "status": 200,
+      "requestId": "16953762-75c5-49bf-a8b5-30f4fe44be03",
+      "serverTiming": "retrieval;dur=0, planning;dur=20336",
+      "passed": true,
+      "failures": [],
+      "metrics": {
+        "schemaValid": true,
+        "actionValid": true,
+        "requiredHit": true,
+        "forbiddenSafe": true,
+        "missingHit": true
+      },
+      "action": "prep_for_tomorrow",
+      "source": "model",
+      "provider": "rightcode_responses_stream",
+      "model": "gpt-5.6-terra",
+      "usage": {
+        "inputTokens": 3267,
+        "outputTokens": 2200,
+        "totalTokens": 5467,
+        "cachedInputTokens": 2176,
+        "reasoningTokens": 0
+      },
+      "retrieval": {
+        "mode": "off",
+        "caseCount": 0,
+        "caseIds": [],
+        "roles": []
+      },
+      "output": {
+        "targetDish": {
+          "name": "可乐鸡翅",
+          "intentTime": "tonight",
+          "coreTaste": "甜咸浓香、热乎下饭",
+          "estimatedTime": "今晚无法在20分钟内从冷冻状态安全完成；解冻后约25分钟",
+          "difficulty": "新手友好（解冻后）"
+        },
+        "verdict": {
+          "title": "今晚别硬赶20分钟，先安全解冻，明天做更稳",
+          "summary": "鸡翅仍是冷冻状态，20分钟内很难做到均匀解冻并充分加热。可乐已在，今晚把鸡翅转入冷藏解冻；明天用可乐和家中基础调味做简化可乐鸡翅。",
+          "primaryAction": "prep_for_tomorrow"
+        },
+        "inventoryMatch": {
+          "availableItems": [
+            "冷冻鸡翅",
+            "可乐"
+          ],
+          "missingCritical": [],
+          "missingOptional": [
+            "姜片",
+            "葱花"
+          ],
+          "substitutions": []
+        },
+        "shoppingPlan": {
+          "mustBuy": [],
+          "confirmAtHome": [
+            "食用油",
+            "生抽",
+            "盐"
+          ],
+          "optionalUpgrades": [
+            "姜片",
+            "葱花"
+          ]
+        },
+        "executionPlan": {
+          "recommendedVersion": "今晚冷藏解冻，明天做少油简化可乐鸡翅。",
+          "steps": [
+            "今晚把冷冻鸡翅连同密封包装放入冷藏室解冻，不要放在室温下久放。",
+            "明天确认鸡翅已解冻后，用厨房纸吸干表面水分。",
+            "锅中放少量油，放入鸡翅，用中小火分面煎至表面变色。",
+            "加入可乐和少量生抽，液面约到鸡翅一半；加盖中小火焖煮。",
+            "开盖翻动鸡翅并继续收汁，确保最厚处也被充分加热后再食用；新手不要只靠颜色或汁水判断。",
+            "按口味补少量盐，收至酱汁挂在鸡翅表面即可。"
+          ],
+          "difficultyWarnings": [
+            "冷冻鸡翅不建议直接用20分钟快速烹饪，内部可能受热不均。",
+            "避免大火煎炸和频繁翻动，使用中小火、加盖焖煮更适合新手。",
+            "如鸡翅明天仍未完全解冻，继续冷藏解冻后再做。"
+          ],
+          "prepForTomorrow": "今晚冷藏解冻；明天预留约25分钟烹饪时间。"
+        },
+        "userFit": {
+          "skillNote": "这版避免油炸和复杂处理，适合新手用中小火完成。",
+          "timeNote": "20分钟不足以安全处理仍冷冻的8个鸡翅，提前解冻后时间更可控。",
+          "profileNotes": [
+            "参考了用户偏好甜口。",
+            "参考了用户希望采用低风险操作并充分加热。"
+          ]
+        },
+        "commerceCards": [],
+        "talkTrack": "可乐和鸡翅都已备好，关键不是补买，而是别为了赶时间直接处理冷冻鸡翅：今晚先冷藏解冻，明天就能做成甜咸浓香的可乐鸡翅。"
+      },
+      "failureTypes": []
+    },
+    {
+      "id": "target-unknown-dish-ask-clarification",
+      "suite": "planning",
+      "endpoint": "/api/plan-target-dish",
+      "durationMs": 15181,
+      "status": 200,
+      "requestId": "e16636b1-c497-4cf0-bd1e-63752610bbc6",
+      "serverTiming": "retrieval;dur=0, planning;dur=15173",
+      "passed": true,
+      "failures": [],
+      "metrics": {
+        "schemaValid": true,
+        "actionValid": true,
+        "requiredHit": true,
+        "forbiddenSafe": true,
+        "missingHit": true
+      },
+      "action": "cook_simplified",
+      "source": "model",
+      "provider": "rightcode_responses_stream",
+      "model": "gpt-5.6-terra",
+      "usage": {
+        "inputTokens": 3192,
+        "outputTokens": 886,
+        "totalTokens": 4078,
+        "cachedInputTokens": 0,
+        "reasoningTokens": 0
+      },
+      "retrieval": {
+        "mode": "off",
+        "caseCount": 0,
+        "caseIds": [],
+        "roles": []
+      },
+      "output": {
+        "targetDish": {
+          "name": "未确认的金黄菜品",
+          "intentTime": "tonight",
+          "coreTaste": "待确认",
+          "estimatedTime": "待确认",
+          "difficulty": "待确认"
+        },
+        "verdict": {
+          "title": "先确认视频里的菜名或画面，再帮你复刻",
+          "summary": "目前只有“金黄的东西”这一描述，无法判断它是煎蛋、炸物、烘焙点心还是其他菜。冰箱已确认有 2 个鸡蛋；如果你只是想今晚先吃一口金黄热食，可以做低油煎蛋作为临时替代。",
+          "primaryAction": "cook_simplified"
+        },
+        "inventoryMatch": {
+          "availableItems": [
+            "鸡蛋（2个）"
+          ],
+          "missingCritical": [],
+          "missingOptional": [],
+          "substitutions": [
+            {
+              "from": "未确认的目标菜",
+              "to": "低油煎蛋",
+              "result": "今晚可先用现有鸡蛋做简单金黄热食，但不能视为原视频菜的复刻"
+            }
+          ]
+        },
+        "shoppingPlan": {
+          "mustBuy": [],
+          "confirmAtHome": [
+            "食用油",
+            "盐"
+          ],
+          "optionalUpgrades": []
+        },
+        "executionPlan": {
+          "recommendedVersion": "先补充视频截图、菜名或描述口感；今晚若想立刻吃，做低油煎蛋。",
+          "steps": [
+            "把视频中食物的截图发来，或补充它是甜的还是咸的、像饼还是像块状炸物。",
+            "今晚临时做煎蛋：平底锅小火预热，放少量油，打入鸡蛋。",
+            "用小火加热至蛋白和蛋黄都充分凝固后再食用，按口味加少量盐。"
+          ],
+          "difficultyWarnings": [
+            "目标菜未确认前，不建议按“金黄”推断后直接油炸或购买专用食材。",
+            "新手做煎蛋用小火即可，不需要深油炸。"
+          ],
+          "prepForTomorrow": "确认目标菜后，再按它的实际主料、调味和工具安排补买或准备。"
+        },
+        "userFit": {
+          "skillNote": "考虑到你是新手，先给不需要油炸和复杂处理的临时做法。",
+          "timeNote": "晚餐还有约 30 分钟，确认菜品信息后仍可快速重新规划。",
+          "profileNotes": [
+            "当前目标是先弄清视频里的食物是什么。",
+            "库存只包含已确认的鸡蛋。"
+          ]
+        },
+        "commerceCards": [
+          {
+            "type": "none",
+            "title": "先识别目标菜",
+            "item": "视频截图或菜名",
+            "reason": "菜品尚未确认，暂不建议购买食材或厨具。",
+            "cta": "补充截图后重新规划"
+          }
+        ],
+        "talkTrack": "把视频里金黄食物的截图发来，或说说它的形状、甜咸和有没有肉馅；我会按你确认的菜名判断今晚能否复刻。"
+      },
+      "failureTypes": []
+    },
+    {
+      "id": "dinner-fast-tomato-eggs",
+      "suite": "planning",
+      "endpoint": "/api/plan-dinner",
+      "durationMs": 17444,
+      "status": 200,
+      "requestId": "abf9602f-7a7c-40ec-a0d0-53d9b847a614",
+      "serverTiming": "retrieval;dur=0, planning;dur=17432",
+      "passed": true,
+      "failures": [],
+      "metrics": {
+        "schemaValid": true,
+        "actionValid": true,
+        "requiredHit": true,
+        "forbiddenSafe": true,
+        "missingHit": true
+      },
+      "action": "cook_with_existing_items",
+      "source": "model",
+      "provider": "rightcode_responses_stream",
+      "model": "gpt-5.6-terra",
+      "usage": {
+        "inputTokens": 1628,
+        "outputTokens": 1424,
+        "totalTokens": 3052,
+        "cachedInputTokens": 0,
+        "reasoningTokens": 0
+      },
+      "retrieval": {
+        "mode": "off",
+        "caseCount": 0,
+        "caseIds": [],
+        "roles": []
+      },
+      "output": {
+        "decision": "cook_with_existing_items",
+        "score": 88,
+        "summary": "今晚可用现有番茄和鸡蛋在 15 分钟内做番茄炒蛋；分量偏轻，建议先吃热食，会议后若饿再补一份简单主食或酸奶。",
+        "personalizationNotes": [
+          "参考了 15 分钟吃饭和 20:00 开会的时间限制，优先选择快速出锅的热食。",
+          "参考了新手厨艺与避免复杂刀工的要求，只需简单切番茄。",
+          "参考了快手、热乎的偏好，采用一口锅完成的做法。"
+        ],
+        "baseMeal": {
+          "name": "快手番茄炒蛋",
+          "why": "现有食材齐全，约 10–12 分钟完成，步骤少且无需复杂处理，适合开会前快速吃上一顿热食。",
+          "timeCost": "10–12 分钟",
+          "difficulty": "新手友好",
+          "requiredItems": [
+            "番茄 2 个",
+            "鸡蛋 3 个",
+            "食用油",
+            "盐（如有）"
+          ],
+          "steps": [
+            "番茄洗净后切成小块；鸡蛋打入碗中，加一小撮盐搅匀。",
+            "锅烧热后放少量油，倒入蛋液，凝固后快速炒成大块，盛出备用。",
+            "原锅放入番茄，中小火翻炒 3–4 分钟；若锅太干可加 1–2 勺水并盖盖焖 1 分钟。",
+            "番茄变软出汁后倒回鸡蛋，翻匀 30 秒，尝味后出锅。"
+          ],
+          "safetyTips": [
+            "打蛋后及时洗手；鸡蛋要炒至完全凝固、没有流动蛋液。",
+            "番茄入热锅可能溅油，保持中小火并从锅边轻放食材。",
+            "时间紧时不要为了赶进度开大火，避免糊锅或烫伤。"
+          ]
+        },
+        "stretchMeal": {
+          "name": "番茄鸡蛋盖饭或拌面",
+          "why": "若家里其实有剩饭、挂面或吐司，可直接搭配，能让晚餐更顶饱。",
+          "extraSkill": "把现成主食加热或煮熟",
+          "timeCost": "额外 3–8 分钟"
+        },
+        "shoppingUpgrade": {
+          "neededItems": [
+            "即食主食或吐司"
+          ],
+          "reason": "现有食材能做热菜，但缺少确认的主食；备一份易保存主食可让下次 15 分钟晚餐更完整。",
+          "estimatedCost": "5–12 元"
+        },
+        "fallback": {
+          "type": "quick_meal_or_delivery",
+          "condition": "如果现在开始做仍赶不上 20:00 开会，或家里连油和盐都没有。",
+          "suggestion": "先选择附近便利店的饭团、面包加牛奶，或点一份清淡盖饭；会议后再补足。"
+        },
+        "commerceSuggestion": {
+          "type": "none",
+          "title": "无需额外下单",
+          "item": "无",
+          "reason": "现有番茄和鸡蛋足够完成一份快速热食；仅在缺油盐或需要主食时再就近补购。"
+        }
+      },
+      "failureTypes": []
+    },
+    {
+      "id": "dinner-late-night-low-energy",
+      "suite": "planning",
+      "endpoint": "/api/plan-dinner",
+      "durationMs": 14965,
+      "status": 200,
+      "requestId": "3f4e7af0-3cba-4e4b-9fa6-4a192f42f5c6",
+      "serverTiming": "retrieval;dur=0, planning;dur=14958",
+      "passed": true,
+      "failures": [],
+      "metrics": {
+        "schemaValid": true,
+        "actionValid": true,
+        "requiredHit": true,
+        "forbiddenSafe": true,
+        "missingHit": true
+      },
+      "action": "quick_meal_first",
+      "source": "model",
+      "provider": "rightcode_responses_stream",
+      "model": "gpt-5.6-terra",
+      "usage": {
+        "inputTokens": 1682,
+        "outputTokens": 732,
+        "totalTokens": 2414,
+        "cachedInputTokens": 0,
+        "reasoningTokens": 0
+      },
+      "retrieval": {
+        "mode": "off",
+        "caseCount": 0,
+        "caseIds": [],
+        "roles": []
+      },
+      "output": {
+        "decision": "quick_meal_first",
+        "score": 91,
+        "summary": "现在已较晚、可用时间只有 15 分钟且准备睡觉，建议优先做一碗清淡的青菜鸡蛋汤面；一锅完成、热乎、负担较轻。",
+        "personalizationNotes": [
+          "参考了“热乎”和“少洗锅”的偏好，优先安排一锅完成的汤面。",
+          "当前为 23:40，且后续准备睡觉，选择清淡、少油、易消化的夜宵。",
+          "考虑到新手厨艺和低精力状态，避免煎炒、复杂切配及高油操作。"
+        ],
+        "baseMeal": {
+          "name": "一锅青菜鸡蛋汤面",
+          "why": "现有面条、鸡蛋和青菜即可完成，不用额外采购；做法简单、热乎清淡，锅碗也较少。",
+          "timeCost": "10-12 分钟",
+          "difficulty": "新手友好",
+          "requiredItems": [
+            "面条 1 把",
+            "鸡蛋 1-2 个",
+            "青菜 1 把",
+            "盐或少量生抽（如有）"
+          ],
+          "steps": [
+            "锅中加足量水烧开；青菜洗净，较大的叶子用手掰成两段即可。",
+            "下面条煮至约八成熟，通常需 4-6 分钟，期间用筷子轻轻拨散防粘。",
+            "放入青菜煮约 1 分钟；将鸡蛋直接打入锅中，想吃蛋花可用筷子轻轻搅散，想吃荷包蛋则不要搅。",
+            "再煮 1-2 分钟至鸡蛋熟透、面条无硬芯，按口味加少量盐或生抽，关火盛出。"
+          ],
+          "safetyTips": [
+            "水沸后再下食材，避免溅水；端锅和倒热汤时使用隔热手套或干布。",
+            "鸡蛋需煮至蛋白完全凝固；若鸡蛋有异味、蛋壳破损严重或青菜发黏变味，不要食用。",
+            "夜间份量以吃到不饿为宜，调味从少量开始，避免过咸影响休息。"
+          ]
+        },
+        "stretchMeal": {
+          "name": "蛋花青菜面",
+          "why": "在同一锅内把鸡蛋搅成蛋花，口感更均匀，不增加锅具。",
+          "extraSkill": "沿锅边缓慢倒入蛋液并轻搅",
+          "timeCost": "12-15 分钟"
+        },
+        "shoppingUpgrade": {
+          "neededItems": [],
+          "reason": "现有食材已足够完成今晚夜宵，无需为这一餐补货。",
+          "estimatedCost": "0 元"
+        },
+        "fallback": {
+          "type": "quick_meal_or_delivery",
+          "condition": "如果已经很困、无法安全看火，或食材的新鲜度无法确认",
+          "suggestion": "不要勉强开火；选择家中现成的温热速食，或点一份清淡汤面/粥类外卖，并避免油炸和重辣。"
+        },
+        "commerceSuggestion": {
+          "type": "none",
+          "title": "无需补货",
+          "item": "无",
+          "reason": "现有库存足够做一顿快速热食，当前时段不建议为夜宵额外消费。"
+        }
+      },
+      "failureTypes": []
+    },
+    {
+      "id": "dinner-empty-fridge",
+      "suite": "planning",
+      "endpoint": "/api/plan-dinner",
+      "durationMs": 13674,
+      "status": 200,
+      "requestId": "f4fe0fac-def9-40a9-beb3-8f320e67d888",
+      "serverTiming": "retrieval;dur=0, planning;dur=13667",
+      "passed": true,
+      "failures": [],
+      "metrics": {
+        "schemaValid": true,
+        "actionValid": true,
+        "requiredHit": true,
+        "forbiddenSafe": true,
+        "missingHit": true
+      },
+      "action": "delivery_recommended",
+      "source": "model",
+      "provider": "rightcode_responses_stream",
+      "model": "gpt-5.6-terra",
+      "usage": {
+        "inputTokens": 1506,
+        "outputTokens": 1157,
+        "totalTokens": 2663,
+        "cachedInputTokens": 0,
+        "reasoningTokens": 0
+      },
+      "retrieval": {
+        "mode": "off",
+        "caseCount": 0,
+        "caseIds": [],
+        "roles": []
+      },
+      "output": {
+        "decision": "delivery_recommended",
+        "score": 96,
+        "summary": "今晚不建议开火：已确认库存为空、只剩15分钟且精力较低，优先点一份能尽快送达的热食；若附近便利店更快，可直接买即食热餐。",
+        "personalizationNotes": [
+          "参考了当前仅有15分钟可用时间和较低精力状态。",
+          "厨艺为新手，且库存为空，避免临时采购后再进行烹饪。",
+          "偏好省事，优先低决策、低清洗负担的方案。"
+        ],
+        "baseMeal": {
+          "name": "就近清淡热食外卖",
+          "why": "无需备料和烹饪，最符合今晚尽快吃上饭的目标。",
+          "timeCost": "下单约2分钟；以预计送达时间为准",
+          "difficulty": "无需烹饪",
+          "requiredItems": [
+            "外卖平台或附近便利店"
+          ],
+          "steps": [
+            "选择预计送达时间最短的热食商家。",
+            "优先点盖饭、汤面、粥配小食或便利店热餐中的一份主食加一份蔬菜。",
+            "收到后确认包装完整、食物仍热，再尽快食用。"
+          ],
+          "safetyTips": [
+            "不要因赶时间选择明显生冷或来源不明的食物。",
+            "热汤和热饮先小口试温，避免烫伤。",
+            "如外卖等待时间超过20分钟，直接改选附近便利店即食热餐。"
+          ]
+        },
+        "stretchMeal": {
+          "name": "便利店热餐组合",
+          "why": "如果附近便利店步行可达，通常比等待外卖更快。",
+          "extraSkill": "无需烹饪",
+          "timeCost": "10-15分钟"
+        },
+        "shoppingUpgrade": {
+          "neededItems": [],
+          "reason": "今晚不建议为一餐专门采购食材；下次再集中补货更省事。",
+          "estimatedCost": "0元"
+        },
+        "fallback": {
+          "type": "quick_meal_or_delivery",
+          "condition": "外卖预计送达过久、商家已打烊或不想等待时",
+          "suggestion": "去最近便利店选一份可加热的饭/面/粥，搭配无糖饮品或一份水果即可。"
+        },
+        "commerceSuggestion": {
+          "type": "delivery",
+          "title": "优先快速热食",
+          "item": "预计送达最快的一份清淡主食外卖",
+          "reason": "当前无库存、时间紧且精力较低，先保证及时吃上热饭。"
+        }
+      },
+      "failureTypes": []
+    },
+    {
+      "id": "dinner-rich-fridge-balanced",
+      "suite": "planning",
+      "endpoint": "/api/plan-dinner",
+      "durationMs": 21371,
+      "status": 200,
+      "requestId": "afa35544-456f-4159-9e91-fbb2dfda653b",
+      "serverTiming": "retrieval;dur=0, planning;dur=21365",
+      "passed": true,
+      "failures": [],
+      "metrics": {
+        "schemaValid": true,
+        "actionValid": true,
+        "requiredHit": true,
+        "forbiddenSafe": true,
+        "missingHit": true
+      },
+      "action": "cook_with_existing_items",
+      "source": "model",
+      "provider": "rightcode_responses_stream",
+      "model": "gpt-5.6-terra",
+      "usage": {
+        "inputTokens": 1679,
+        "outputTokens": 1325,
+        "totalTokens": 3004,
+        "cachedInputTokens": 0,
+        "reasoningTokens": 0
+      },
+      "retrieval": {
+        "mode": "off",
+        "caseCount": 0,
+        "caseIds": [],
+        "roles": []
+      },
+      "output": {
+        "baseMeal": {
+          "difficulty": "新手友好",
+          "name": "少油鸡胸肉西兰花盖饭",
+          "requiredItems": [
+            "鸡胸肉 250克",
+            "西兰花 1颗",
+            "米饭 1碗",
+            "少量盐（如有）"
+          ],
+          "safetyTips": [
+            "鸡胸肉切好后洗手、清洁刀板，避免与西兰花和米饭交叉接触。",
+            "鸡胸肉切成小块后煮至中心完全变白、无粉色肉汁再食用。",
+            "焯西兰花和加热米饭时注意热水蒸汽，避免烫伤。"
+          ],
+          "steps": [
+            "鸡胸肉切成约2厘米小块；西兰花掰成小朵并冲洗干净。",
+            "锅中加水烧开，放入西兰花焯约1分半钟，捞出沥水。",
+            "倒掉大部分水，锅中留少量水，放入鸡胸肉块，中小火翻煮约6至8分钟；如有盐，可在快熟时加少量调味。",
+            "鸡肉完全熟透后，加入西兰花翻匀30秒。",
+            "米饭充分加热后装碗，铺上鸡胸肉和西兰花即可。"
+          ],
+          "timeCost": "约20至25分钟",
+          "why": "现有食材已覆盖蛋白质、蔬菜和主食；用焯煮和少量水焖熟，能减少用油和洗锅，适合运动后的一顿清淡热食。"
+        },
+        "commerceSuggestion": {
+          "item": "",
+          "reason": "当前库存足够完成晚餐，无需为这一餐额外购买。",
+          "title": "无需补货",
+          "type": "none"
+        },
+        "decision": "cook_with_existing_items",
+        "fallback": {
+          "condition": "若实际可做饭时间缩短到10分钟以内，或鸡胸肉出现异味、发黏等不新鲜情况。",
+          "suggestion": "优先加热现有米饭，搭配可直接食用的安全蛋白来源；若没有合适食材，再选择清淡少油的鸡肉饭或蔬菜汤面外卖。",
+          "type": "quick_meal_or_delivery"
+        },
+        "personalizationNotes": [
+          "参考了入门厨艺，选用切小块后焯煮/水焖的做法，避开油炸和复杂操作。",
+          "参考了清淡、避免重油的偏好，优先少油烹饪。",
+          "参考了运动后正餐目标，利用现有鸡胸肉搭配米饭和西兰花完成蛋白质、碳水和蔬菜组合。",
+          "今晚可用30分钟且精力中高，适合完成一锅式热食。"
+        ],
+        "score": 92,
+        "shoppingUpgrade": {
+          "estimatedCost": "0元",
+          "neededItems": [],
+          "reason": "鸡胸肉、西兰花和米饭已能组成完整晚餐，无关键缺料。"
+        },
+        "stretchMeal": {
+          "extraSkill": "掌握鸡胸肉切小块、分批加热和熟度检查",
+          "name": "鸡胸肉西兰花双拼饭",
+          "timeCost": "约28分钟",
+          "why": "若想提升口感，可先单独焯熟西兰花，再将鸡胸肉煮熟后分开摆盘；仍保持少油和低操作风险。"
+        },
+        "summary": "今晚适合自己做：用现有鸡胸肉、西兰花和米饭做少油盖饭，约25分钟完成，满足清淡高蛋白的运动后正餐需求。"
+      },
+      "failureTypes": []
+    },
+    {
+      "id": "dinner-breakfast-minimal",
+      "suite": "planning",
+      "endpoint": "/api/plan-dinner",
+      "durationMs": 15957,
+      "status": 200,
+      "requestId": "3cdc138d-8a4f-4f36-84a7-9e12f6d06dc1",
+      "serverTiming": "retrieval;dur=0, planning;dur=15951",
+      "passed": true,
+      "failures": [],
+      "metrics": {
+        "schemaValid": true,
+        "actionValid": true,
+        "requiredHit": true,
+        "forbiddenSafe": true,
+        "missingHit": true
+      },
+      "action": "cook_with_existing_items",
+      "source": "model",
+      "provider": "rightcode_responses_stream",
+      "model": "gpt-5.6-terra",
+      "usage": {
+        "inputTokens": 1664,
+        "outputTokens": 1209,
+        "totalTokens": 2873,
+        "cachedInputTokens": 0,
+        "reasoningTokens": 0
+      },
+      "retrieval": {
+        "mode": "off",
+        "caseCount": 0,
+        "caseIds": [],
+        "roles": []
+      },
+      "output": {
+        "decision": "cook_with_existing_items",
+        "score": 94,
+        "summary": "现在距出门仅 30 分钟、可烹饪时间 10 分钟，适合用现有食材做鸡蛋吐司配热牛奶；步骤少、洗锅少，能在出门前吃完。",
+        "personalizationNotes": [
+          "参考了“快手”偏好，优先选择 10 分钟内完成的早餐。",
+          "当前可用烹饪时间为 10 分钟且 08:00 要出门，避免复杂切配和多步骤烹饪。",
+          "新手操作以小火煎蛋和加热牛奶为主，降低失误风险。"
+        ],
+        "baseMeal": {
+          "name": "煎蛋吐司配热牛奶",
+          "why": "现有面包、鸡蛋和牛奶即可完成；饱腹感够，制作和收拾都很快。",
+          "timeCost": "8-10 分钟",
+          "difficulty": "新手友好",
+          "requiredItems": [
+            "面包 2 片",
+            "鸡蛋 1-2 个",
+            "牛奶 1 杯"
+          ],
+          "steps": [
+            "先将牛奶倒入可微波容器加热约 45-60 秒；没有微波炉则小锅小火加热至温热，不要煮沸。",
+            "平底锅开小火，少量油或不粘锅直接打入鸡蛋，煎至蛋白凝固；赶时间可加少量水并盖盖焖 1 分钟。",
+            "同时将面包放入烤面包机，或用干锅小火各烘约 1 分钟。",
+            "鸡蛋夹入吐司或分开放，配温牛奶立即吃。"
+          ],
+          "safetyTips": [
+            "煎蛋时保持小火，鸡蛋下锅后不要用手靠近热锅边缘，避免油点飞溅。",
+            "加热牛奶时留出容器空间；微波后先搅拌并试温，避免局部过烫。",
+            "鸡蛋应煎至蛋白和蛋黄达到自己可接受的熟度；若鸡蛋有异味或蛋壳破损严重则不要使用。"
+          ]
+        },
+        "stretchMeal": {
+          "name": "牛奶鸡蛋吐司卷",
+          "why": "如果还有 2-3 分钟，可把鸡蛋打散加少量牛奶，吐司蘸湿后小火煎成软吐司。",
+          "extraSkill": "控制小火并及时翻面",
+          "timeCost": "10-12 分钟"
+        },
+        "shoppingUpgrade": {
+          "neededItems": [],
+          "reason": "现有食材已足够完成一份快捷早餐，无需为今天早晨额外补买。",
+          "estimatedCost": "0 元"
+        },
+        "fallback": {
+          "type": "simple_cook",
+          "condition": "若只剩 3-5 分钟或来不及开火",
+          "suggestion": "直接吃 2 片面包，牛奶常温饮用；鸡蛋留到下次有时间时再做。"
+        },
+        "commerceSuggestion": {
+          "type": "none",
+          "title": "无需补货",
+          "item": "无",
+          "reason": "现有库存与当前时间安排匹配，优先直接完成早餐。"
+        }
+      },
+      "failureTypes": []
+    },
+    {
+      "id": "dinner-uncertain-meat-safety",
+      "suite": "planning",
+      "endpoint": "/api/plan-dinner",
+      "durationMs": 17673,
+      "status": 200,
+      "requestId": "508a6aa0-049d-40b9-aef7-9c4f79831064",
+      "serverTiming": "retrieval;dur=0, planning;dur=17665",
+      "passed": true,
+      "failures": [],
+      "metrics": {
+        "schemaValid": true,
+        "actionValid": true,
+        "requiredHit": true,
+        "forbiddenSafe": true,
+        "missingHit": true
+      },
+      "action": "cook_with_small_purchase",
+      "source": "model",
+      "provider": "rightcode_responses_stream",
+      "model": "gpt-5.6-terra",
+      "usage": {
+        "inputTokens": 1630,
+        "outputTokens": 1431,
+        "totalTokens": 3061,
+        "cachedInputTokens": 1024,
+        "reasoningTokens": 0
+      },
+      "retrieval": {
+        "mode": "off",
+        "caseCount": 0,
+        "caseIds": [],
+        "roles": []
+      },
+      "output": {
+        "decision": "cook_with_small_purchase",
+        "score": 84,
+        "summary": "今晚不建议使用新鲜度未确认的肉排。用已确认的生菜，补买鸡蛋和挂面做一锅生菜鸡蛋面，25分钟内可完成，风险和清洗负担都较低。",
+        "personalizationNotes": [
+          "参考了“安全优先”和避免高风险食材的要求，未将存放时间不确定的肉排纳入今晚主餐。",
+          "考虑到新手厨艺与25分钟可用时间，优先选择步骤少、无需复杂处理生肉的一锅热食。"
+        ],
+        "baseMeal": {
+          "name": "生菜鸡蛋面",
+          "why": "只需简单清洗、煮面和打蛋，食材风险低，适合晚间25分钟内完成。",
+          "timeCost": "15-20分钟（含补买后烹饪时间）",
+          "difficulty": "新手友好",
+          "requiredItems": [
+            "已确认的生菜",
+            "鸡蛋（补买）",
+            "挂面或方便面饼（补买）",
+            "盐或现有基础调味料"
+          ],
+          "steps": [
+            "生菜逐片掰开，用流动水冲洗；有明显发黄、黏滑或异味的叶片丢弃。",
+            "锅中加水烧开，放入挂面煮至七八成熟。",
+            "鸡蛋打入小碗确认无异味后，缓慢倒入锅中，用筷子轻轻搅散。",
+            "加入生菜烫约30-60秒，按口味加少量盐或现有调味料，面熟即可关火。"
+          ],
+          "safetyTips": [
+            "肉排因存放时间不确定，今晚不要尝味、不要半熟加热后食用；确认包装日期和冷藏记录前不要使用。",
+            "鸡蛋应煮至蛋白和蛋黄完全凝固；生菜洗后尽快下锅，不要长时间室温放置。",
+            "煮面时水量不要过满，开盖或转小火防止沸水溢出烫伤。"
+          ]
+        },
+        "stretchMeal": {
+          "name": "生菜鸡蛋面加肉排（仅在肉排安全确认后）",
+          "why": "如肉排仍在保质期内、全程冷藏且无异味、黏液或异常变色，可另锅彻底煎熟后切片搭配，增加蛋白质。",
+          "extraSkill": "判断肉类状态并将肉排中心彻底加热",
+          "timeCost": "25-30分钟"
+        },
+        "shoppingUpgrade": {
+          "neededItems": [
+            "鸡蛋",
+            "挂面或方便面饼"
+          ],
+          "reason": "用两项低成本、易操作的材料把现有生菜做成完整热食，同时避开风险未确认的肉排。",
+          "estimatedCost": "8-15元"
+        },
+        "fallback": {
+          "type": "quick_meal_or_delivery",
+          "condition": "若不方便补买鸡蛋和面，或生菜出现黏滑、明显腐败、异味等情况",
+          "suggestion": "选择一份清淡热汤面、粥或盖饭外卖；备注少油，并避免点生食或半熟肉类。"
+        },
+        "commerceSuggestion": {
+          "type": "fresh_restock",
+          "title": "两项轻补货",
+          "item": "鸡蛋和挂面",
+          "reason": "只补足完成安全热食所需的关键材料，不建议为今晚购买更多食材。"
+        }
+      },
+      "failureTypes": []
+    },
+    {
+      "id": "dinner-no-washing-preference",
+      "suite": "planning",
+      "endpoint": "/api/plan-dinner",
+      "durationMs": 17156,
+      "status": 200,
+      "requestId": "b0707c76-805a-4e88-9589-873ace55d4b8",
+      "serverTiming": "retrieval;dur=0, planning;dur=17145",
+      "passed": true,
+      "failures": [],
+      "metrics": {
+        "schemaValid": true,
+        "actionValid": true,
+        "requiredHit": true,
+        "forbiddenSafe": true,
+        "missingHit": true
+      },
+      "action": "cook_with_existing_items",
+      "source": "model",
+      "provider": "rightcode_responses_stream",
+      "model": "gpt-5.6-terra",
+      "usage": {
+        "inputTokens": 1628,
+        "outputTokens": 1423,
+        "totalTokens": 3051,
+        "cachedInputTokens": 1024,
+        "reasoningTokens": 0
+      },
+      "retrieval": {
+        "mode": "off",
+        "caseCount": 0,
+        "caseIds": [],
+        "roles": []
+      },
+      "output": {
+        "decision": "cook_with_existing_items",
+        "score": 96,
+        "summary": "今晚适合自己做：用速冻饺子和青菜煮一锅饺子菜汤，约12分钟完成，只用一口锅，符合22点、低精力和15分钟时限。",
+        "personalizationNotes": [
+          "参考了已确认的“省事、不想洗锅”和“一锅解决”需求，优先安排一锅完成。",
+          "考虑到当前22:00、可用时间15分钟且精力较低，避免多锅并行和复杂步骤。",
+          "根据新手厨艺，选择无需刀工、无需煎炸的做法。"
+        ],
+        "baseMeal": {
+          "name": "一锅青菜速冻饺子汤",
+          "why": "现有食材就能完成，热食快、操作简单，锅具和清洗负担都较低。",
+          "timeCost": "10-12分钟",
+          "difficulty": "新手友好",
+          "requiredItems": [
+            "速冻饺子（约10-12个）",
+            "青菜（半把到1把）",
+            "清水",
+            "盐或现有基础调味（可选）"
+          ],
+          "steps": [
+            "锅中加足量清水，大火烧开。",
+            "不解冻，直接下速冻饺子；用勺子轻推几下防粘锅底。",
+            "水再次沸腾后转中火，按包装建议煮至饺子浮起、外皮透亮；通常再煮约3-5分钟。",
+            "青菜洗净后放入锅中，烫约30-60秒至变软；尝味后按需加少量盐即可关火。",
+            "连汤盛出，剩余未煮饺子继续冷冻保存。"
+          ],
+          "safetyTips": [
+            "速冻饺子必须煮透：外皮不发白、生粉感消失，内馅应完全热透；不确定时按包装时间多煮1-2分钟。",
+            "下饺子和沸腾时注意热水飞溅，锅不要装得过满。",
+            "青菜若有明显发黄、黏滑或异味则不要食用。"
+          ]
+        },
+        "stretchMeal": {
+          "name": "加量青菜饺子汤",
+          "why": "如果还饿，可把青菜全部放入并煮12-15个饺子，仍只用一口锅。",
+          "extraSkill": "无需额外技巧",
+          "timeCost": "12-14分钟"
+        },
+        "shoppingUpgrade": {
+          "neededItems": [],
+          "reason": "现有食材已足够完成今晚的一锅热食，不需要为今晚额外补货。",
+          "estimatedCost": "0元"
+        },
+        "fallback": {
+          "type": "quick_meal_or_delivery",
+          "condition": "如果现在不想等待烧水，或青菜状态不适合食用。",
+          "suggestion": "直接煮速冻饺子作为最省事保底；若连开火都不方便，选择附近清淡汤面或粥类外卖。"
+        },
+        "commerceSuggestion": {
+          "type": "none",
+          "title": "无需补货",
+          "item": "无",
+          "reason": "当前库存和时间已匹配一锅饺子汤，无需额外消费。"
+        }
+      },
+      "failureTypes": []
+    },
+    {
+      "id": "dinner-practice-new-dish",
+      "suite": "planning",
+      "endpoint": "/api/plan-dinner",
+      "durationMs": 16666,
+      "status": 200,
+      "requestId": "1f9558d9-054e-4caa-8149-02cefca7fb3f",
+      "serverTiming": "retrieval;dur=0, planning;dur=16661",
+      "passed": true,
+      "failures": [],
+      "metrics": {
+        "schemaValid": true,
+        "actionValid": true,
+        "requiredHit": true,
+        "forbiddenSafe": true,
+        "missingHit": true
+      },
+      "action": "cook_with_existing_items",
+      "source": "model",
+      "provider": "rightcode_responses_stream",
+      "model": "gpt-5.6-terra",
+      "usage": {
+        "inputTokens": 1238,
+        "outputTokens": 850,
+        "totalTokens": 2088,
+        "cachedInputTokens": 0,
+        "reasoningTokens": 0
+      },
+      "retrieval": {
+        "mode": "off",
+        "caseCount": 0,
+        "caseIds": [],
+        "roles": []
+      },
+      "output": {
+        "baseMeal": {
+          "difficulty": "新手友好",
+          "name": "番茄豆腐青菜煮",
+          "requiredItems": [
+            "豆腐 1盒",
+            "番茄 2个",
+            "青菜 1把",
+            "食用油",
+            "盐",
+            "清水"
+          ],
+          "safetyTips": [
+            "豆腐从盒中取出后先沥水，切块时用稳固砧板并注意刀具。",
+            "番茄下锅时锅内不要有积水，避免热油飞溅；全程中小火即可。",
+            "豆腐煮好后轻推翻动，不要频繁大力翻炒，以免碎裂。",
+            "如豆腐有酸味、黏滑或包装鼓胀，应不要食用。"
+          ],
+          "steps": [
+            "番茄洗净切小块；豆腐沥水后切约2厘米见方的块；青菜洗净，菜梗和叶子分开放。",
+            "锅中放少量油，中小火下番茄炒2至3分钟，炒到变软出汁；怕飞溅可直接加少量清水再煮。",
+            "加入约250至350毫升清水和少许盐，煮开后轻轻放入豆腐，转小火煮5分钟。",
+            "先放青菜梗煮1分钟，再放菜叶煮1至2分钟，尝味后补少许盐即可关火。"
+          ],
+          "timeCost": "20—25分钟",
+          "why": "现有食材就能完成，一锅少洗锅；番茄的酸甜能让清淡豆腐更有味道，煮制比煎炒更适合入门阶段练习。"
+        },
+        "commerceSuggestion": {
+          "item": "",
+          "reason": "现有确认食材足够完成晚餐，无需为今晚额外购买。",
+          "title": "暂不需要补货",
+          "type": "none"
+        },
+        "decision": "cook_with_existing_items",
+        "fallback": {
+          "condition": "如果番茄或豆腐出现变质迹象，或实际可做时间缩短到15分钟以内。",
+          "suggestion": "用青菜快速焯煮或清炒，搭配家中主食；若没有主食且来不及准备，选择一份清淡热食外卖。",
+          "type": "quick_meal_or_delivery"
+        },
+        "personalizationNotes": [
+          "参考了入门厨艺，选择切块、煮制和轻推豆腐等低风险操作，不安排油炸。",
+          "参考了清淡偏好，以番茄自然酸甜和少量盐调味，不依赖重油重辣。",
+          "今晚有40分钟且精力中高，适合在快手基础上练习番茄炒出汁和豆腐不碎的火候控制。",
+          "近期没有记录的晚餐可供避重，因此优先利用已确认库存完成一道新组合菜。"
+        ],
+        "score": 92,
+        "shoppingUpgrade": {
+          "estimatedCost": "0元（今晚不需要补买）",
+          "neededItems": [],
+          "reason": "豆腐、番茄和青菜已能组成有蛋白质和蔬菜的热菜；若家中有米饭、面条或馒头可自行搭配，非必要补买。"
+        },
+        "stretchMeal": {
+          "extraSkill": "练习将番茄炒至软烂出汁，并用小火轻推豆腐保持完整。",
+          "name": "番茄豆腐青菜煮（配家中主食）",
+          "timeCost": "25—30分钟",
+          "why": "在基础煮菜上练习控制番茄出汁和豆腐定型，仍是一锅完成、风险较低。"
+        },
+        "summary": "今晚适合自己做：用现有豆腐、番茄和青菜做一锅番茄豆腐青菜煮，20—25分钟完成；如有家中主食搭配即可成为完整晚餐。"
+      },
+      "failureTypes": []
+    },
+    {
+      "id": "dinner-only-fruit-not-a-meal",
+      "suite": "planning",
+      "endpoint": "/api/plan-dinner",
+      "durationMs": 16336,
+      "status": 200,
+      "requestId": "f50b0d5b-464a-4dec-be51-6cd5cec13b04",
+      "serverTiming": "retrieval;dur=0, planning;dur=16331",
+      "passed": true,
+      "failures": [],
+      "metrics": {
+        "schemaValid": true,
+        "actionValid": true,
+        "requiredHit": true,
+        "forbiddenSafe": true,
+        "missingHit": true
+      },
+      "action": "quick_meal_first",
+      "source": "model",
+      "provider": "rightcode_responses_stream",
+      "model": "gpt-5.6-terra",
+      "usage": {
+        "inputTokens": 1608,
+        "outputTokens": 1502,
+        "totalTokens": 3110,
+        "cachedInputTokens": 0,
+        "reasoningTokens": 0
+      },
+      "retrieval": {
+        "mode": "off",
+        "caseCount": 0,
+        "caseIds": [],
+        "roles": []
+      },
+      "output": {
+        "decision": "quick_meal_first",
+        "score": 91,
+        "summary": "现有食材只有苹果和橙子，能补充水果但不足以组成抗饿的晚餐；今晚可用时间仅20分钟，建议优先买一份方便加热的主食，水果留作餐后。",
+        "personalizationNotes": [
+          "参考了“抗饿”和“吃一顿正餐”的需求，优先保证主食和蛋白质。",
+          "当前是19:30且仅有20分钟，新手操作以少步骤、低失败率为先。"
+        ],
+        "baseMeal": {
+          "name": "微波/锅煮速食主餐＋水果",
+          "why": "无需复杂备菜，能在20分钟内获得热食和足够饱腹感；苹果或橙子可作为餐后水果。",
+          "timeCost": "5-10分钟（不含购买时间）",
+          "difficulty": "新手友好",
+          "requiredItems": [
+            "现有苹果或橙子",
+            "一份带蛋白质的速食主餐（如鸡蛋面、冷冻水饺或自热米饭套餐）"
+          ],
+          "steps": [
+            "就近购买一份可快速加热的主餐，优先选择含鸡蛋、肉类、豆制品之一的款式。",
+            "按包装说明用微波炉或锅加热至中心完全热透。",
+            "主餐吃完后选苹果或橙子一个作为水果。"
+          ],
+          "safetyTips": [
+            "自热食品严格按包装说明操作，避免在密闭容器中加热。",
+            "冷冻或冷藏食品应加热至中心冒热气后再食用。",
+            "水果食用前清洗，橙皮不要接触果肉切面。"
+          ]
+        },
+        "stretchMeal": {
+          "name": "鸡蛋青菜汤面＋橙子",
+          "why": "若附近可快速买到食材，一锅完成，比单纯速食更接近完整正餐。",
+          "extraSkill": "煮面和打散鸡蛋",
+          "timeCost": "15-20分钟"
+        },
+        "shoppingUpgrade": {
+          "neededItems": [
+            "挂面或方便面",
+            "鸡蛋",
+            "一把青菜"
+          ],
+          "reason": "三样即可做一锅热汤面，提供主食、蛋白质和蔬菜。",
+          "estimatedCost": "10-18元"
+        },
+        "fallback": {
+          "type": "quick_meal_or_delivery",
+          "condition": "附近购买加上烹饪会超过20分钟，或没有炉灶、微波条件。",
+          "suggestion": "直接选择一份热的盖饭、汤面或粥类外卖；加一份蛋或肉类，家里的水果留作餐后。"
+        },
+        "commerceSuggestion": {
+          "type": "fresh_restock",
+          "title": "仅补一份快手主餐",
+          "item": "鸡蛋面或冷冻水饺",
+          "reason": "现有库存缺少主食和蛋白质，补一份能立刻解决今晚正餐需求。"
+        }
+      },
+      "failureTypes": []
+    }
+  ]
+}
