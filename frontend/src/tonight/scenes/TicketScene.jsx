@@ -19,7 +19,7 @@ export default function TicketScene({
   plan, plans, onSelectPlan, timeBudget, gotIt, stepPosition, onMarkStep,
   onFeedback, onCartReplan, onGotIt, onPantryReplan, onAlternative, onAddTarget,
   onUseInventoryPlan, onEditFridge, onEditConditions, onCompareFridge,
-  onRestart, onRescue, onLifeLog,
+  onSwitchTargetDish, onRestart, onRescue, onLifeLog,
 }) {
   const [cartSel, setCartSel] = useState([]);
   const [gotSel, setGotSel] = useState([]);
@@ -154,6 +154,15 @@ export default function TicketScene({
       : executionState.isSemanticallyExecutable && !canClaimReadyNow
         ? "完整做法已保留；当前材料条件尚未完全具备"
         : plan.plan?.summary;
+  const freeBaseMeal = !isTarget ? plan.plan?.baseMeal || {} : {};
+  const freeRequiredItems = Array.isArray(freeBaseMeal.requiredItems) ? freeBaseMeal.requiredItems : [];
+  const freeStretchMeal = !isTarget ? plan.plan?.stretchMeal || {} : {};
+  const freeSummaryText = !isTarget
+    ? String(headerVerdict || "")
+      .replace(/^今晚适合自己做(?:[：:，,。；;\s]+)?/, "")
+      .trim()
+    : "";
+  const freeSummaryBody = freeSummaryText || String(headerVerdict || "").trim();
 
   function toggle(list, setList, name) {
     setList((cur) => (cur.includes(name) ? cur.filter((n) => n !== name) : [...cur, name]));
@@ -308,19 +317,29 @@ export default function TicketScene({
 
       <article className="tn-ticket">
         <header className="tn-ticket-head">
-          <p className="tn-ticket-mode">
-            {isStandard
-              ? `按标准做法 · ${requestedMealName || "目标菜"}`
-              : isTarget ? `想吃的 · ${requestedMealName || "目标菜"}` : "按你有的安排"}
-          </p>
+          {isTarget ? (
+            <p className="tn-ticket-mode">
+              {isStandard ? `按标准做法 · ${requestedMealName || "目标菜"}` : `想吃的 · ${requestedMealName || "目标菜"}`}
+            </p>
+          ) : (
+            <p className="tn-ticket-module-title">今晚适合自己做</p>
+          )}
           {alternativeFrom?.candidateName && (
             <p className="tn-ticket-lineage">
               换个思路 · 来自{altSourceSeq ? `第 ${altSourceSeq} 版` : "上一版"}的「{alternativeFrom.candidateName}」；按现实库存重定，不一定是同一道菜
             </p>
           )}
-          <p className="tn-ticket-verdict">
-            {headerVerdict}
+          <p className={`tn-ticket-verdict ${!isTarget ? "is-summary" : ""}`}>
+            {!isTarget ? freeSummaryBody : headerVerdict}
           </p>
+          {!isTarget && freeStretchMeal.name ? (
+            <div className="tn-ticket-altbox tn-ticket-altbox-head">
+              <p className="tn-ticket-alt">另一个思路：{freeStretchMeal.name}{freeStretchMeal.why ? ` —— ${freeStretchMeal.why}` : ""}</p>
+              <button type="button" className="tn-btn tn-btn-quiet tn-altbtn" disabled={busy} onClick={handleAlternative}>
+                按这个思路重新定一版
+              </button>
+            </div>
+          ) : null}
           {isTarget && !isStandard && targetIntentAccepted && allRequiredAcquired && <p className="tn-ticket-meta">材料状态已更新；做法沿用本版，没有再次调用模型。开火前仍请核对实物。</p>}
           {isTarget && !isStandard && targetIntentAccepted && pendingPantry.length > 0 && (
             <p className="tn-ticket-pendingnote" role="note">
@@ -335,7 +354,7 @@ export default function TicketScene({
                 : "完整做法已经保留；材料状态只影响能否声称现在就能做。"}
             </p>
           )}
-          {!targetNeedsCorrection && <p className="tn-ticket-meta">
+          {isTarget && !targetNeedsCorrection && <p className="tn-ticket-meta">
             {cookTimeLabel}
             {isTarget && !isStandard && missing.length > 0 && !allRequiredAcquired ? " · 补购耗时另计" : ""}
           </p>}
@@ -561,22 +580,17 @@ export default function TicketScene({
 
         {!isTarget && (
           <div className="tn-ticket-free">
-            <p className="tn-ticket-dishname">{plan.plan?.baseMeal?.name}</p>
-            <p className="tn-ticket-meta">{plan.plan?.baseMeal?.why}</p>
-            <p className="tn-ticket-meta">
-              {plan.plan?.baseMeal?.timeCost} · {plan.plan?.baseMeal?.difficulty}
-            </p>
-            {(plan.plan?.baseMeal?.requiredItems || []).length > 0 && (
-              <p className="tn-ticket-meta">用到了你有的：{plan.plan.baseMeal.requiredItems.join("、")}</p>
+            <p className="tn-ticket-module-title">方案选择理由</p>
+            <p className="tn-ticket-dishname">{freeBaseMeal.name}</p>
+            {freeBaseMeal.why && <p className="tn-ticket-meta">{freeBaseMeal.why}</p>}
+            {(freeBaseMeal.timeCost || freeBaseMeal.difficulty) && (
+              <p className="tn-ticket-meta">
+                {[freeBaseMeal.timeCost, freeBaseMeal.difficulty].filter(Boolean).join(" · ")}
+              </p>
             )}
-            {plan.plan?.stretchMeal?.name ? (
-              <div className="tn-ticket-altbox">
-                <p className="tn-ticket-alt">另一个思路：{plan.plan.stretchMeal.name} —— {plan.plan.stretchMeal.why}</p>
-                <button type="button" className="tn-btn tn-btn-quiet tn-altbtn" disabled={busy} onClick={handleAlternative}>
-                  按这个思路重新定一版
-                </button>
-              </div>
-            ) : null}
+            {freeRequiredItems.length > 0 && (
+              <p className="tn-ticket-meta">用到了你有的：{freeRequiredItems.join("、")}</p>
+            )}
           </div>
         )}
 
@@ -587,9 +601,7 @@ export default function TicketScene({
             </p>
           )}
           <div className="tn-ticket-stepshead">
-            <p className="tn-ticket-coltitle">
-              {isStandard ? "按标准做法" : canClaimReadyNow ? "开火之后" : "完整做法"}
-            </p>
+            <p className="tn-ticket-module-title">完整步骤</p>
             {canViewSteps && displaySteps.length > 0 && (
               <button type="button" className="tn-bigsteps-open" onClick={() => setBigStepsOpen(true)}>
                 大字看
@@ -604,14 +616,18 @@ export default function TicketScene({
               </li>
             ))}
           </ol>
-          {canUseRescue && <button type="button" className="tn-rescue-open" onClick={onRescue}>
-            <span className="tn-rescue-open-title">已经在做了，遇到问题？</span>
-            <span className="tn-rescue-open-sub">拍一下现场，AI 帮你救 · 最多两轮</span>
-          </button>}
-          {canCreateLifeLog && <button type="button" className="tn-lifelog-open" onClick={onLifeLog}>
-            <span className="tn-rescue-open-title">做完了，记录一下</span>
-            <span className="tn-rescue-open-sub">拍张成品，生成可编辑的生活记录草稿 · 不会发布</span>
-          </button>}
+          {(canUseRescue || canCreateLifeLog) && (
+            <div className="tn-ticket-step-actions">
+              {canUseRescue && <button type="button" className="tn-rescue-open" onClick={onRescue}>
+                <span className="tn-rescue-open-title">已经在做了，遇到问题？</span>
+                <span className="tn-rescue-open-sub">拍一下现场，AI 帮你救 · 最多两轮</span>
+              </button>}
+              {canCreateLifeLog && <button type="button" className="tn-lifelog-open" onClick={onLifeLog}>
+                <span className="tn-rescue-open-title">做完了，记录一下</span>
+                <span className="tn-rescue-open-sub">拍张成品，生成可编辑的生活记录草稿 · 不会发布</span>
+              </button>}
+            </div>
+          )}
         </div>}
 
         {targetIntentAccepted && <div className="tn-ticket-tips">
@@ -625,33 +641,25 @@ export default function TicketScene({
       </article>
 
       {!isTarget && (
-        <div className="tn-addtarget">
-          <p className="tn-field-label">突然有想吃的？告诉我菜名，按新方案重算</p>
-          <div className="tn-note">
-            <input
-              className="tn-note-input"
-              value={targetInput}
-              onChange={(e) => { setTargetInput(e.target.value); setTargetInputSource("ticket_text"); }}
-              placeholder="比如 番茄牛腩"
-              aria-label="补充目标菜"
-            />
-            <SpeechInput onTranscript={(text) => { setTargetInput(text); setTargetInputSource("ticket_voice"); }} />
-          </div>
+        <div className="tn-switch-target">
           <button
             type="button"
-            className="tn-btn tn-btn-quiet"
-            disabled={!targetInput.trim() || busy}
-            onClick={handleAddTarget}
+            className="tn-btn tn-btn-primary tn-btn-xl"
+            disabled={busy}
+            onClick={onSwitchTargetDish || onEditFridge}
           >
-            按「{targetInput.trim() || "这道菜"}」重新规划（生成新版本）
+            换道菜试试
           </button>
         </div>
       )}
 
       {!targetNeedsCorrection && <div className="tn-feedback">
-        <button type="button" className="tn-link" onClick={() => setFeedbackOpen((v) => !v)}>
-          这个不合适？
-        </button>
+        <div className="tn-feedback-links">
+          <button type="button" className="tn-link" onClick={() => setFeedbackOpen((v) => !v)}>
+            这个不合适？
+          </button>
+          <button type="button" className="tn-link" onClick={onRestart}>换一种开始</button>
+        </div>
         {feedbackOpen && (
           <div className="tn-chips" role="group" aria-label="反馈这版方案">
             {FEEDBACK_OPTIONS.filter((option) => !isStandard || option.type !== "too_many_missing").map((option) => (
@@ -664,17 +672,12 @@ export default function TicketScene({
         {feedbackOpen && <p className="tn-foot-hint">除「正合适」只记录外，其余会按你的反馈生成新版本，当前版本保留。</p>}
       </div>}
 
-      <footer className="tn-decision-actions">
-        {isStandard ? (
-          <>
-            <button type="button" className="tn-btn tn-btn-quiet" onClick={onEditConditions}>回去改时间 / 要求</button>
-            <button type="button" className="tn-btn tn-btn-primary" onClick={onCompareFridge}>拍冰箱，再按家里现有的调整</button>
-          </>
-        ) : (
-          <button type="button" className="tn-btn tn-btn-quiet" onClick={onEditFridge}>库存不对？回去改</button>
-        )}
-        <button type="button" className="tn-link" onClick={onRestart}>换一种开始</button>
-      </footer>
+      {isStandard && (
+        <footer className="tn-decision-actions">
+          <button type="button" className="tn-btn tn-btn-quiet" onClick={onEditConditions}>回去改时间 / 要求</button>
+          <button type="button" className="tn-btn tn-btn-primary" onClick={onCompareFridge}>拍冰箱，再按家里现有的调整</button>
+        </footer>
+      )}
 
       {bigStepsOpen && canViewSteps && displaySteps.length > 0 && (
         <BigStepsView

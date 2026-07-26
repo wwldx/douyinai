@@ -154,7 +154,7 @@ export default function TonightApp() {
     setTimeBudgetAuto(false);
   }, []);
 
-  // ---------- 会话恢复（不含原始照片） ----------
+  // ---------- 会话恢复（保留当前压缩图，刷新后仍可继续核对） ----------
 
   useEffect(() => {
     if (restoredRef.current) return;
@@ -177,7 +177,12 @@ export default function TonightApp() {
         }
       }
       const restoredDish = saved.dish
-        ? { ...saved.dish, image: null, originalImage: null, analysis: saved.dish.analysis || null }
+        ? {
+          ...saved.dish,
+          image: saved.dish.image || null,
+          originalImage: saved.dish.originalImage || saved.dish.image || null,
+          analysis: saved.dish.analysis || null,
+        }
         : null;
       const restoredSelectedDishOption = restoreDishOptionSelection(
         restoredDish?.analysis,
@@ -222,7 +227,7 @@ export default function TonightApp() {
       setTimeBudgetId(saved.timeBudgetAuto ? null : saved.timeBudgetId || null);
       setTimeBudgetAuto(false);
       setNote(saved.note || "");
-      setFridge(saved.fridge ? { ...saved.fridge, image: null, vision: saved.fridge.vision || null } : null);
+      setFridge(saved.fridge ? { ...saved.fridge, image: saved.fridge.image || null, vision: saved.fridge.vision || null } : null);
       setInventory(Array.isArray(saved.inventory) ? saved.inventory : []);
       setInventoryMode(saved.inventoryMode || "vision");
       setInventoryConfirmed(Boolean(saved.inventoryConfirmed));
@@ -258,6 +263,8 @@ export default function TonightApp() {
       route,
       scene,
       dish: dish ? {
+        image: dish.image || null,
+        originalImage: dish.originalImage || null,
         imageSource: dish.imageSource,
         fileName: dish.fileName,
         name: dish.name,
@@ -274,7 +281,7 @@ export default function TonightApp() {
       timeBudgetId,
       timeBudgetAuto,
       note,
-      fridge: fridge ? { imageSource: fridge.imageSource, fileName: fridge.fileName, vision: fridge.vision, visionSource: fridge.visionSource, status: fridge.status } : null,
+      fridge: fridge ? { image: fridge.image || null, imageSource: fridge.imageSource, fileName: fridge.fileName, vision: fridge.vision, visionSource: fridge.visionSource, status: fridge.status } : null,
       inventory,
       inventoryMode,
       inventoryConfirmed,
@@ -1861,11 +1868,12 @@ export default function TonightApp() {
               const editRoute = originRouteForPlan(activePlan);
               const editDishName = requestedDishNameForPlan(activePlan);
               const editDishSource = targetInputSourceForPlan(activePlan);
+              const nextInventoryMode = snap.inventoryMode || "manual";
               setRoute(editRoute);
               setInventory(Array.isArray(snap.inventory) ? snap.inventory : []);
-              setInventoryMode(snap.inventoryMode || "manual");
+              setInventoryMode(nextInventoryMode);
               setInventoryConfirmed(true);
-              setFridge(null); // 原图不持久化；只恢复当前版本已经确认的结构化库存
+              setFridge((cur) => (nextInventoryMode === "vision" && cur?.image ? cur : null));
               setTimeBudgetId(snap.timeBudgetId || null);
               setTimeBudgetAuto(false);
               setNote(snap.note || "");
@@ -1889,6 +1897,30 @@ export default function TonightApp() {
                 setIntent({ type: "inventory_driven", dishName: "", dishNameSource: null });
                 setDish(null);
               }
+              setScene("fridge");
+            }}
+            onSwitchTargetDish={() => {
+              const snap = activePlan.requestSnapshot || {};
+              const nextInventoryMode = snap.inventoryMode || "manual";
+              setRoute("fridge");
+              setInventory(Array.isArray(snap.inventory) ? snap.inventory : []);
+              setInventoryMode(nextInventoryMode);
+              setInventoryConfirmed(true);
+              setFridge((cur) => (nextInventoryMode === "vision" && cur?.image ? cur : null));
+              setTimeBudgetId(snap.timeBudgetId || null);
+              setTimeBudgetAuto(false);
+              setNote(snap.note || "");
+              setEatFirstMarks(eatFirstMarksForPlan(activePlan));
+              setIntent({ type: "target_dish", dishName: "", dishNameSource: null });
+              setDish(null);
+              setSelectedDishOption(null);
+              setFridgeBenchDraft({
+                intentType: "target_dish",
+                dishName: "",
+                dishNameSource: "user_text",
+                dishImageSource: null,
+                selectedDishOption: null,
+              });
               setScene("fridge");
             }}
             onEditConditions={() => editStandardConditions(activePlan)}

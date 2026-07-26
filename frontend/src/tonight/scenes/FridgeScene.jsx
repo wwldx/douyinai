@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import SpeechInput from "../../components/SpeechInput";
-import { SourceBadge, TimeBudgetPicker, UnsurePanel } from "../bits";
+import { SourceBadge, TimeBudgetPicker } from "../bits";
 import { imageSourceLabel, ingredientNamesMatch, itemDisplayName, loadInventorySnapshot, snapshotAgeLabel } from "../model";
 
 function Dots({ steps, current }) {
@@ -374,14 +374,17 @@ export default function FridgeScene({
         </header>
 
         <div className="tn-bench-summary">
-          <p className="tn-field-label">已确认 {inventory.length} 样</p>
-          <div className="tn-chips">
-            {inventory.slice(0, 10).map((item) => (
-              <span key={itemDisplayName(item)} className="tn-chip is-on">{itemDisplayName(item)}</span>
-            ))}
-            {inventory.length === 0 && <span className="tn-chip">空库存（你已确认）</span>}
+          <div className="tn-bench-summary-head">
+            <p className="tn-field-label">已确认 {inventory.length} 样</p>
+            <button type="button" className="tn-bench-edit" onClick={() => setStep("confirm")}>回去改库存</button>
           </div>
-          <button type="button" className="tn-link" onClick={() => setStep("confirm")}>回去改库存</button>
+          <div className="tn-bench-confirmed-list" aria-label="已确认库存">
+            {inventory.slice(0, 10).map((item) => (
+              <span key={itemDisplayName(item)} className="tn-bench-confirmed-item">{itemDisplayName(item)}</span>
+            ))}
+            {inventory.length > 10 && <span className="tn-bench-confirmed-more">+{inventory.length - 10}</span>}
+            {inventory.length === 0 && <span className="tn-bench-confirmed-empty">空库存（你已确认）</span>}
+          </div>
         </div>
 
         <div className="tn-bench-intent">
@@ -426,7 +429,7 @@ export default function FridgeScene({
               ) : (
                 <div className="tn-field">
                   <p className="tn-field-label">文字或语音</p>
-                  <div className="tn-note">
+                  <div className="tn-note tn-inline-speech tn-bench-dish-input">
                     <input
                       className="tn-note-input"
                       value={benchDish}
@@ -435,7 +438,11 @@ export default function FridgeScene({
                       aria-label="想吃的菜"
                       maxLength={40}
                     />
-                    <SpeechInput onTranscript={(text) => setBenchDishFromUser(text, "user_voice")} />
+                    <SpeechInput
+                      iconOnly
+                      className="tn-inline-speech-btn"
+                      onTranscript={(text) => setBenchDishFromUser(text, "user_voice")}
+                    />
                   </div>
                   {benchDishName && (
                     <p className="tn-prototype-note">{targetSourceLabel(benchDishSource, benchDishImageSource)}：后续仍会经过目标语义判断。</p>
@@ -699,9 +706,10 @@ export default function FridgeScene({
         </div>
       )}
       {!fridge?.image && inventoryMode === "last" && (
-        <p className="tn-warning" role="note">
-          这是 {snapshot ? snapshotAgeLabel(snapshot.confirmedAt) : "之前"}确认的库存，不代表这些食材现在仍然存在，请逐项核对。
-        </p>
+        <div className="tn-warning tn-last-inventory-warning" role="note">
+          <p>这是 {snapshot ? snapshotAgeLabel(snapshot.confirmedAt) : "之前"}确认的库存，不代表这些食材现在仍然存在，请逐项核对。</p>
+          <button type="button" className="tn-btn tn-btn-glass tn-last-inventory-rebtn" onClick={resetToCapture}>重拍</button>
+        </div>
       )}
       {!fridge?.image && inventoryConfirmed && inventoryMode === "vision" && (
         <p className="tn-warning" role="note">原始照片未保存；你确认过的库存仍可继续使用。需要重新识别画面时请重拍。</p>
@@ -794,17 +802,6 @@ export default function FridgeScene({
             </div>
           )}
         </div>
-      )}
-
-      {!isFeed && !manualMode && fridge?.vision?.uncertainItems?.length > 0 && (
-        <UnsurePanel
-          items={fridge.vision.uncertainItems}
-          onAddNamed={addManual}
-          onReshoot={onReshoot}
-          reshootBusyId={reshootBusyId}
-          reshootResult={reshootResult}
-          onClearReshoot={onClearReshoot}
-        />
       )}
 
       {fridge?.vision?.warnings?.[0] && <p className="tn-warning" role="note">{fridge.vision.warnings[0]}</p>}
