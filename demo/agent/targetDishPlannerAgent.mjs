@@ -33,6 +33,61 @@ const NON_COOKING_ACTIONS = new Set([
   "choose_inventory_meal",
 ]);
 
+const PLANNING_MODES = new Set(["standard_recipe", "inventory_adapted"]);
+const INVENTORY_STATUSES = new Set(["not_checked", "confirmed_empty", "confirmed"]);
+
+function badPlanningRequest(message) {
+  return Object.assign(new Error(message), {
+    status: 400,
+    code: "INVALID_PLANNING_CONTEXT",
+  });
+}
+
+export function normalizeTargetDishPlanningRequest(input = {}) {
+  const hasPlanningMode = input.planningMode !== undefined && input.planningMode !== null;
+  const hasInventoryStatus = input.inventoryStatus !== undefined && input.inventoryStatus !== null;
+
+  // 兼容 016 之前的调用者：旧请求只有人工确认后的数组库存。
+  if (!hasPlanningMode && !hasInventoryStatus) {
+    if (!Array.isArray(input.inventory)) {
+      throw badPlanningRequest("旧版目标菜规划请求必须提供数组 inventory。");
+    }
+    return {
+      planningMode: "inventory_adapted",
+      inventoryStatus: input.inventory.length > 0 ? "confirmed" : "confirmed_empty",
+      inventory: input.inventory,
+    };
+  }
+
+  if (!hasPlanningMode || !hasInventoryStatus) {
+    throw badPlanningRequest("planningMode 与 inventoryStatus 必须同时提供。");
+  }
+
+  const planningMode = String(input.planningMode || "").trim();
+  const inventoryStatus = String(input.inventoryStatus || "").trim();
+  if (!PLANNING_MODES.has(planningMode) || !INVENTORY_STATUSES.has(inventoryStatus)) {
+    throw badPlanningRequest("planningMode 或 inventoryStatus 不受支持。");
+  }
+
+  if (planningMode === "standard_recipe") {
+    if (inventoryStatus !== "not_checked" || input.inventory !== null) {
+      throw badPlanningRequest("standard_recipe 必须使用 inventoryStatus=not_checked 且 inventory=null。");
+    }
+    return { planningMode, inventoryStatus, inventory: null };
+  }
+
+  if (inventoryStatus === "not_checked" || !Array.isArray(input.inventory)) {
+    throw badPlanningRequest("inventory_adapted 必须提供用户确认后的数组 inventory。");
+  }
+  if (inventoryStatus === "confirmed" && input.inventory.length === 0) {
+    throw badPlanningRequest("confirmed 状态必须包含至少一项确认库存。");
+  }
+  if (inventoryStatus === "confirmed_empty" && input.inventory.length !== 0) {
+    throw badPlanningRequest("confirmed_empty 状态的 inventory 必须为空数组。");
+  }
+  return { planningMode, inventoryStatus, inventory: input.inventory };
+}
+
 function ingredientKey(value) {
   return String(value?.name || value?.item || value || "")
     .replace(/[\s·、，,（）()]/gu, "")
@@ -121,6 +176,7 @@ function enforceBlockedTarget(plan, status) {
   shoppingPlan.mustBuy = [];
   shoppingPlan.confirmAtHome = [];
   shoppingPlan.optionalUpgrades = [];
+  plan.standardIngredients = [];
   plan.commerceCards = [];
 
   executionPlan.isExecutableNow = false;
@@ -129,6 +185,62 @@ function enforceBlockedTarget(plan, status) {
   executionPlan.recommendedVersion = "";
   executionPlan.steps = [];
   executionPlan.prepForTomorrow = "";
+  return plan;
+}
+
+function normalizeStandardIngredients(value) {
+  if (!Array.isArray(value)) return [];
+  return [...new Set(value.map((item) => String(item || "").trim()).filter(Boolean))].slice(0, 16);
+}
+
+function clearInventoryReasoning(plan) {
+  const inventoryMatch = ensureObject(plan, "inventoryMatch");
+  const shoppingPlan = ensureObject(plan, "shoppingPlan");
+  inventoryMatch.availableItems = [];
+  inventoryMatch.missingCritical = [];
+  inventoryMatch.missingOptional = [];
+  inventoryMatch.substitutions = [];
+  shoppingPlan.mustBuy = [];
+  shoppingPlan.confirmAtHome = [];
+  shoppingPlan.optionalUpgrades = [];
+  plan.commerceCards = [];
+}
+
+function invalidStandardPlan(message) {
+  return Object.assign(new Error(message), {
+    status: 502,
+    code: "MODEL_RESPONSE_INVALID",
+  });
+}
+
+function enforceStandardRecipeExecution(plan) {
+  const assessment = ensureObject(plan, "targetAssessment");
+  const verdict = ensureObject(plan, "verdict");
+  const executionPlan = ensureObject(plan, "executionPlan");
+  const standardIngredients = normalizeStandardIngredients(plan.standardIngredients);
+  const dishName = String(executionPlan.dishName || "").trim();
+  const steps = Array.isArray(executionPlan.steps)
+    ? executionPlan.steps.map((step) => String(step || "").trim()).filter(Boolean).slice(0, 6)
+    : [];
+
+  clearInventoryReasoning(plan);
+  assessment.status = "confirmed_food";
+  assessment.clarificationPrompt = "";
+  plan.standardIngredients = standardIngredients;
+
+  if (!standardIngredients.length || !dishName || !steps.length) {
+    throw invalidStandardPlan("标准做法结果缺少完整材料、执行菜名或有效步骤。");
+  }
+
+  // 标准做法没有核对真实库存。即使模型误写成“材料齐了”，也不能让
+  // 用户界面继承这类库存结论；这里用确定性文案收紧事实边界。
+  verdict.title = `按标准做法准备「${dishName}」`;
+  verdict.summary = "尚未核对你家冰箱；下面按标准材料与完整步骤规划，开火前请自行确认材料。";
+  verdict.primaryAction = "follow_standard_recipe";
+  executionPlan.isExecutableNow = false;
+  executionPlan.dishName = dishName;
+  executionPlan.blockReason = "needs_confirmation";
+  executionPlan.steps = steps;
   return plan;
 }
 
@@ -207,13 +319,30 @@ function enforceConfirmedFoodExecution(plan) {
   return plan;
 }
 
-export function sanitizeTargetDishPlan(plan, { userContext = null } = {}) {
+export function sanitizeTargetDishPlan(plan, {
+  inventory = [],
+  userContext = null,
+  planningMode = "inventory_adapted",
+  inventoryStatus = Array.isArray(inventory) && inventory.length > 0 ? "confirmed" : "confirmed_empty",
+} = {}) {
   if (!plan || typeof plan !== "object" || Array.isArray(plan)) return plan;
+
+  plan.planContext = { planningMode, inventoryStatus };
 
   const assessmentStatus = plan?.targetAssessment?.status;
   if (TARGET_ASSESSMENT_STATUSES.has(assessmentStatus) && assessmentStatus !== "confirmed_food") {
     return enforceBlockedTarget(plan, assessmentStatus);
   }
+
+  if (planningMode === "standard_recipe") {
+    if (assessmentStatus !== "confirmed_food") {
+      throw invalidStandardPlan("标准做法结果缺少有效 targetAssessment 语义判断。");
+    }
+    return enforceStandardRecipeExecution(plan);
+  }
+
+  // 库存适配模式不得把模型偶然返回的标准材料清单混入库存事实。
+  plan.standardIngredients = [];
 
   const pantry = pantryConfirmationFrom(userContext);
   if (Array.isArray(plan?.shoppingPlan?.confirmAtHome)) {
@@ -276,12 +405,26 @@ function isCookwareEntry(value) {
   return parts.length > 0 && parts.every((part) => COOKWARE_NAMES.has(part));
 }
 
-export async function planTargetDish({ inventory, targetDish, userContext, retrievedCases = [] }, modelClient) {
+export async function planTargetDish({
+  planningMode,
+  inventoryStatus,
+  inventory,
+  targetDish,
+  userContext,
+  retrievedCases = [],
+}, modelClient) {
+  const planningContext = normalizeTargetDishPlanningRequest({ planningMode, inventoryStatus, inventory });
   const instructions = [
     "你是一个抖音场景里的目标菜复刻规划 Agent。",
-    "核心故事是：用户刷到想吃的，拍下冰箱，你判断今晚能不能尽量复刻。",
-    "如果 targetDish.imageAnalysis 存在，它来自目标菜图片识别，只能作为参考；最终必须以用户确认或编辑后的 targetDish.text 为准。",
-    "当 targetDish.text 里的菜名和 imageAnalysis.dishName 不一致时，忽略 imageAnalysis.dishName，不要把结果拉回图片识别菜名。",
+    "你同时支持两种明确模式：standard_recipe 是尚未核对冰箱的标准做法；inventory_adapted 是按用户确认库存调整。必须严格按输入 planContext 工作。",
+    "planContext 必须原样返回 planningMode 与 inventoryStatus；不得把 not_checked 理解成 confirmed_empty。",
+    "standard_recipe 时 inventory 必须是 null。此时不得推断家里已有、仍缺、可替代、常备待确认、模拟补购或商城建议；inventoryMatch、shoppingPlan、commerceCards 必须为空，只在 standardIngredients 给出完成这道菜通常需要准备的完整材料。",
+    "standard_recipe 且目标为 confirmed_food 时，必须给具体 executionPlan.dishName 和完整有效 steps；因为尚未核对真实材料，isExecutableNow 必须为 false、blockReason 必须为 needs_confirmation，但步骤仍然保留，verdict.primaryAction 使用 follow_standard_recipe。",
+    "standard_recipe 若用户时间预算短于现实耗时，保留原目标菜和现实 estimatedTime，在 userFit.timeNote 诚实说明冲突，并给最快的安全执行顺序；不得换菜或虚构可以在预算内完成。",
+    "inventory_adapted 才允许根据人工确认库存判断已有、缺少、替代、常备确认和补购；该模式 standardIngredients 必须为空数组。",
+    "如果 targetDish.imageAnalysis 存在，它来自目标菜图片识别或用户选中的识别候选，只能作为参考；候选菜名可能在 name 字段，也可能在 dishName 字段，最终必须以用户确认后的 targetDish.text 为准。",
+    "当 targetDish.text 里的菜名和 imageAnalysis.name 或 imageAnalysis.dishName 不一致时，忽略图片候选菜名，不要把结果拉回图片识别结果。",
+    "输入 targetDish.intentTime 可能携带 15/25/40/flexible 的时间预算语义；输出 targetDish.intentTime 仍按 schema 写 tonight、tomorrow、weekend 或 not_sure，具体预算以 userContext.context.timeBudgetId 为准。",
     "在规划食材和步骤前，必须先对用户确认文本做语义级目标判断，并填写 targetAssessment；不得用简单关键词黑名单代替语义判断。",
     "targetAssessment.status 规则：明确且可作为食物的具体菜、点心或饮品是 confirmed_food；可能是角色、物体、口味昵称或缺少食物形态，无法确认具体吃什么时是 needs_clarification；明确不是食物时是 non_food；即使与食物有关、但目标本身存在普通家常处理无法合理消除的严重风险时是 unsafe。",
     "边界示例只用于理解语义，不是关键词名单：「鸡屎」单独作为目标是非食物；「鸡屎藤饼」是具体传统食物，不得因包含相同字样误伤；「皮卡丘」单独不足以确定具体食物，应追问；「皮卡丘造型饭团」或「皮卡丘蛋糕」是明确造型食物，应按正常食物评估。",
@@ -293,7 +436,7 @@ export async function planTargetDish({ inventory, targetDish, userContext, retri
     "不要输出可做指数、分数、百分比或评分算法。",
     "必须尊重用户想吃这道菜的意愿，先尽量给出可执行路线；如果难度、时间、工具或食材不足，需要温和提醒，并给简化版本、明天准备路线或补买建议。",
     "用户是新手时，不要直接推荐高风险动作，例如油炸、长时间处理生肉、复杂刀工；但可以给低风险替代做法。",
-    "inventory 包含用户本轮明确确认可用的材料；来源以每项 category/state 为准，可能是冰箱原有、本次已拿到或用户确认家中常备。冰箱画面没看到某种调料不等于用户家里一定没有。",
+    "仅在 inventory_adapted 模式下：inventory 包含用户本轮明确确认可用的材料；来源以每项 category/state 为准，可能是冰箱原有、本次已拿到或用户确认家中常备。冰箱画面没看到某种调料不等于用户家里一定没有。",
     "如果 userContext.context.pantryConfirmation 存在：availableItems 是用户明确确认家中已有的常备材料，必须按真实可用处理；missingItems 是用户明确确认家里没有的材料，不得再次放进 confirmAtHome。missingItems 若是本版必要材料，必须进入 missingCritical 与 mustBuy；若可以不用，则调整做法并说明。",
     "userContext.context.timeBudgetId 是用户亲选的时间语义档；flexible 表示今晚不赶时间，不等于无限时长。做饭耗时只计算从备菜到出锅，补购或配送耗时另计。",
     "shoppingPlan 必须覆盖当前目标菜完整的材料缺口，而不是只挑一个适合展示的商品。mustBuy 列出当前推荐版本不可缺少、且确认库存中没有的主料、辅料和专用调味料；常见但可能放在橱柜里的油、盐、酱油等放进 confirmAtHome；不影响成菜成立的材料放进 optionalUpgrades。",
@@ -311,16 +454,20 @@ export async function planTargetDish({ inventory, targetDish, userContext, retri
     "如果输入包含 retrievedCases，它们只是历史参考证据，不是当前事实；当前人工确认库存、目标菜文字和用户要求优先级最高。",
     "positive case 只能迁移相同约束下的做法，negative case 用于避免重复历史错误；缺关键主料时不能因为历史正例成功就声称当前也能完整做。",
     "必须只输出一个合法 JSON 对象，不要 Markdown，不要解释。",
-    'JSON 格式：{"targetDish":{"name":"番茄牛腩","intentTime":"tonight","coreTaste":"热乎、酸甜、下饭","estimatedTime":"90 分钟以上","difficulty":"中等偏难"},"targetAssessment":{"status":"confirmed_food","reason":"这是明确的家常菜目标。","clarificationPrompt":""},"verdict":{"title":"今晚还不能直接开火，先补齐关键材料","summary":"冰箱里有番茄，但缺少牛腩和土豆；补齐后再按完整路线做。","primaryAction":"shop_then_cook"},"inventoryMatch":{"availableItems":["番茄"],"missingCritical":["牛腩","土豆"],"missingOptional":["洋葱","八角"],"substitutions":[]},"shoppingPlan":{"mustBuy":[{"item":"牛腩","reason":"目标菜的核心肉类主料"},{"item":"土豆","reason":"当前版本需要的主要配菜"}],"confirmAtHome":[],"optionalUpgrades":["洋葱","八角"]},"executionPlan":{"isExecutableNow":false,"dishName":"番茄牛腩","blockReason":"missing_materials","recommendedVersion":"补齐牛腩和土豆后再做完整番茄牛腩。","steps":["牛腩焯水后与番茄炒出香味。","加入热水小火炖至牛腩软烂。","加入土豆炖熟并调味收汁。"],"difficultyWarnings":["这些步骤只能在关键材料补齐并由用户确认后执行。"],"prepForTomorrow":"补买牛腩和土豆后，预留 90 分钟以上。"},"userFit":{"skillNote":"对新手来说，番茄牛腩从零开始偏难。","timeNote":"当前时间预算不足以完成完整炖煮。","profileNotes":["参考了当前厨艺和可用时间。","保留用户想吃酸甜热食的意愿。"]},"commerceCards":[{"type":"douyin_mall","title":"目标菜需要补齐","item":"牛腩 + 土豆","reason":"这是当前版本的完整关键缺口。","cta":"加入模拟购物车并重新规划"}],"talkTrack":"先确认目标是具体食物，再区分现在能开火、需要补齐或需要改目标。"}',
+    'JSON 格式：{"planContext":{"planningMode":"inventory_adapted","inventoryStatus":"confirmed"},"targetDish":{"name":"番茄牛腩","intentTime":"tonight","coreTaste":"热乎、酸甜、下饭","estimatedTime":"90 分钟以上","difficulty":"中等偏难"},"targetAssessment":{"status":"confirmed_food","reason":"这是明确的家常菜目标。","clarificationPrompt":""},"verdict":{"title":"今晚还不能直接开火，先补齐关键材料","summary":"冰箱里有番茄，但缺少牛腩和土豆；补齐后再按完整路线做。","primaryAction":"shop_then_cook"},"standardIngredients":[],"inventoryMatch":{"availableItems":["番茄"],"missingCritical":["牛腩","土豆"],"missingOptional":["洋葱","八角"],"substitutions":[]},"shoppingPlan":{"mustBuy":[{"item":"牛腩","reason":"目标菜的核心肉类主料"},{"item":"土豆","reason":"当前版本需要的主要配菜"}],"confirmAtHome":[],"optionalUpgrades":["洋葱","八角"]},"executionPlan":{"isExecutableNow":false,"dishName":"番茄牛腩","blockReason":"missing_materials","recommendedVersion":"补齐牛腩和土豆后再做完整番茄牛腩。","steps":["牛腩焯水后与番茄炒出香味。","加入热水小火炖至牛腩软烂。","加入土豆炖熟并调味收汁。"],"difficultyWarnings":["这些步骤只能在关键材料补齐并由用户确认后执行。"],"prepForTomorrow":"补买牛腩和土豆后，预留 90 分钟以上。"},"userFit":{"skillNote":"对新手来说，番茄牛腩从零开始偏难。","timeNote":"当前时间预算不足以完成完整炖煮。","profileNotes":["参考了当前厨艺和可用时间。","保留用户想吃酸甜热食的意愿。"]},"commerceCards":[{"type":"douyin_mall","title":"目标菜需要补齐","item":"牛腩 + 土豆","reason":"这是当前版本的完整关键缺口。","cta":"加入模拟购物车并重新规划"}],"talkTrack":"先确认目标是具体食物，再区分现在能开火、需要补齐或需要改目标。"}',
   ].join("\n");
 
   const payloadText = JSON.stringify(
     {
-      inventory,
+      planContext: {
+        planningMode: planningContext.planningMode,
+        inventoryStatus: planningContext.inventoryStatus,
+      },
+      inventory: planningContext.inventory,
       targetDish,
       userContext,
       retrievedCases,
-      commerceCatalog: mockCommerceCatalog,
+      commerceCatalog: planningContext.planningMode === "inventory_adapted" ? mockCommerceCatalog : [],
     },
     null,
     2,
@@ -350,5 +497,10 @@ export async function planTargetDish({ inventory, targetDish, userContext, retri
       },
     ],
   });
-  return sanitizeTargetDishPlan(plan, { inventory, userContext });
+  return sanitizeTargetDishPlan(plan, {
+    inventory: planningContext.inventory,
+    userContext,
+    planningMode: planningContext.planningMode,
+    inventoryStatus: planningContext.inventoryStatus,
+  });
 }

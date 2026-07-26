@@ -90,3 +90,37 @@ test("non-retryable 400 is returned without a second request", async () => {
     globalThis.fetch = originalFetch;
   }
 });
+
+test("persistent connection failure keeps a safe network error code", async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => {
+    const error = new TypeError("fetch failed");
+    error.cause = { code: "UND_ERR_CONNECT_TIMEOUT", message: "Connect Timeout Error" };
+    throw error;
+  };
+  try {
+    await assert.rejects(
+      client().createJsonResponse(request()),
+      (error) => error.code === "MODEL_CONNECT_ERROR" && error.status === 502,
+    );
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("unparseable model output keeps an invalid response error code", async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => new Response([
+    `data: ${JSON.stringify({ type: "response.output_text.delta", delta: "not-json" })}`,
+    "data: [DONE]",
+    "",
+  ].join("\n\n"), { status: 200 });
+  try {
+    await assert.rejects(
+      client().createJsonResponse(request()),
+      (error) => error.code === "MODEL_RESPONSE_INVALID" && error.status === 502,
+    );
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});

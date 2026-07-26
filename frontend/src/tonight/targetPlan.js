@@ -36,6 +36,11 @@ function result({
   targetStatus,
   executionDishName = "",
   isExecutableNow = false,
+  isSemanticallyExecutable = false,
+  canViewSteps = false,
+  canClaimReadyNow = false,
+  canUseRescue = false,
+  canCreateLifeLog = false,
   blockReason = null,
 }) {
   return {
@@ -43,9 +48,34 @@ function result({
     targetStatus,
     executionDishName,
     isExecutableNow,
+    isSemanticallyExecutable,
+    canViewSteps,
+    canClaimReadyNow,
+    canUseRescue,
+    canCreateLifeLog,
     blockReason,
-    canEnterCooking: isExecutableNow,
   };
+}
+
+function semanticCookingResult({
+  requestedDishName = "",
+  targetStatus,
+  executionDishName,
+  readyNow = false,
+  blockReason = null,
+}) {
+  return result({
+    requestedDishName,
+    targetStatus,
+    executionDishName,
+    isExecutableNow: readyNow,
+    isSemanticallyExecutable: true,
+    canViewSteps: true,
+    canClaimReadyNow: readyNow,
+    canUseRescue: true,
+    canCreateLifeLog: true,
+    blockReason,
+  });
 }
 
 /**
@@ -69,11 +99,13 @@ export function getTargetExecutionState(
     const executionDishName = cleanText(plan.baseMeal?.name);
     const steps = cleanSteps(plan.baseMeal?.steps);
     const decision = cleanText(plan.decision);
-    if (decision !== "cook_with_existing_items" && decision !== "quick_meal_first") {
+    const readyDecision = decision === "cook_with_existing_items" || decision === "quick_meal_first";
+    const purchaseDecision = decision === "cook_with_small_purchase";
+    if (!readyDecision && !purchaseDecision) {
       return result({
         targetStatus: "not_applicable",
         executionDishName,
-        blockReason: decision === "cook_with_small_purchase" ? "missing_materials" : "not_cooking",
+        blockReason: "not_cooking",
       });
     }
     if (!isExplicitDishName(executionDishName)) {
@@ -90,10 +122,11 @@ export function getTargetExecutionState(
         blockReason: "missing_execution_steps",
       });
     }
-    return result({
+    return semanticCookingResult({
       targetStatus: "not_applicable",
       executionDishName,
-      isExecutableNow: true,
+      readyNow: readyDecision,
+      blockReason: purchaseDecision ? "missing_materials" : null,
     });
   }
 
@@ -134,41 +167,8 @@ export function getTargetExecutionState(
         blockReason: targetStatus,
       });
     }
-    // 模拟补购只表示“假设补齐后重算”，绝不是用户已经买到的材料事实。
-    // 即使 Planner 返回了可执行步骤，也必须等用户显式确认“本次已拿到”后才能开火。
-    if (Array.isArray(simulatedMaterials) && simulatedMaterials.length > 0) {
-      return result({
-        requestedDishName,
-        targetStatus,
-        executionDishName,
-        blockReason: "simulated_materials",
-      });
-    }
-    if (hasPendingPantry) {
-      return result({
-        requestedDishName,
-        targetStatus,
-        executionDishName,
-        blockReason: "needs_confirmation",
-      });
-    }
-    if (declaredExecutable && declaredBlockReason !== "none") {
-      return result({
-        requestedDishName,
-        targetStatus,
-        executionDishName,
-        blockReason: declaredBlockReason,
-      });
-    }
-    if (!declaredExecutable && declaredBlockReason === "missing_materials" && !allRequiredAcquired) {
-      return result({
-        requestedDishName,
-        targetStatus,
-        executionDishName,
-        blockReason: "missing_materials",
-      });
-    }
-    if (!declaredExecutable && !(declaredBlockReason === "missing_materials" && allRequiredAcquired)) {
+    // not_cooking 以及与语义门禁矛盾的目标阻断状态，都不得暴露步骤、救援或生活记录。
+    if (["not_cooking", "target_unclear", "non_food_target", "unsafe_target"].includes(declaredBlockReason)) {
       return result({
         requestedDishName,
         targetStatus,
@@ -192,11 +192,70 @@ export function getTargetExecutionState(
         blockReason: "missing_execution_steps",
       });
     }
-    return result({
+    const planningMode = cleanText(
+      entry?.requestSnapshot?.planningMode || plan.planContext?.planningMode,
+    );
+    if (planningMode === "standard_recipe") {
+      return semanticCookingResult({
+        requestedDishName,
+        targetStatus,
+        executionDishName,
+        readyNow: false,
+        blockReason: "inventory_not_checked",
+      });
+    }
+    // 模拟补购、常备待确认和真实缺料只限制“现在能做”的声称，
+    // 不再阻断用户查看完整菜谱、大字步骤、救援和生活记录。
+    if (Array.isArray(simulatedMaterials) && simulatedMaterials.length > 0) {
+      return semanticCookingResult({
+        requestedDishName,
+        targetStatus,
+        executionDishName,
+        readyNow: false,
+        blockReason: "simulated_materials",
+      });
+    }
+    if (hasPendingPantry) {
+      return semanticCookingResult({
+        requestedDishName,
+        targetStatus,
+        executionDishName,
+        readyNow: false,
+        blockReason: "needs_confirmation",
+      });
+    }
+    if (declaredExecutable && declaredBlockReason !== "none") {
+      return semanticCookingResult({
+        requestedDishName,
+        targetStatus,
+        executionDishName,
+        readyNow: false,
+        blockReason: declaredBlockReason,
+      });
+    }
+    if (!declaredExecutable && declaredBlockReason === "missing_materials" && !allRequiredAcquired) {
+      return semanticCookingResult({
+        requestedDishName,
+        targetStatus,
+        executionDishName,
+        readyNow: false,
+        blockReason: "missing_materials",
+      });
+    }
+    if (!declaredExecutable && !(declaredBlockReason === "missing_materials" && allRequiredAcquired)) {
+      return semanticCookingResult({
+        requestedDishName,
+        targetStatus,
+        executionDishName,
+        readyNow: false,
+        blockReason: declaredBlockReason === "none" ? "needs_confirmation" : declaredBlockReason,
+      });
+    }
+    return semanticCookingResult({
       requestedDishName,
       targetStatus,
       executionDishName,
-      isExecutableNow: true,
+      readyNow: true,
     });
   }
 

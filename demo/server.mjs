@@ -9,10 +9,11 @@ import { createModelClient, readModelResponseMeta } from "./agent/modelClient.mj
 import { analyzeFridge } from "./agent/fridgeVisionAgent.mjs";
 import { sanitizeFridgeVision } from "./agent/fridgeVisionSanitizer.mjs";
 import { analyzeTargetDish } from "./agent/targetDishVisionAgent.mjs";
+import { normalizeTargetDishVisionContract } from "./agent/targetDishVisionContract.mjs";
 import { generateLifeLogDraft } from "./agent/lifeLogDraftAgent.mjs";
 import { buildDishRescueFallback, enforceDishRescueBoundaries, rescueDish } from "./agent/dishRescueAgent.mjs";
 import { planDinner } from "./agent/dinnerPlannerAgent.mjs";
-import { planTargetDish } from "./agent/targetDishPlannerAgent.mjs";
+import { normalizeTargetDishPlanningRequest, planTargetDish } from "./agent/targetDishPlannerAgent.mjs";
 import { createUserMemoryStore } from "./agent/userMemoryStore.mjs";
 import { createDemoVisionCache } from "./agent/demoVisionCache.mjs";
 import { createCaseRetriever, normalizeRetrievalMode, toPlannerCases } from "./agent/caseRetriever.mjs";
@@ -228,7 +229,14 @@ function publicErrorPayload(error, requestId, pathname = "") {
   }
 
   const payload = { error: message, requestId };
-  if (error.code === "MODEL_TIMEOUT") payload.code = "MODEL_TIMEOUT";
+  const publicModelErrorCodes = new Set([
+    "MODEL_TIMEOUT",
+    "MODEL_CONNECT_ERROR",
+    "MODEL_SERVICE_UNAVAILABLE",
+    "MODEL_RESPONSE_INVALID",
+    "MODEL_REQUEST_ERROR",
+  ]);
+  if (publicModelErrorCodes.has(error.code)) payload.code = error.code;
   if (!isProduction) {
     if (error.diagnostics) payload.diagnostics = error.diagnostics;
     if (error.errors) payload.errors = error.errors;
@@ -354,7 +362,7 @@ function healthPayload() {
     },
     modelTimeoutsMs: {
       fridgeVision: 50_000,
-      targetDishVision: 22_000,
+      targetDishVision: 40_000,
       planning: 50_000,
       lifeLog: 50_000,
       dishRescue: 50_000,
@@ -985,7 +993,10 @@ function dinnerPlanRunSummary(plan) {
 
 function targetPlanRunSummary(plan) {
   return {
+    planningMode: String(plan?.planContext?.planningMode || "").slice(0, 40),
+    inventoryStatus: String(plan?.planContext?.inventoryStatus || "").slice(0, 40),
     primaryAction: String(plan?.verdict?.primaryAction || "").slice(0, 80),
+    standardIngredientCount: Array.isArray(plan?.standardIngredients) ? plan.standardIngredients.length : 0,
     stepCount: Array.isArray(plan?.executionPlan?.steps) ? plan.executionPlan.steps.length : 0,
     missingCriticalCount: Array.isArray(plan?.inventoryMatch?.missingCritical) ? plan.inventoryMatch.missingCritical.length : 0,
     mustBuyCount: Array.isArray(plan?.shoppingPlan?.mustBuy) ? plan.shoppingPlan.mustBuy.length : 0,
@@ -1228,19 +1239,22 @@ const server = createServer(async (req, res) => {
       );
       const visionMs = performance.now() - visionStartedAt;
       const modelMeta = readModelResponseMeta(outcome.result);
+      // 模型、旧运行时缓存与固定示例都在 API 边界收敛到同一候选详情契约。
+      const targetVision = normalizeTargetDishVisionContract(outcome.result);
       runObservation = {
         ...runObservation,
         source: outcome.source,
         usage: modelMeta?.usage || null,
         trace: { totalMs: Math.round(visionMs) },
         outputSummary: {
-          likelyIngredientCount: Array.isArray(outcome.result?.likelyIngredients) ? outcome.result.likelyIngredients.length : 0,
-          toolCount: Array.isArray(outcome.result?.tools) ? outcome.result.tools.length : 0,
-          uncertaintyCount: Array.isArray(outcome.result?.uncertainties) ? outcome.result.uncertainties.length : 0,
+          dishOptionCount: targetVision.dishOptions.length,
+          likelyIngredientCount: Array.isArray(targetVision.likelyIngredients) ? targetVision.likelyIngredients.length : 0,
+          toolCount: Array.isArray(targetVision.requiredTools) ? targetVision.requiredTools.length : 0,
+          warningCount: Array.isArray(targetVision.warnings) ? targetVision.warnings.length : 0,
         },
         content: {
           input: { media: mediaRunSummary(body.imageDataUrl, "image") },
-          output: { targetVision: outcome.result },
+          output: { targetVision },
         },
       };
       setServerTiming(res, { vision: visionMs });
@@ -1252,7 +1266,7 @@ const server = createServer(async (req, res) => {
         cache: outcome.cache || null,
         modelError: outcome.modelError || null,
         usage: modelMeta?.usage || null,
-        targetVision: outcome.result,
+        targetVision,
         trace: { totalMs: Math.round(visionMs), source: outcome.source },
       });
       return;
@@ -1684,16 +1698,23 @@ const server = createServer(async (req, res) => {
 
     if (req.method === "POST" && req.url === "/api/plan-target-dish") {
       const body = await readJsonBody(req);
-      if (!Array.isArray(body.inventory) || !body.userContext || !body.targetDish?.text?.trim()) {
-        sendJson(res, 400, { error: "缺少 inventory、targetDish.text 或 userContext。" });
+      if (!body.userContext || !body.targetDish?.text?.trim()) {
+        sendJson(res, 400, { error: "缺少 targetDish.text 或 userContext。", requestId });
         return;
       }
+      const planningContext = normalizeTargetDishPlanningRequest({
+        planningMode: body.planningMode,
+        inventoryStatus: body.inventoryStatus,
+        inventory: body.inventory,
+      });
       runObservation = {
         agent: "targetDishPlannerAgent",
         provider: modelConfig.provider,
         model: modelRoutes.planning.model,
         inputSummary: {
-          ...inventoryRunSummary(body.inventory),
+          ...inventoryRunSummary(planningContext.inventory),
+          planningMode: planningContext.planningMode,
+          inventoryStatus: planningContext.inventoryStatus,
           hasTargetDish: true,
           simulatedShoppingItemCount: Array.isArray(body.targetDish?.shoppingDecision?.acceptedItems)
             ? body.targetDish.shoppingDecision.acceptedItems.length
@@ -1703,9 +1724,12 @@ const server = createServer(async (req, res) => {
       const targetDish = {
         text: body.targetDish.text.trim(),
         intentTime: body.targetDish.intentTime || "tonight",
-        inputSource: String(body.targetDish.inputSource || "unknown").slice(0, 40),
+        nameSource: String(body.targetDish.nameSource || body.targetDish.inputSource || "unknown").slice(0, 40),
+        nameConfirmed: body.targetDish.nameConfirmed !== false,
+        inputSource: String(body.targetDish.inputSource || body.targetDish.nameSource || "unknown").slice(0, 40),
         imageAnalysis: body.targetDish.imageAnalysis || null,
-        shoppingDecision: Array.isArray(body.targetDish.shoppingDecision?.acceptedItems)
+        shoppingDecision: planningContext.planningMode === "inventory_adapted"
+          && Array.isArray(body.targetDish.shoppingDecision?.acceptedItems)
           ? {
               mode: "simulate_after_purchase",
               acceptedItems: body.targetDish.shoppingDecision.acceptedItems
@@ -1716,15 +1740,26 @@ const server = createServer(async (req, res) => {
           : null,
       };
       const retrievalStartedAt = performance.now();
-      const retrieval = await caseRetriever.retrieve(
-        { route: "feed_to_fridge", inventory: body.inventory, targetDish, userContext: body.userContext },
-        { mode: requestRetrievalMode(body), limit: caseRetrievalConfig.limit },
-      );
+      const requestedRetrievalMode = requestRetrievalMode(body);
+      const retrieval = planningContext.planningMode === "standard_recipe"
+        ? {
+            mode: "off",
+            requestedMode: requestedRetrievalMode,
+            query: null,
+            cases: [],
+            skippedReason: "inventory_not_checked",
+          }
+        : await caseRetriever.retrieve(
+          { route: "feed_to_fridge", inventory: planningContext.inventory, targetDish, userContext: body.userContext },
+          { mode: requestedRetrievalMode, limit: caseRetrievalConfig.limit },
+        );
       const retrievalMs = performance.now() - retrievalStartedAt;
       const planningStartedAt = performance.now();
       const targetPlan = await planTargetDish(
         {
-          inventory: body.inventory,
+          planningMode: planningContext.planningMode,
+          inventoryStatus: planningContext.inventoryStatus,
+          inventory: planningContext.inventory,
           targetDish,
           userContext: body.userContext,
           retrievedCases: toPlannerCases(retrieval),
@@ -1741,7 +1776,13 @@ const server = createServer(async (req, res) => {
         outputSummary: targetPlanRunSummary(targetPlan),
         content: {
           input: {
-            inventory: inventoryRunContent(body.inventory),
+            planContext: {
+              planningMode: planningContext.planningMode,
+              inventoryStatus: planningContext.inventoryStatus,
+            },
+            inventory: planningContext.inventoryStatus === "not_checked"
+              ? null
+              : inventoryRunContent(planningContext.inventory),
             userContext: userContextRunContent(body.userContext),
             targetDish: {
               text: targetDish.text.slice(0, 240),
@@ -1760,6 +1801,7 @@ const server = createServer(async (req, res) => {
         model: modelRoutes.planning.model,
         agent: "targetDishPlannerAgent",
         source: "model",
+        requestId,
         targetPlan,
         usage: modelMeta?.usage || null,
         retrieval,

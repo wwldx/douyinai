@@ -4,7 +4,9 @@ import {
   SAMPLE_DISH,
   SAMPLE_FRIDGE,
   buildUserContext,
+  classifyDishVisionError,
   clearSessionState,
+  dishOptionsFromAnalysis,
   eatFirstItemStatesFromMarks,
   fallbackDinnerPlan,
   fallbackTargetPlan,
@@ -14,13 +16,14 @@ import {
   loadInventorySnapshot,
   loadSessionState,
   mergeIngredientNames,
-  normalizeName,
   normalizeDinnerPlan,
   normalizePantryConfirmation,
   pantryConfirmationForPlanning,
   pantryNamesMatch,
   normalizeTargetPlanData,
+  nextSampleDish,
   readableDishNameFromFile,
+  restoreDishOptionSelection,
   rescueSymptomByKey,
   saveInventorySnapshot,
   saveSessionState,
@@ -30,6 +33,7 @@ import { getCookingContext } from "./steps";
 import { getTargetExecutionState } from "./targetPlan";
 import HomeScene from "./scenes/HomeScene";
 import DishScene from "./scenes/DishScene";
+import DishAnalysisScene from "./scenes/DishAnalysisScene";
 import FridgeScene from "./scenes/FridgeScene";
 import TicketScene from "./scenes/TicketScene";
 import RescueScene from "./scenes/RescueScene";
@@ -38,10 +42,82 @@ import WaitingOverlay from "./scenes/WaitingOverlay";
 
 let planSeq = 1;
 
+function isVisionDishSource(value) {
+  const source = String(value || "");
+  return source.startsWith("vision_") || source === "image_candidate" || source === "image_option";
+}
+
+function classifyPlanningError(error) {
+  const code = String(error?.code || "");
+  const requestId = String(error?.requestId || "");
+  if (code === "MODEL_TIMEOUT") {
+    return {
+      kind: "timeout",
+      title: "模型响应超过约 50 秒",
+      message: "这次等待已结束，刚才确认的库存、时间和要求都已保留，可以按原条件重试。",
+      code,
+      requestId,
+    };
+  }
+  if (code === "CLIENT_TIMEOUT") {
+    return {
+      kind: "timeout",
+      title: "页面等待超过约 60 秒",
+      message: "页面已停止等待；不会静默采用迟到的结果，原条件仍然保留。",
+      code,
+      requestId,
+    };
+  }
+  if (code === "MODEL_CONNECT_ERROR" || code === "NETWORK_ERROR") {
+    return {
+      kind: "network",
+      title: "连接上游模型失败",
+      message: code === "MODEL_CONNECT_ERROR"
+        ? "服务已自动尝试两次连接，但这次仍未连通。原条件和旧方案都没有被改动。"
+        : "当前设备没有成功连接到规划服务；请检查网络后按原条件重试。",
+      code,
+      requestId,
+    };
+  }
+  if (code === "MODEL_SERVICE_UNAVAILABLE") {
+    return {
+      kind: "unavailable",
+      title: "上游模型暂时不可用",
+      message: "上游返回了 502/503；原条件和旧方案都已保留，稍后可以直接重试。",
+      code,
+      requestId,
+    };
+  }
+  if (code === "MODEL_RESPONSE_INVALID" || code === "INVALID_RESPONSE") {
+    return {
+      kind: "invalid",
+      title: "模型返回内容异常",
+      message: "这次结果没有通过结构检查，因此没有写入方案；原条件仍然保留。",
+      code,
+      requestId,
+    };
+  }
+  return {
+    kind: "unknown",
+    title: "这次没有生成方案",
+    message: error?.message || "规划服务暂时不可用；原条件仍然保留。",
+    code: code || "UNKNOWN",
+    requestId,
+  };
+}
+
 export default function TonightApp() {
   const [route, setRoute] = useState(null); // "feed" | "fridge"
-  const [scene, setScene] = useState("home"); // home | dish | fridge | ticket
+  const [scene, setScene] = useState("home"); // home | dish | dish-analysis | fridge | ticket
   const [dish, setDish] = useState(null);
+  const [selectedDishOption, setSelectedDishOption] = useState(null);
+  const [fridgeBenchDraft, setFridgeBenchDraft] = useState({
+    intentType: "inventory_driven",
+    dishName: "",
+    dishNameSource: null,
+    dishImageSource: null,
+    selectedDishOption: null,
+  });
   const [timeBudgetId, setTimeBudgetId] = useState(null);
   const [timeBudgetAuto, setTimeBudgetAuto] = useState(false);
   const [note, setNote] = useState("");
@@ -59,6 +135,7 @@ export default function TonightApp() {
   const [activePlanId, setActivePlanId] = useState(null);
   const [pending, setPending] = useState(null); // {kind, label, startedAt}
   const [planError, setPlanError] = useState(null); // 首次规划失败
+  const [replanError, setReplanError] = useState(null); // 已有旧方案时的可操作重规划失败
   const [notice, setNotice] = useState("");
   const [interrupted, setInterrupted] = useState(null);
   const [reshootResult, setReshootResult] = useState(null); // {key, items:[name]}
@@ -99,10 +176,51 @@ export default function TonightApp() {
           setInterrupted({ kind: saved.pendingKind, planId: saved.pendingPlanId || null, scope: saved.pendingScope || null });
         }
       }
+      const restoredDish = saved.dish
+        ? { ...saved.dish, image: null, originalImage: null, analysis: saved.dish.analysis || null }
+        : null;
+      const restoredSelectedDishOption = restoreDishOptionSelection(
+        restoredDish?.analysis,
+        saved.selectedDishOption,
+      );
+      const rawBenchDraft = saved.fridgeBenchDraft && typeof saved.fridgeBenchDraft === "object"
+        ? saved.fridgeBenchDraft
+        : null;
+      const restoredBenchOption = restoreDishOptionSelection(
+        restoredDish?.analysis,
+        rawBenchDraft?.selectedDishOption,
+      );
+      const discardedStaleCandidate = Boolean(
+        (saved.selectedDishOption && !restoredSelectedDishOption)
+        || (rawBenchDraft?.selectedDishOption && !restoredBenchOption),
+      );
       setRoute(saved.route || null);
-      setDish(saved.dish ? { ...saved.dish, image: null, analysis: saved.dish.analysis || null } : null);
-      setTimeBudgetId(saved.timeBudgetId || null);
-      setTimeBudgetAuto(Boolean(saved.timeBudgetAuto));
+      setDish(restoredDish);
+      setSelectedDishOption(restoredSelectedDishOption);
+      setFridgeBenchDraft(rawBenchDraft
+        ? {
+          intentType: rawBenchDraft.intentType === "target_dish" ? "target_dish" : "inventory_driven",
+          dishName: rawBenchDraft.selectedDishOption
+            ? restoredBenchOption?.name || ""
+            : String(rawBenchDraft.dishName || ""),
+          dishNameSource: rawBenchDraft.selectedDishOption && !restoredBenchOption
+            ? null
+            : rawBenchDraft.dishNameSource || null,
+          dishImageSource: rawBenchDraft.selectedDishOption && !restoredBenchOption
+            ? null
+            : rawBenchDraft.dishImageSource || null,
+          selectedDishOption: restoredBenchOption,
+        }
+        : {
+          intentType: "inventory_driven",
+          dishName: "",
+          dishNameSource: null,
+          dishImageSource: null,
+          selectedDishOption: null,
+        });
+      // 016 起示例也必须由用户亲自选择时间；旧会话的自动 25 分钟不继续继承。
+      setTimeBudgetId(saved.timeBudgetAuto ? null : saved.timeBudgetId || null);
+      setTimeBudgetAuto(false);
       setNote(saved.note || "");
       setFridge(saved.fridge ? { ...saved.fridge, image: null, vision: saved.fridge.vision || null } : null);
       setInventory(Array.isArray(saved.inventory) ? saved.inventory : []);
@@ -113,8 +231,11 @@ export default function TonightApp() {
       setRescue(saved.rescue && typeof saved.rescue === "object" ? saved.rescue : null);
       setLifeLog(saved.lifeLog && typeof saved.lifeLog === "object" ? saved.lifeLog : null);
       setLifeLogDrafts(saved.lifeLogDrafts && typeof saved.lifeLogDrafts === "object" ? saved.lifeLogDrafts : {});
-      setIntent(saved.intent || null);
+      setIntent(discardedStaleCandidate && !saved.plans?.length && saved.intent?.type === "target_dish"
+        ? null
+        : saved.intent || null);
       setPlanError(saved.planError && typeof saved.planError === "object" ? saved.planError : null);
+      setReplanError(saved.replanError && typeof saved.replanError === "object" ? saved.replanError : null);
       const savedPlans = Array.isArray(saved.plans) ? saved.plans : [];
       setPlans(savedPlans);
       planSeq = Math.max(planSeq, ...savedPlans.map((entry, index) => Number(entry.sequence || index + 1) + 1));
@@ -124,8 +245,9 @@ export default function TonightApp() {
       else if (saved.scene === "lifelog" && saved.lifeLog?.planId) setScene("lifelog");
       else if (saved.plans?.length) setScene("ticket");
       else if (saved.planError) setScene("ticket");
+      else if (saved.scene === "dish-analysis" && restoredDish && restoredSelectedDishOption) setScene("dish-analysis");
       else if (saved.scene === "fridge" || saved.inventoryConfirmed || saved.inventoryMode === "empty" || saved.fridge?.vision) setScene("fridge");
-      else if (saved.dish) setScene("dish");
+      else if (saved.dish?.analysis || saved.dish?.analysisError) setScene("dish");
     }
     setHydrated(true);
   }, []);
@@ -144,7 +266,11 @@ export default function TonightApp() {
         nameSource: dish.nameSource,
         analysis: dish.analysis,
         analysisSource: dish.analysisSource,
+        analysisError: dish.analysisError || null,
+        demoKey: dish.demoKey || null,
       } : null,
+      selectedDishOption,
+      fridgeBenchDraft,
       timeBudgetId,
       timeBudgetAuto,
       note,
@@ -159,13 +285,14 @@ export default function TonightApp() {
       lifeLogDrafts,
       intent,
       planError,
+      replanError,
       plans,
       activePlanId,
       pendingKind: pending?.kind || null,
       pendingPlanId: pending?.planId || null,
       pendingScope: pending?.scope || null,
     });
-  }, [hydrated, route, scene, dish, timeBudgetId, timeBudgetAuto, note, fridge, inventory, inventoryMode, inventoryConfirmed, eatFirstMarks, stepPositions, rescue, lifeLog, lifeLogDrafts, intent, planError, plans, activePlanId, pending]);
+  }, [hydrated, route, scene, dish, selectedDishOption, fridgeBenchDraft, timeBudgetId, timeBudgetAuto, note, fridge, inventory, inventoryMode, inventoryConfirmed, eatFirstMarks, stepPositions, rescue, lifeLog, lifeLogDrafts, intent, planError, replanError, plans, activePlanId, pending]);
 
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: "auto" });
@@ -188,6 +315,7 @@ export default function TonightApp() {
   // ---------- 等待与中断 ----------
 
   function beginPending(kind, label, extra = null) {
+    abortRef.current?.abort();
     const controller = new AbortController();
     abortRef.current = controller;
     setInterrupted(null); // 新请求开始后，旧中断事实不再相关
@@ -195,9 +323,14 @@ export default function TonightApp() {
     return controller.signal;
   }
 
-  function endPending() {
+  function endPending(signal) {
+    if (signal && abortRef.current?.signal !== signal) return;
     abortRef.current = null;
     setPending(null);
+  }
+
+  function isCurrentRequest(signal) {
+    return Boolean(signal && !signal.aborted && abortRef.current?.signal === signal);
   }
 
   function cancelPending() {
@@ -206,14 +339,20 @@ export default function TonightApp() {
 
   // ---------- 目标菜（F1） ----------
 
-  const runDishVision = useCallback(async (image, fileName, imageSource) => {
+  const runDishVision = useCallback(async (image, fileName, imageSource, demoKey = null) => {
     const signal = beginPending("dish-vision", "正在认这道菜");
     try {
       const data = await api.analyzeTargetDish({
         imageDataUrl: image,
-        demoKey: imageSource === "sample" ? SAMPLE_DISH.demoKey : undefined,
+        demoKey: imageSource === "sample" ? demoKey || SAMPLE_DISH.demoKey : undefined,
       }, { signal });
-      const analysis = data.targetVision || {};
+      if (!data.targetVision || typeof data.targetVision !== "object" || !Array.isArray(data.targetVision.dishOptions)) {
+        const responseError = new Error("目标菜识别结果缺少完整候选契约");
+        responseError.code = "INVALID_RESPONSE";
+        responseError.requestId = data.requestId || "";
+        throw responseError;
+      }
+      const analysis = data.targetVision;
       setDish((cur) => {
         if (!cur) return cur;
         const recognized = String(analysis.dishName || "").trim();
@@ -222,72 +361,126 @@ export default function TonightApp() {
           ...cur,
           analysis,
           analysisSource: data.source || "model",
+          analysisError: null,
           name: cur.nameLocked ? cur.name : recognized || fallbackName || cur.name,
           nameConfirmed: cur.nameLocked ? Boolean(cur.nameConfirmed) : false,
           nameSource: cur.nameLocked ? cur.nameSource : null,
         };
       });
+      return true;
     } catch (error) {
-      if (signal.aborted) return; // 用户主动取消：静默返回
-      setDish((cur) => (cur ? { ...cur, analysis: null, analysisSource: "failed" } : cur));
-      showNotice("没认出这道菜，请直接输入菜名");
+      if (signal.aborted) {
+        setDish((cur) => (cur ? {
+          ...cur,
+          analysis: null,
+          analysisSource: "cancelled",
+          analysisError: null,
+        } : cur));
+        return false;
+      }
+      const analysisError = classifyDishVisionError(error);
+      setDish((cur) => (cur ? {
+        ...cur,
+        analysis: null,
+        analysisSource: "failed",
+        analysisError,
+      } : cur));
+      showNotice(analysisError.kind === "timeout"
+        ? "这次识别等太久了，可以按原图重试"
+        : analysisError.kind === "network"
+          ? "识别服务暂时连不上，可以稍后重试"
+          : "识别结果格式异常，可以重新识别");
+      return true;
     } finally {
-      endPending();
+      endPending(signal);
     }
   }, [showNotice]);
 
-  const acceptDishImage = useCallback(async (file, imageSource) => {
+  const acceptDishImage = useCallback(async (file, imageSource, origin = "feed", sampleMeta = null) => {
     try {
       const image = await compressImage(file);
-      const fileName = imageSource === "sample" ? SAMPLE_DISH.fileName : file.name;
+      const sample = sampleMeta || SAMPLE_DISH;
+      const fileName = imageSource === "sample" ? sample.fileName : file.name;
+      setSelectedDishOption(null);
       setDish({
         image,
         originalImage: image,
         imageSource,
+        demoKey: imageSource === "sample" ? sample.demoKey : null,
         fileName,
         analysis: null,
         analysisSource: null,
+        analysisError: null,
         name: imageSource === "sample" ? "" : readableDishNameFromFile(fileName),
         nameLocked: false,
         nameConfirmed: false,
         nameSource: null,
       });
-      setRoute("feed");
-      setScene("dish");
-      if (imageSource === "sample") {
-        setTimeBudgetId((cur) => {
-          if (cur) return cur;
-          setTimeBudgetAuto(true);
-          return "25";
-        });
-      } else if (timeBudgetAuto) {
+      const fromFridgeBench = origin === "fridge_target";
+      setRoute(fromFridgeBench ? "fridge" : "feed");
+      if (!fromFridgeBench) {
         setTimeBudgetId(null);
         setTimeBudgetAuto(false);
       }
-      runDishVision(image, fileName, imageSource);
+      const completed = await runDishVision(image, fileName, imageSource, imageSource === "sample" ? sample.demoKey : null);
+      if (completed) setScene("dish");
+      return completed;
     } catch (error) {
       showNotice(error.message || "图片读取失败");
+      return false;
     }
-  }, [runDishVision, showNotice, timeBudgetAuto]);
+  }, [runDishVision, showNotice]);
 
-  const loadSampleDish = useCallback(async () => {
+  const loadSampleDish = useCallback(async (origin = "feed", sampleMeta = SAMPLE_DISH) => {
     try {
-      const file = await fetchAssetFile(SAMPLE_DISH.url, SAMPLE_DISH.fileName);
-      await acceptDishImage(file, "sample");
+      const file = await fetchAssetFile(sampleMeta.url, sampleMeta.fileName);
+      await acceptDishImage(file, "sample", origin, sampleMeta);
     } catch (error) {
       showNotice(error.message || "示例图片加载失败");
     }
   }, [acceptDishImage, showNotice]);
 
   const recropDish = useCallback((croppedImage) => {
-    setDish((cur) => (cur ? { ...cur, image: croppedImage } : cur));
+    setSelectedDishOption(null);
+    setDish((cur) => (cur ? {
+      ...cur,
+      image: croppedImage,
+      analysis: null,
+      analysisSource: "pending",
+      analysisError: null,
+      nameConfirmed: false,
+      nameSource: null,
+    } : cur));
     runDishVision(croppedImage, "roi.jpg", "roi");
-  }, [dish, runDishVision]);
+  }, [runDishVision]);
 
   const restoreDishImage = useCallback(() => {
     if (!dish?.originalImage) return;
-    setDish((cur) => (cur ? { ...cur, image: cur.originalImage } : cur));
-    runDishVision(dish.originalImage, dish.fileName || "dish.jpg", dish.imageSource || "album");
+    setSelectedDishOption(null);
+    setDish((cur) => (cur ? {
+      ...cur,
+      image: cur.originalImage,
+      analysis: null,
+      analysisSource: "pending",
+      analysisError: null,
+      nameConfirmed: false,
+      nameSource: null,
+    } : cur));
+    runDishVision(dish.originalImage, dish.fileName || "dish.jpg", dish.imageSource || "album", dish.demoKey || null);
+  }, [dish, runDishVision]);
+
+  const retryDishVision = useCallback(() => {
+    if (!dish?.image) return;
+    setSelectedDishOption(null);
+    setDish((cur) => (cur ? {
+      ...cur,
+      analysis: null,
+      analysisSource: "pending",
+      analysisError: null,
+      nameConfirmed: false,
+      nameSource: null,
+    } : cur));
+    runDishVision(dish.image, dish.fileName || "dish.jpg", dish.imageSource || "album", dish.demoKey || null);
   }, [dish, runDishVision]);
 
   // ---------- 冰箱识别（F2/R1） ----------
@@ -316,7 +509,7 @@ export default function TonightApp() {
       if (signal.aborted) return; // 用户主动取消：静默返回，不显示为失败
       setFridge({ image, imageSource, fileName, vision: null, visionSource: null, status: "failed" });
     } finally {
-      endPending();
+      endPending(signal);
     }
   }, []);
 
@@ -342,17 +535,10 @@ export default function TonightApp() {
     try {
       const file = await fetchAssetFile(SAMPLE_FRIDGE.url, SAMPLE_FRIDGE.fileName);
       await acceptFridgeImage(file, "sample");
-      if (route === "fridge") {
-        setTimeBudgetId((cur) => {
-          if (cur) return cur;
-          setTimeBudgetAuto(true);
-          return "25";
-        });
-      }
     } catch (error) {
       showNotice(error.message || "示例冰箱加载失败");
     }
-  }, [acceptFridgeImage, route, showNotice]);
+  }, [acceptFridgeImage, showNotice]);
 
   const useLastInventory = useCallback(() => {
     const snapshot = loadInventorySnapshot();
@@ -384,7 +570,7 @@ export default function TonightApp() {
     } catch {
       if (!signal.aborted) setReshootResult({ key, items: [], source: "failed" });
     } finally {
-      endPending();
+      endPending(signal);
     }
   }, [showNotice]);
 
@@ -451,12 +637,61 @@ export default function TonightApp() {
   }
 
   function targetInputSourceForPlan(active) {
-    return active?.requestSnapshot?.targetInputSource || "legacy";
+    return active?.requestSnapshot?.targetDishNameSource
+      || active?.requestSnapshot?.targetInputSource
+      || "legacy";
+  }
+
+  function planningModeForPlan(active) {
+    return active?.requestSnapshot?.planningMode
+      || active?.plan?.planContext?.planningMode
+      || "inventory_adapted";
+  }
+
+  function inventoryStatusForPlan(active) {
+    return active?.requestSnapshot?.inventoryStatus
+      || active?.plan?.planContext?.inventoryStatus
+      || ((confirmedInventoryForPlan(active) || []).length ? "confirmed" : "confirmed_empty");
+  }
+
+  function confirmedInventoryForPlan(active) {
+    if (planningModeForPlan(active) === "standard_recipe") return null;
+    const snapshot = active?.requestSnapshot || {};
+    if (Array.isArray(snapshot.confirmedInventory)) return snapshot.confirmedInventory;
+    if (Array.isArray(snapshot.inventory)) return snapshot.inventory;
+    return [];
+  }
+
+  function selectedDishOptionForPlan(active) {
+    return active?.requestSnapshot?.selectedDishOption || null;
   }
 
   function originRouteForPlan(active) {
     return active?.requestSnapshot?.originRoute
       || (active?.mode === "target" && active?.inputProvenance?.dishImageSource ? "feed" : "fridge");
+  }
+
+  // 所有版本派生请求只读取用户当前查看版本的冻结事实，绝不借用当前页面上的全局状态。
+  // 这避免用户切回历史版本后，补购/常备确认/反馈把另一张冰箱或另一组条件混进新版本。
+  function replanContextForPlan(active) {
+    const snapshot = active?.requestSnapshot || {};
+    const planningMode = planningModeForPlan(active);
+    const standardRecipe = planningMode === "standard_recipe";
+    return {
+      planningMode,
+      inventoryStatus: inventoryStatusForPlan(active),
+      selectedDishOptionSnapshot: selectedDishOptionForPlan(active),
+      inventorySnapshot: confirmedInventoryForPlan(active),
+      inventoryModeSnapshot: standardRecipe ? "not_checked" : snapshot.inventoryMode ?? "manual",
+      originRouteSnapshot: originRouteForPlan(active),
+      timeBudgetIdSnapshot: snapshot.timeBudgetId ?? null,
+      noteSnapshot: snapshot.note ?? "",
+      acquiredItems: standardRecipe ? [] : active?.materialState?.acquiredItems || [],
+      cartItems: standardRecipe ? [] : active?.materialState?.simulatedItems || [],
+      pantryConfirmation: standardRecipe ? null : pantryConfirmationForPlan(active),
+      inputProvenance: active?.inputProvenance || snapshot.inputProvenance || null,
+      inheritedEatFirst: standardRecipe ? null : inheritEatFirstSnapshot(active),
+    };
   }
 
   function eatFirstMarksForPlan(active) {
@@ -478,6 +713,9 @@ export default function TonightApp() {
     mode,
     dishName,
     targetInputSource = null,
+    planningMode = "inventory_adapted",
+    inventoryStatus = null,
+    selectedDishOptionSnapshot = null,
     feedbackType = null,
     alternative = false,
     alternativeFrom = null,
@@ -495,11 +733,16 @@ export default function TonightApp() {
     resolvedEatFirst = null,
     inheritedEatFirst = undefined,
   }) => {
-    const baseInventory = Array.isArray(inventorySnapshot) ? inventorySnapshot : [];
+    const standardRecipe = mode === "target" && planningMode === "standard_recipe";
+    const resolvedInventoryStatus = standardRecipe
+      ? "not_checked"
+      : inventoryStatus || (Array.isArray(inventorySnapshot) && inventorySnapshot.length > 0 ? "confirmed" : "confirmed_empty");
+    const confirmedInventory = standardRecipe ? null : Array.isArray(inventorySnapshot) ? inventorySnapshot : [];
+    const baseInventory = confirmedInventory || [];
     const timeBudget = timeOptionById(timeBudgetIdSnapshot);
-    const realAcquired = mergeIngredientNames(acquiredItems);
-    const simulated = mergeIngredientNames(cartItems);
-    const pantry = normalizePantryConfirmation(pantryConfirmation);
+    const realAcquired = standardRecipe ? [] : mergeIngredientNames(acquiredItems);
+    const simulated = standardRecipe ? [] : mergeIngredientNames(cartItems);
+    const pantry = standardRecipe ? normalizePantryConfirmation(null) : normalizePantryConfirmation(pantryConfirmation);
     const planningPantry = pantryConfirmationForPlanning(pantry, {
       acquiredItems: realAcquired,
       simulatedItems: simulated,
@@ -524,30 +767,39 @@ export default function TonightApp() {
     };
     // 来源描述只记录真正参与本次请求的素材：手动/语音菜名及自由库存规划
     // 不再沿用旧菜图缓存标记；视觉主结果/候选仍保留其真实来源。
-    const dishSourceParticipates = mode === "target"
-      && (targetInputSource === "vision_primary" || targetInputSource === "vision_candidate");
+    const dishSourceParticipates = mode === "target" && isVisionDishSource(targetInputSource);
     const provenance = dishSourceParticipates ? rawProvenance : {
       ...rawProvenance,
       dishImageSource: null,
       dishAnalysisSource: null,
     };
     // 默认从当前先吃标记派生；失败重试等场景用调用方冻结的快照
-    const efStates = eatFirstItemStates
+    const efStates = standardRecipe ? [] : eatFirstItemStates
       || eatFirstItemStatesFromMarks(eatFirstMarks, baseInventory.map((item) => String(item?.name || item || "").trim()).filter(Boolean));
     const frozenArgs = {
-      mode, dishName, targetInputSource, feedbackType, alternative, alternativeFrom,
+      mode, dishName, targetInputSource, planningMode, inventoryStatus: resolvedInventoryStatus,
+      selectedDishOptionSnapshot, feedbackType, alternative, alternativeFrom,
       cartItems: simulated, acquiredItems: realAcquired,
       pantryConfirmation: pantry,
-      inventorySnapshot: baseInventory, inventoryModeSnapshot,
+      inventorySnapshot: confirmedInventory, inventoryModeSnapshot: standardRecipe ? "not_checked" : inventoryModeSnapshot,
       originRouteSnapshot,
       timeBudgetIdSnapshot, noteSnapshot,
       inputProvenance: provenance, imageAnalysisSnapshot, eatFirstItemStates: efStates,
     };
-    const signal = beginPending("plan", alternativeFrom?.candidateName ? "正在换个思路想办法" : mode === "target" ? "正在看家里够不够做" : "正在按你有的食材想办法");
+    const signal = beginPending(
+      "plan",
+      alternativeFrom?.candidateName
+        ? "正在换个思路想办法"
+        : standardRecipe
+          ? "正在整理这道菜的标准做法"
+          : mode === "target"
+            ? "正在看家里够不够做"
+            : "正在按你有的食材想办法",
+    );
     // 不在此处清空 planError：重试途中取消时，失败卡片必须仍然可用，否则行动单会空白
     try {
       // 优先级：继承当前查看版本的完整快照 > 重试冻结结果 > 重新解析规则
-      const eatFirstSnap = inheritedEatFirst !== undefined
+      const eatFirstSnap = standardRecipe ? null : inheritedEatFirst !== undefined
         ? inheritedEatFirst
         : resolvedEatFirst || await resolveEatFirst(efStates);
       frozenArgs.resolvedEatFirst = eatFirstSnap;
@@ -562,48 +814,68 @@ export default function TonightApp() {
         pantryConfirmation: planningPantry,
       });
       if (mode === "target") {
-        const text = `我今晚想吃${dishName}`;
-        const imageAnalysis = targetInputSource === "vision_primary"
-          && imageAnalysisSnapshot
-          && normalizeName(imageAnalysisSnapshot.dishName) === normalizeName(dishName)
-          ? imageAnalysisSnapshot
+        const text = String(dishName || "").trim();
+        const imageAnalysis = isVisionDishSource(targetInputSource)
+          ? selectedDishOptionSnapshot || imageAnalysisSnapshot || null
           : null;
         const data = await api.planTargetDish({
-          inventory: planningInventory,
+          planningMode,
+          inventoryStatus: resolvedInventoryStatus,
+          inventory: standardRecipe ? null : planningInventory,
           userContext,
           targetDish: {
             text,
-            intentTime: "tonight",
+            intentTime: timeBudgetIdSnapshot || "tonight",
             inputSource: targetInputSource || "unknown",
+            nameSource: targetInputSource || "unknown",
+            nameConfirmed: true,
             imageAnalysis,
-            shoppingDecision: simulated.length ? { mode: "simulate_after_purchase", acceptedItems: simulated } : null,
+            shoppingDecision: standardRecipe
+              ? null
+              : simulated.length ? { mode: "simulate_after_purchase", acceptedItems: simulated } : null,
           },
         }, { signal });
+        if (!isCurrentRequest(signal)) return false;
+        const returnedContext = data.targetPlan?.planContext || {};
+        if (returnedContext.planningMode !== planningMode || returnedContext.inventoryStatus !== resolvedInventoryStatus) {
+          const contextError = new Error("规划结果的模式与本次请求不一致，请重试");
+          contextError.code = "MODEL_RESPONSE_INVALID";
+          throw contextError;
+        }
         commitPlan({
           mode: "target",
           plan: normalizeTargetPlanData(data.targetPlan),
           source: data.source || "model",
-          snapshotLabel: versionLabel({ mode: "target", dishName, timeBudget, feedbackType, alternativeFrom, cartItems: simulated, acquiredItems: realAcquired, pantryConfirmation: pantry }),
+          snapshotLabel: versionLabel({ mode: "target", planningMode, dishName, timeBudget, feedbackType, alternativeFrom, cartItems: simulated, acquiredItems: realAcquired, pantryConfirmation: pantry }),
           shoppingPreview: simulated.length ? { acceptedItems: simulated } : null,
           materialState: { acquiredItems: realAcquired, simulatedItems: simulated },
           inputProvenance: provenance,
+          requestId: data.requestId || null,
           requestSnapshot: {
+            planningMode,
+            inventoryStatus: resolvedInventoryStatus,
+            confirmedInventory,
+            selectedDishOption: selectedDishOptionSnapshot,
+            targetDishText: text,
+            targetDishNameSource: targetInputSource || "unknown",
             dishName,
             targetInputSource: targetInputSource || "unknown",
             timeBudgetId: timeBudgetIdSnapshot,
             availableCookingTime: timeBudget?.value || "由用户确认",
-            inventory: baseInventory,
-            inventoryCount: baseInventory.length,
-            inventoryMode: inventoryModeSnapshot,
+            inventory: confirmedInventory,
+            inventoryCount: confirmedInventory?.length ?? null,
+            inventoryMode: standardRecipe ? "not_checked" : inventoryModeSnapshot,
             originRoute: originRouteSnapshot,
             note: noteSnapshot,
             eatFirst: eatFirstSnap,
             alternativeFrom,
             pantryConfirmation: pantry,
+            inputProvenance: provenance,
           },
         });
       } else {
         const data = await api.planDinner({ inventory: planningInventory, userContext }, { signal });
+        if (!isCurrentRequest(signal)) return false;
         commitPlan({
           mode: "free",
           plan: normalizeDinnerPlan(data.plan),
@@ -613,10 +885,14 @@ export default function TonightApp() {
           materialState: { acquiredItems: realAcquired, simulatedItems: simulated },
           inputProvenance: provenance,
           requestSnapshot: {
+            planningMode,
+            inventoryStatus: resolvedInventoryStatus,
+            confirmedInventory,
+            selectedDishOption: null,
             timeBudgetId: timeBudgetIdSnapshot,
             availableCookingTime: timeBudget?.value || "由用户确认",
-            inventory: baseInventory,
-            inventoryCount: baseInventory.length,
+            inventory: confirmedInventory,
+            inventoryCount: confirmedInventory.length,
             inventoryMode: inventoryModeSnapshot,
             originRoute: originRouteSnapshot,
             note: noteSnapshot,
@@ -627,26 +903,31 @@ export default function TonightApp() {
         });
       }
       setPlanError(null); // 只在成功时清失败卡；重试取消不抹掉原失败出口
+      setReplanError(null);
       setScene("ticket");
       return true;
     } catch (error) {
       if (signal.aborted) return false; // 用户主动取消：静默返回
+      const classified = classifyPlanningError(error);
       if (plans.length === 0) {
         // 冻结首次请求的完整参数：重试按原条件重发，不用当前可能已变的 UI 状态重新拼装
-        setPlanError({ message: error.message || "规划失败", requestArgs: frozenArgs });
+        setPlanError({ ...classified, requestArgs: frozenArgs });
+        setReplanError(null);
         setScene("ticket");
       } else {
-        showNotice("这次重新规划失败了，当前方案仍保留");
+        setReplanError({ ...classified, requestArgs: frozenArgs });
       }
       return false;
     } finally {
-      endPending();
+      endPending(signal);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [route, timeBudgetId, note, inventory, inventoryMode, eatFirstMarks, dish, fridge, plans.length]);
 
-  function versionLabel({ mode, dishName, timeBudget, feedbackType, alternativeFrom, cartItems, acquiredItems, pantryConfirmation }) {
-    const parts = [mode === "target" ? `目标菜 · ${dishName}` : "按库存安排"];
+  function versionLabel({ mode, planningMode, dishName, timeBudget, feedbackType, alternativeFrom, cartItems, acquiredItems, pantryConfirmation }) {
+    const parts = [mode === "target"
+      ? planningMode === "standard_recipe" ? `标准做法 · ${dishName}` : `目标菜 · ${dishName}`
+      : "按库存安排"];
     if (timeBudget) parts.push(timeBudget.label);
     const fb = feedbackOptionByType(feedbackType);
     if (fb && !fb.recordOnly) parts.push(`反馈：${fb.label}`);
@@ -659,7 +940,7 @@ export default function TonightApp() {
     return parts.join(" · ");
   }
 
-  function commitPlan({ mode, plan, source, snapshotLabel, shoppingPreview, materialState, inputProvenance, requestSnapshot }) {
+  function commitPlan({ mode, plan, source, requestId = null, snapshotLabel, shoppingPreview, materialState, inputProvenance, requestSnapshot }) {
     const sequence = planSeq++;
     const entry = {
       id: `v${Date.now()}-${sequence}`,
@@ -667,6 +948,7 @@ export default function TonightApp() {
       mode,
       plan,
       source,
+      requestId,
       snapshotLabel,
       shoppingPreview,
       materialState: materialState || { acquiredItems: [], simulatedItems: [] },
@@ -686,7 +968,11 @@ export default function TonightApp() {
     try {
       // 优先沿用首次请求冻结的条件，避免兜底版本与失败请求的条件不一致
       const frozen = planError?.requestArgs || null;
-      const fbInventory = frozen?.inventorySnapshot || inventory;
+      if (frozen?.planningMode === "standard_recipe") {
+        showNotice("标准做法不能用库存规则拼接；请按原条件重试模型");
+        return;
+      }
+      const fbInventory = Array.isArray(frozen?.inventorySnapshot) ? frozen.inventorySnapshot : inventory;
       const fbInventoryMode = frozen?.inventoryModeSnapshot || inventoryMode;
       const fbOriginRoute = frozen?.originRouteSnapshot || route || "fridge";
       const fbTimeId = frozen?.timeBudgetIdSnapshot || timeBudgetId;
@@ -695,6 +981,10 @@ export default function TonightApp() {
       const mode = frozen?.mode || (intent?.type === "target_dish" ? "target" : "free");
       const dishName = frozen?.dishName || intent?.dishName;
       const targetInputSource = frozen?.targetInputSource || intent?.dishNameSource || "unknown";
+      const fbPlanningMode = frozen?.planningMode || "inventory_adapted";
+      const fbInventoryStatus = frozen?.inventoryStatus
+        || (fbInventory.length > 0 ? "confirmed" : "confirmed_empty");
+      const fbSelectedDishOption = frozen?.selectedDishOptionSnapshot || null;
       const fbPantry = normalizePantryConfirmation(frozen?.pantryConfirmation);
       const efStates = frozen?.eatFirstItemStates
         || eatFirstItemStatesFromMarks(eatFirstMarks, fbInventory.map((item) => String(item?.name || item || "").trim()).filter(Boolean));
@@ -717,7 +1007,13 @@ export default function TonightApp() {
           inventoryMode: fbInventoryMode,
         },
         requestSnapshot: {
+          planningMode: fbPlanningMode,
+          inventoryStatus: fbInventoryStatus,
+          confirmedInventory: fbInventory,
+          selectedDishOption: mode === "target" ? fbSelectedDishOption : null,
           dishName: mode === "target" ? dishName : undefined,
+          targetDishText: mode === "target" ? dishName : undefined,
+          targetDishNameSource: mode === "target" ? targetInputSource : undefined,
           targetInputSource: mode === "target" ? targetInputSource : undefined,
           timeBudgetId: fbTimeId,
           availableCookingTime: timeBudget?.value || "由用户确认",
@@ -755,29 +1051,22 @@ export default function TonightApp() {
       showNotice(recorded ? "已记下：这版正合适" : "这版本次已确认；长期记录暂未保存");
       return;
     }
+    const frozen = replanContextForPlan(active);
     return startPlanning({
       mode: active?.mode === "target" ? "target" : "free",
       dishName: active?.mode === "target" ? requestedDishNameForPlan(active) : undefined,
       targetInputSource: active?.mode === "target" ? targetInputSourceForPlan(active) : null,
+      ...frozen,
       feedbackType: option.type,
-      inventorySnapshot: active.requestSnapshot?.inventory || inventory,
-      inventoryModeSnapshot: active.requestSnapshot?.inventoryMode || inventoryMode,
-      originRouteSnapshot: originRouteForPlan(active),
-      timeBudgetIdSnapshot: active.requestSnapshot?.timeBudgetId || timeBudgetId,
-      noteSnapshot: active.requestSnapshot?.note ?? note,
-      acquiredItems: active.materialState?.acquiredItems || [],
-      cartItems: active.materialState?.simulatedItems || [],
-      pantryConfirmation: pantryConfirmationForPlan(active),
-      inputProvenance: active.inputProvenance,
-      inheritedEatFirst: inheritEatFirstSnapshot(active),
     });
-  }, [plans, activePlanId, startPlanning, showNotice, inventory, inventoryMode, timeBudgetId, note]);
+  }, [plans, activePlanId, startPlanning, showNotice]);
 
   const applyCartReplan = useCallback((items) => {
     const active = plans.find((p) => p.id === activePlanId);
-    if (!items.length || active?.mode !== "target") return;
+    if (!items.length || active?.mode !== "target" || planningModeForPlan(active) === "standard_recipe") return;
+    const frozen = replanContextForPlan(active);
     // 分批勾选模拟补购时保留上一版已经模拟加入的项目，避免新一批静默覆盖旧状态。
-    const cartItems = [...(active.materialState?.simulatedItems || [])];
+    const cartItems = [...frozen.cartItems];
     items.forEach((name) => {
       if (!cartItems.some((item) => ingredientNamesMatch(item, name))) cartItems.push(name);
     });
@@ -785,25 +1074,18 @@ export default function TonightApp() {
       mode: "target",
       dishName: requestedDishNameForPlan(active),
       targetInputSource: targetInputSourceForPlan(active),
+      ...frozen,
       cartItems,
-      acquiredItems: active.materialState?.acquiredItems || [],
-      pantryConfirmation: pantryConfirmationForPlan(active),
-      inventorySnapshot: active.requestSnapshot?.inventory || inventory,
-      inventoryModeSnapshot: active.requestSnapshot?.inventoryMode || inventoryMode,
-      originRouteSnapshot: originRouteForPlan(active),
-      timeBudgetIdSnapshot: active.requestSnapshot?.timeBudgetId || timeBudgetId,
-      noteSnapshot: active.requestSnapshot?.note ?? note,
-      inputProvenance: active.inputProvenance,
-      inheritedEatFirst: inheritEatFirstSnapshot(active),
     });
-  }, [plans, activePlanId, startPlanning, inventory, inventoryMode, timeBudgetId, note]);
+  }, [plans, activePlanId, startPlanning]);
 
   const applyGotIt = useCallback((names) => {
     const active = plans.find((p) => p.id === activePlanId);
-    if (!names.length || !active) return;
-    const currentAcquired = active.materialState?.acquiredItems || [];
+    if (!names.length || !active || planningModeForPlan(active) === "standard_recipe") return;
+    const frozen = replanContextForPlan(active);
+    const currentAcquired = frozen.acquiredItems;
     const acquired = mergeIngredientNames(currentAcquired, names);
-    const simulated = (active.materialState?.simulatedItems || []).filter(
+    const simulated = frozen.cartItems.filter(
       (item) => !acquired.some((name) => ingredientNamesMatch(name, item)),
     );
     const missing = active.mode === "target"
@@ -829,23 +1111,17 @@ export default function TonightApp() {
       mode: active.mode === "target" ? "target" : "free",
       dishName: active.mode === "target" ? requestedDishNameForPlan(active) : undefined,
       targetInputSource: active.mode === "target" ? targetInputSourceForPlan(active) : null,
+      ...frozen,
       acquiredItems: acquired,
       cartItems: simulated,
-      pantryConfirmation: pantryConfirmationForPlan(active),
-      inventorySnapshot: active.requestSnapshot?.inventory || inventory,
-      inventoryModeSnapshot: active.requestSnapshot?.inventoryMode || inventoryMode,
-      originRouteSnapshot: originRouteForPlan(active),
-      timeBudgetIdSnapshot: active.requestSnapshot?.timeBudgetId || timeBudgetId,
-      noteSnapshot: active.requestSnapshot?.note ?? note,
-      inputProvenance: active.inputProvenance,
-      inheritedEatFirst: inheritEatFirstSnapshot(active),
     });
-  }, [plans, activePlanId, startPlanning, showNotice, inventory, inventoryMode, timeBudgetId, note]);
+  }, [plans, activePlanId, startPlanning, showNotice]);
 
   const applyPantryReplan = useCallback((choices) => {
     const active = plans.find((p) => p.id === activePlanId);
-    if (!active || active.mode !== "target" || !choices || typeof choices !== "object") return;
-    const current = pantryConfirmationForPlan(active);
+    if (!active || active.mode !== "target" || planningModeForPlan(active) === "standard_recipe" || !choices || typeof choices !== "object") return;
+    const frozen = replanContextForPlan(active);
+    const current = frozen.pantryConfirmation;
     let availableItems = [...current.availableItems];
     let missingItems = [...current.missingItems];
     Object.entries(choices).forEach(([rawName, status]) => {
@@ -861,38 +1137,23 @@ export default function TonightApp() {
       mode: "target",
       dishName: requestedDishNameForPlan(active),
       targetInputSource: targetInputSourceForPlan(active),
-      acquiredItems: active.materialState?.acquiredItems || [],
-      cartItems: active.materialState?.simulatedItems || [],
+      ...frozen,
       pantryConfirmation,
-      inventorySnapshot: active.requestSnapshot?.inventory || inventory,
-      inventoryModeSnapshot: active.requestSnapshot?.inventoryMode || inventoryMode,
-      originRouteSnapshot: originRouteForPlan(active),
-      timeBudgetIdSnapshot: active.requestSnapshot?.timeBudgetId || timeBudgetId,
-      noteSnapshot: active.requestSnapshot?.note ?? note,
-      inputProvenance: active.inputProvenance,
-      inheritedEatFirst: inheritEatFirstSnapshot(active),
     });
-  }, [plans, activePlanId, startPlanning, inventory, inventoryMode, timeBudgetId, note]);
+  }, [plans, activePlanId, startPlanning]);
 
   // 「另一个思路」：冻结来源版本与候选菜，仍走自由推荐；库存现实可能让结果偏离候选
   const applyAlternative = useCallback(({ sourcePlanId, candidateName, candidateWhy }) => {
     const active = plans.find((p) => p.id === activePlanId);
     if (!active || active.mode !== "free" || !candidateName) return;
+    const frozen = replanContextForPlan(active);
     return startPlanning({
       mode: "free",
+      ...frozen,
       // 血缘在生成时冻结（含来源序号），来源版本被裁掉后仍能如实标注
       alternativeFrom: { sourcePlanId, candidateName, candidateWhy, sourceSequence: active.sequence },
-      inventorySnapshot: active.requestSnapshot?.inventory || inventory,
-      inventoryModeSnapshot: active.requestSnapshot?.inventoryMode || inventoryMode,
-      originRouteSnapshot: originRouteForPlan(active),
-      timeBudgetIdSnapshot: active.requestSnapshot?.timeBudgetId || timeBudgetId,
-      noteSnapshot: active.requestSnapshot?.note ?? note,
-      acquiredItems: active.materialState?.acquiredItems || [],
-      pantryConfirmation: pantryConfirmationForPlan(active),
-      inputProvenance: active.inputProvenance,
-      inheritedEatFirst: inheritEatFirstSnapshot(active),
     });
-  }, [plans, activePlanId, startPlanning, inventory, inventoryMode, timeBudgetId, note]);
+  }, [plans, activePlanId, startPlanning]);
 
   // 步骤位置：仅用户在大字视图里显式点「我现在做到这一步」时写入，浏览不产生位置
   const markStepPosition = useCallback((planId, stepIndex) => {
@@ -910,8 +1171,8 @@ export default function TonightApp() {
       allRequiredAcquired: cooking.allRequiredAcquired,
       pendingPantry: cooking.pendingPantry,
     });
-    if (!execution.canEnterCooking) {
-      showNotice("这版还没有形成可以开火的做法，请先确认菜名或材料");
+    if (!execution.canUseRescue) {
+      showNotice("这版还没有形成明确的执行菜名和有效步骤，请先修正目标或重新规划");
       return;
     }
     setRescue((cur) => {
@@ -1044,7 +1305,7 @@ export default function TonightApp() {
     } catch (error) {
       if (!signal.aborted) showNotice(error.message || "救援请求失败；已填写的内容保留，可重试");
     } finally {
-      endPending();
+      endPending(signal);
     }
   }, [rescue, showNotice]);
 
@@ -1058,8 +1319,8 @@ export default function TonightApp() {
       allRequiredAcquired: cooking.allRequiredAcquired,
       pendingPantry: cooking.pendingPantry,
     });
-    if (!execution.canEnterCooking) {
-      showNotice("这版还没有形成实际做过的菜，暂时不能生成饭后记录");
+    if (!execution.canCreateLifeLog) {
+      showNotice("这版还没有形成明确的执行菜名和有效步骤，暂时不能生成饭后记录");
       return;
     }
     setLifeLog((cur) => {
@@ -1103,7 +1364,7 @@ export default function TonightApp() {
     } catch (error) {
       if (!signal.aborted) showNotice(error.message || "生成失败；照片和菜名都保留，可以直接重试");
     } finally {
-      endPending();
+      endPending(signal);
     }
   }, [lifeLog, showNotice]);
 
@@ -1152,6 +1413,14 @@ export default function TonightApp() {
     setRoute(null);
     setScene("home");
     setDish(null);
+    setSelectedDishOption(null);
+    setFridgeBenchDraft({
+      intentType: "inventory_driven",
+      dishName: "",
+      dishNameSource: null,
+      dishImageSource: null,
+      selectedDishOption: null,
+    });
     setTimeBudgetId(null);
     setTimeBudgetAuto(false);
     setNote("");
@@ -1169,13 +1438,177 @@ export default function TonightApp() {
     setActivePlanId(null);
     setPending(null);
     setPlanError(null);
+    setReplanError(null);
     setReshootResult(null);
     setInterrupted(null);
   }, []);
 
+  const beginFridgeRoute = useCallback(() => {
+    setRoute("fridge");
+    setScene("fridge");
+    setDish(null);
+    setSelectedDishOption(null);
+    setFridgeBenchDraft({
+      intentType: "inventory_driven",
+      dishName: "",
+      dishNameSource: null,
+      dishImageSource: null,
+      selectedDishOption: null,
+    });
+    setIntent(null);
+    setFridge(null);
+    setInventory([]);
+    setInventoryMode("vision");
+    setInventoryConfirmed(false);
+    setEatFirstMarks({});
+    setTimeBudgetId(null);
+    setTimeBudgetAuto(false);
+    setNote("");
+    setReshootResult(null);
+  }, []);
+
+  const confirmDishOption = useCallback((option) => {
+    const options = dishOptionsFromAnalysis(dish?.analysis);
+    const confirmed = options.find((candidate) => candidate.id === option?.id);
+    if (!confirmed) {
+      showNotice("候选已变化，请重新选择一次");
+      setSelectedDishOption(null);
+      return;
+    }
+    const source = options[0]?.id === confirmed.id ? "vision_primary" : "vision_candidate";
+    setSelectedDishOption(confirmed);
+    setDish((cur) => (cur ? {
+      ...cur,
+      name: confirmed.name,
+      nameLocked: true,
+      nameConfirmed: true,
+      nameSource: source,
+    } : cur));
+    if (route === "fridge") {
+      const nextDraft = {
+        intentType: "target_dish",
+        dishName: confirmed.name,
+        dishNameSource: source,
+        dishImageSource: dish?.imageSource || null,
+        selectedDishOption: confirmed,
+      };
+      setFridgeBenchDraft(nextDraft);
+      setIntent({ type: "target_dish", dishName: confirmed.name, dishNameSource: source });
+      setScene("fridge");
+      return;
+    }
+    setRoute("feed");
+    setScene("dish-analysis");
+  }, [dish?.analysis, dish?.imageSource, route, showNotice]);
+
+  const generateStandardPlan = useCallback(async (payload) => {
+    if (!payload?.selectedDishOption || !payload?.timeBudgetId) return false;
+    const nameSource = dish?.nameSource || "vision_primary";
+    setSelectedDishOption(payload.selectedDishOption);
+    setTimeBudgetId(payload.timeBudgetId);
+    setNote(payload.note || "");
+    setIntent({
+      type: "target_dish",
+      dishName: payload.selectedDishOption.name,
+      dishNameSource: nameSource,
+      planningMode: "standard_recipe",
+      inventoryStatus: "not_checked",
+    });
+    return startPlanning({
+      mode: "target",
+      dishName: payload.selectedDishOption.name,
+      targetInputSource: nameSource,
+      planningMode: "standard_recipe",
+      inventoryStatus: "not_checked",
+      selectedDishOptionSnapshot: payload.selectedDishOption,
+      inventorySnapshot: null,
+      inventoryModeSnapshot: "not_checked",
+      originRouteSnapshot: "feed",
+      timeBudgetIdSnapshot: payload.timeBudgetId,
+      noteSnapshot: payload.note || "",
+      inputProvenance: {
+        dishImageSource: dish?.imageSource || null,
+        dishAnalysisSource: dish?.analysisSource || null,
+        fridgeImageSource: null,
+        fridgeAnalysisSource: null,
+        inventoryMode: "not_checked",
+      },
+      inheritedEatFirst: null,
+    });
+  }, [dish?.nameSource, dish?.imageSource, dish?.analysisSource, startPlanning]);
+
+  const compareFridgeFromAnalysis = useCallback((payload) => {
+    if (!payload?.selectedDishOption || !payload?.timeBudgetId) return;
+    setSelectedDishOption(payload.selectedDishOption);
+    setTimeBudgetId(payload.timeBudgetId);
+    setNote(payload.note || "");
+    setIntent({
+      type: "target_dish",
+      dishName: payload.selectedDishOption.name,
+      dishNameSource: dish?.nameSource || "vision_primary",
+      planningMode: "inventory_adapted",
+    });
+    setRoute("feed");
+    setScene("fridge");
+  }, [dish?.nameSource]);
+
   const activePlan = plans.find((p) => p.id === activePlanId) || plans[plans.length - 1] || null;
   const fixedDemoDish = dish ? isFixedDemoResult(dish.analysisSource, dish.imageSource) : false;
   const fixedDemoFridge = fridge ? isFixedDemoResult(fridge.visionSource, fridge.imageSource) : false;
+
+  function restoreStandardDishContext(planEntry) {
+    const snap = planEntry?.requestSnapshot || {};
+    const option = snap.selectedDishOption || null;
+    const dishName = String(snap.targetDishText || snap.dishName || option?.name || "").trim();
+    const nameSource = snap.targetDishNameSource || snap.targetInputSource || "vision_primary";
+    setRoute("feed");
+    setSelectedDishOption(option);
+    setTimeBudgetId(snap.timeBudgetId || null);
+    setTimeBudgetAuto(false);
+    setNote(snap.note || "");
+    setIntent({
+      type: "target_dish",
+      dishName,
+      dishNameSource: nameSource,
+      planningMode: "standard_recipe",
+      inventoryStatus: "not_checked",
+    });
+    setDish((cur) => ({
+      image: cur?.image || null,
+      originalImage: cur?.originalImage || null,
+      imageSource: cur?.imageSource || planEntry?.inputProvenance?.dishImageSource || null,
+      demoKey: cur?.demoKey || null,
+      fileName: cur?.fileName || "",
+      analysis: cur?.analysis || (option ? { dishName: option.name, dishOptions: [option] } : null),
+      analysisSource: cur?.analysisSource || planEntry?.inputProvenance?.dishAnalysisSource || null,
+      analysisError: null,
+      name: dishName,
+      nameLocked: true,
+      nameConfirmed: true,
+      nameSource,
+    }));
+  }
+
+  function editStandardConditions(planEntry) {
+    restoreStandardDishContext(planEntry);
+    setScene("dish-analysis");
+  }
+
+  function compareStandardWithFridge(planEntry) {
+    restoreStandardDishContext(planEntry);
+    setIntent((cur) => ({
+      ...(cur || {}),
+      planningMode: "inventory_adapted",
+      inventoryStatus: null,
+    }));
+    setFridge(null);
+    setInventory([]);
+    setInventoryMode("vision");
+    setInventoryConfirmed(false);
+    setEatFirstMarks({});
+    setReshootResult(null);
+    setScene("fridge");
+  }
 
   // 旧会话也必须服从当前执行门禁：不能恢复到一个已被判定为不可开火的救援/记录场景。
   useEffect(() => {
@@ -1193,11 +1626,12 @@ export default function TonightApp() {
       allRequiredAcquired: cooking.allRequiredAcquired,
       pendingPantry: cooking.pendingPantry,
     });
-    if (execution.canEnterCooking) return;
+    const allowed = scene === "rescue" ? execution.canUseRescue : execution.canCreateLifeLog;
+    if (allowed) return;
     if (scene === "rescue") setRescue(null);
     else setLifeLog(null);
     setScene("ticket");
-    showNotice("这版尚不可开火，已返回行动单继续确认");
+    showNotice("这版缺少明确的执行菜名或有效步骤，已返回行动单");
   }, [scene, rescue?.sourcePlanId, lifeLog?.planId, plans, showNotice]);
 
   return (
@@ -1205,33 +1639,51 @@ export default function TonightApp() {
       <main className="tn-stage">
         {scene === "home" && (
           <HomeScene
-            onWantThis={loadSampleDish}
-            onFridgeFirst={() => { setRoute("fridge"); setScene("fridge"); }}
+            onWantThis={() => loadSampleDish("feed")}
+            onFridgeFirst={beginFridgeRoute}
           />
         )}
         {scene === "dish" && dish && (
           <DishScene
             dish={dish}
-            setDish={setDish}
+            selectedDishOption={selectedDishOption}
+            fixedDemo={fixedDemoDish}
+            onSelectDishOption={setSelectedDishOption}
+            onRecrop={recropDish}
+            onRetry={retryDishVision}
+            onRestoreOriginal={restoreDishImage}
+            onReplaceImage={(file, source) => acceptDishImage(file, source, route === "fridge" ? "fridge_target" : "feed")}
+            onUseSample={() => loadSampleDish(
+              route === "fridge" ? "fridge_target" : "feed",
+              nextSampleDish(dish?.demoKey || ""),
+            )}
+            onBack={() => setScene(route === "fridge" ? "fridge" : "home")}
+            onContinue={confirmDishOption}
+            onStartFromFridge={route === "fridge" ? () => setScene("fridge") : beginFridgeRoute}
+            fromFridge={route === "fridge"}
+          />
+        )}
+        {scene === "dish-analysis" && dish && (
+          <DishAnalysisScene
+            dish={dish}
+            selectedDishOption={selectedDishOption}
             timeBudgetId={timeBudgetId}
             setTimeBudgetId={selectTimeBudget}
             note={note}
             setNote={setNote}
-            fixedDemo={fixedDemoDish}
-            onRecrop={recropDish}
-            onRestoreOriginal={restoreDishImage}
-            onReplaceImage={(file, source) => acceptDishImage(file, source)}
-            onUseSample={loadSampleDish}
-            onBack={() => setScene("home")}
-            onConfirm={() => setScene("fridge")}
+            onBack={() => setScene("dish")}
+            onGenerateStandard={generateStandardPlan}
+            onCompareFridge={compareFridgeFromAnalysis}
           />
         )}
         {scene === "fridge" && (
           <FridgeScene
             route={route}
-            dishName={dish?.name || intent?.dishName || ""}
-            dishNameSource={dish?.nameSource || intent?.dishNameSource || null}
+            dishName={route === "fridge" ? fridgeBenchDraft.dishName : dish?.name || intent?.dishName || ""}
+            dishNameSource={route === "fridge" ? fridgeBenchDraft.dishNameSource : dish?.nameSource || intent?.dishNameSource || null}
+            dishImageSource={route === "fridge" ? fridgeBenchDraft.dishImageSource : dish?.imageSource || null}
             dishAnalysis={dish?.analysis || null}
+            selectedDishOption={route === "fridge" ? fridgeBenchDraft.selectedDishOption : selectedDishOption}
             fridge={fridge}
             fixedDemo={fixedDemoFridge}
             inventory={inventory}
@@ -1243,7 +1695,12 @@ export default function TonightApp() {
             setTimeBudgetId={selectTimeBudget}
             note={note}
             setNote={setNote}
+            benchDraft={fridgeBenchDraft}
+            onBenchDraftChange={setFridgeBenchDraft}
+            onTargetDishImage={(file, source) => acceptDishImage(file, source, "fridge_target")}
+            targetDishBusy={pending?.kind === "dish-vision"}
             reshootResult={reshootResult}
+            reshootBusyId={null}
             onCapture={acceptFridgeImage}
             onSampleFridge={loadSampleFridge}
             onUseLast={useLastInventory}
@@ -1263,37 +1720,73 @@ export default function TonightApp() {
               if (route === "feed") {
                 const dishName = dish?.name || intent?.dishName;
                 const dishNameSource = dish?.nameSource || intent?.dishNameSource || "legacy";
-                setIntent({ type: "target_dish", dishName, dishNameSource });
-                startPlanning({
+                setIntent({
+                  type: "target_dish",
+                  dishName,
+                  dishNameSource,
+                  planningMode: "inventory_adapted",
+                  inventoryStatus: items.length > 0 ? "confirmed" : "confirmed_empty",
+                });
+                void startPlanning({
                   mode: "target",
                   dishName,
                   targetInputSource: dishNameSource,
-                  imageAnalysisSnapshot: dishNameSource === "vision_primary" ? dish?.analysis || null : null,
+                  planningMode: "inventory_adapted",
+                  inventoryStatus: items.length > 0 ? "confirmed" : "confirmed_empty",
+                  selectedDishOptionSnapshot: selectedDishOption,
                   inventorySnapshot: items,
                   inventoryModeSnapshot: mode,
+                  originRouteSnapshot: "feed",
+                  timeBudgetIdSnapshot: timeBudgetId,
+                  noteSnapshot: note,
+                  inputProvenance: {
+                    dishImageSource: dish?.imageSource || null,
+                    dishAnalysisSource: dish?.analysisSource || null,
+                    fridgeImageSource: fridge?.imageSource || null,
+                    fridgeAnalysisSource: fridge?.visionSource || null,
+                    inventoryMode: mode,
+                  },
                 });
               }
               // 冰箱路线：由 FridgeScene 内部进入规划台步骤
             }}
-            onBenchConfirm={({ intentType, dishName: benchDish, dishNameSource, timeId, note: benchNote }) => {
-              const source = dishNameSource || "fridge_text";
+            onBenchConfirm={({ intentType, dishName: benchDish, dishNameSource, selectedDishOption: benchOption, timeId, note: benchNote, benchDraft: frozenDraft }) => {
+              const source = dishNameSource || "user_text";
+              if (frozenDraft) setFridgeBenchDraft(frozenDraft);
+              setIntent({
+                type: intentType,
+                dishName: intentType === "target_dish" ? benchDish : "",
+                dishNameSource: intentType === "target_dish" ? source : null,
+              });
+              if (intentType === "target_dish") setSelectedDishOption(benchOption || null);
+              if (timeId) setTimeBudgetId(timeId);
+              if (benchNote !== undefined) setNote(benchNote);
               return startPlanning({
                 mode: intentType === "target_dish" ? "target" : "free",
-                dishName: benchDish,
+                dishName: intentType === "target_dish" ? benchDish : undefined,
                 targetInputSource: intentType === "target_dish" ? source : null,
+                planningMode: "inventory_adapted",
+                inventoryStatus: inventory.length > 0 ? "confirmed" : "confirmed_empty",
+                selectedDishOptionSnapshot: intentType === "target_dish" ? benchOption || null : null,
                 inventorySnapshot: inventory,
                 inventoryModeSnapshot: inventoryMode,
                 originRouteSnapshot: "fridge",
                 timeBudgetIdSnapshot: timeId || timeBudgetId,
                 noteSnapshot: benchNote ?? note,
-              }).then((committed) => {
-                if (!committed) return false;
-                setIntent({ type: intentType, dishName: intentType === "target_dish" ? benchDish : "", dishNameSource: intentType === "target_dish" ? source : null });
-                if (benchNote !== undefined) setNote(benchNote);
-                return true;
+                inputProvenance: {
+                  dishImageSource: intentType === "target_dish" && isVisionDishSource(source)
+                    ? dish?.imageSource || frozenDraft?.dishImageSource || null
+                    : null,
+                  dishAnalysisSource: intentType === "target_dish" && isVisionDishSource(source)
+                    ? dish?.analysisSource || null
+                    : null,
+                  fridgeImageSource: fridge?.imageSource || null,
+                  fridgeAnalysisSource: fridge?.visionSource || null,
+                  inventoryMode,
+                },
               });
             }}
-            onBack={() => setScene(route === "feed" ? "dish" : "home")}
+            onBack={() => setScene(route === "feed" ? "dish-analysis" : "home")}
           />
         )}
         {scene === "ticket" && activePlan && (
@@ -1313,20 +1806,17 @@ export default function TonightApp() {
             onAddTarget={(dishName, inputSource = "ticket_text") => {
               const cleanDishName = String(dishName || "").trim();
               if (!cleanDishName) return Promise.resolve();
+              const frozen = replanContextForPlan(activePlan);
               const nextRoute = originRouteForPlan(activePlan);
+              const nextPlanningMode = frozen.planningMode;
               return startPlanning({
                 mode: "target",
                 dishName: cleanDishName,
                 targetInputSource: inputSource,
-                inventorySnapshot: activePlan.requestSnapshot?.inventory || inventory,
-                inventoryModeSnapshot: activePlan.requestSnapshot?.inventoryMode || inventoryMode,
+                ...frozen,
+                // 用户在行动单里明确换了目标菜，旧菜候选不能冒充新目标的视觉依据。
+                selectedDishOptionSnapshot: null,
                 originRouteSnapshot: nextRoute,
-                timeBudgetIdSnapshot: activePlan.requestSnapshot?.timeBudgetId || timeBudgetId,
-                noteSnapshot: activePlan.requestSnapshot?.note ?? note,
-                acquiredItems: activePlan.materialState?.acquiredItems || [],
-                pantryConfirmation: pantryConfirmationForPlan(activePlan),
-                inputProvenance: activePlan.inputProvenance,
-                inheritedEatFirst: inheritEatFirstSnapshot(activePlan),
               }).then((committed) => {
                 if (!committed) return false;
                 setRoute(nextRoute);
@@ -1345,22 +1835,20 @@ export default function TonightApp() {
               });
             }}
             onUseInventoryPlan={() => {
-              const inventoryOnlyProvenance = activePlan.inputProvenance ? {
-                ...activePlan.inputProvenance,
+              const frozen = replanContextForPlan(activePlan);
+              const inventoryOnlyProvenance = frozen.inputProvenance ? {
+                ...frozen.inputProvenance,
                 dishImageSource: null,
                 dishAnalysisSource: null,
               } : null;
               return startPlanning({
                 mode: "free",
-                inventorySnapshot: activePlan.requestSnapshot?.inventory || inventory,
-                inventoryModeSnapshot: activePlan.requestSnapshot?.inventoryMode || inventoryMode,
+                ...frozen,
+                planningMode: "inventory_adapted",
+                inventoryStatus: (frozen.inventorySnapshot || []).length ? "confirmed" : "confirmed_empty",
+                selectedDishOptionSnapshot: null,
                 originRouteSnapshot: "fridge",
-                timeBudgetIdSnapshot: activePlan.requestSnapshot?.timeBudgetId || timeBudgetId,
-                noteSnapshot: activePlan.requestSnapshot?.note ?? note,
-                acquiredItems: activePlan.materialState?.acquiredItems || [],
-                pantryConfirmation: pantryConfirmationForPlan(activePlan),
                 inputProvenance: inventoryOnlyProvenance,
-                inheritedEatFirst: inheritEatFirstSnapshot(activePlan),
               }).then((committed) => {
                 if (!committed) return false;
                 setRoute("fridge");
@@ -1391,6 +1879,7 @@ export default function TonightApp() {
                   fileName: "",
                   analysis: null,
                   analysisSource: null,
+                  analysisError: null,
                   name: editDishName,
                   nameLocked: true,
                   nameConfirmed: true,
@@ -1402,6 +1891,8 @@ export default function TonightApp() {
               }
               setScene("fridge");
             }}
+            onEditConditions={() => editStandardConditions(activePlan)}
+            onCompareFridge={() => compareStandardWithFridge(activePlan)}
             onRestart={restart}
             onRescue={openRescue}
             onLifeLog={openLifeLog}
@@ -1446,18 +1937,63 @@ export default function TonightApp() {
         {scene === "ticket" && !activePlan && planError && (
           <section className="tn-scene" aria-label="规划失败">
             <div className="tn-failbox">
-              <p className="tn-failbox-title">这次没有生成方案</p>
+              <p className="tn-failbox-title">{planError.title || "这次没有生成方案"}</p>
               <p className="tn-failbox-detail">{planError.message}</p>
               <div className="tn-failbox-actions">
                 <button type="button" className="tn-btn tn-btn-primary" disabled={fallbackBusy} onClick={() => startPlanning(planError.requestArgs || {})}>按原条件重试一次</button>
-                <button type="button" className="tn-btn tn-btn-quiet" disabled={fallbackBusy} onClick={useRulesFallback}>
-                  {fallbackBusy ? "正在生成保守方案…" : "先看一版保守方案（规则兜底，非本次模型结果）"}
+                {planError.requestArgs?.planningMode !== "standard_recipe" && (
+                  <button type="button" className="tn-btn tn-btn-quiet" disabled={fallbackBusy} onClick={useRulesFallback}>
+                    {fallbackBusy ? "正在生成保守方案…" : "先看一版保守方案（规则兜底，非本次模型结果）"}
+                  </button>
+                )}
+                <button
+                  type="button"
+                  className="tn-link"
+                  disabled={fallbackBusy}
+                  onClick={() => {
+                    const standard = planError.requestArgs?.planningMode === "standard_recipe";
+                    setPlanError(null);
+                    setScene(standard ? "dish-analysis" : "fridge");
+                  }}
+                >
+                  回去改条件
                 </button>
-                <button type="button" className="tn-link" disabled={fallbackBusy} onClick={() => { setPlanError(null); setScene("fridge"); }}>回去改条件</button>
               </div>
-              <p className="tn-foot-hint">重试会按你刚才确认的库存、时间和要求原样重新请求，不会改动任何条件。</p>
+              <p className="tn-foot-hint">
+                {planError.requestArgs?.planningMode === "standard_recipe"
+                  ? "重试会按你刚才确认的菜名、时间和要求原样请求，不会伪造库存或做法。"
+                  : "重试会按你刚才确认的库存、时间和要求原样重新请求，不会改动任何条件。"}
+              </p>
             </div>
           </section>
+        )}
+        {replanError && plans.length > 0 && !pending && scene !== "rescue" && scene !== "lifelog" && (
+          <aside className="tn-replan-fail" role="alert" aria-label="重新规划失败">
+            <p className="tn-replan-fail-title">{replanError.title || "这次重新规划失败"}</p>
+            <p className="tn-replan-fail-detail">{replanError.message}</p>
+            <div className="tn-replan-fail-actions">
+              <button
+                type="button"
+                className="tn-btn tn-btn-primary"
+                onClick={() => startPlanning(replanError.requestArgs || {})}
+              >
+                按原条件重试
+              </button>
+              <button
+                type="button"
+                className="tn-btn tn-btn-quiet"
+                onClick={() => {
+                  setReplanError(null);
+                  setScene("ticket");
+                }}
+              >
+                查看保留的旧方案
+              </button>
+            </div>
+            <button type="button" className="tn-link tn-replan-dismiss" onClick={() => setReplanError(null)}>
+              先留在当前页
+            </button>
+          </aside>
         )}
         {interrupted && interrupted.kind !== "life-log" && interrupted.kind !== "dish-rescue" && (
           <div className="tn-interrupted" role="status">

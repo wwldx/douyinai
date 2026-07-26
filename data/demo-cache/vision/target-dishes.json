@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-05-23",
+  "updatedAt": "2026-07-25",
   "entries": [
     {
       "id": "dish-huangmenji",
@@ -12,12 +12,54 @@
       "targetVision": {
         "dishName": "黄焖鸡",
         "dishNameCandidates": ["香菇焖鸡", "土豆焖鸡", "鸡块烧土豆"],
+        "dishOptions": [
+          {
+            "id": "vision-huangmenji",
+            "name": "黄焖鸡",
+            "likelyIngredients": ["鸡腿肉", "土豆", "香菇", "青椒"],
+            "estimatedTime": "35-45 分钟",
+            "difficulty": "中等",
+            "requiredTools": ["带盖炒锅"],
+            "warnings": ["仅凭图片无法确认鸡肉部位和调味比例。"],
+            "provenance": "vision"
+          },
+          {
+            "id": "vision-mushroom-chicken",
+            "name": "香菇焖鸡",
+            "likelyIngredients": ["鸡腿肉", "香菇", "姜", "小葱"],
+            "estimatedTime": "35-45 分钟",
+            "difficulty": "中等",
+            "requiredTools": ["带盖炒锅"],
+            "warnings": ["图片无法确认是否还含土豆或青椒。"],
+            "provenance": "vision"
+          },
+          {
+            "id": "vision-potato-chicken",
+            "name": "土豆焖鸡",
+            "likelyIngredients": ["鸡腿肉", "土豆", "姜", "蒜"],
+            "estimatedTime": "35-40 分钟",
+            "difficulty": "中等",
+            "requiredTools": ["带盖炒锅"],
+            "warnings": ["图片无法确认土豆与鸡肉的实际比例。"],
+            "provenance": "vision"
+          },
+          {
+            "id": "vision-braised-potato-chicken",
+            "name": "鸡块烧土豆",
+            "likelyIngredients": ["鸡块", "土豆", "姜", "蒜"],
+            "estimatedTime": "30-40 分钟",
+            "difficulty": "中等",
+            "requiredTools": ["带盖炒锅"],
+            "warnings": ["图片无法确认鸡块部位和具体烧制口味。"],
+            "provenance": "vision"
+          }
+        ],
         "confidence": 0.88,
         "dishType": "焖菜",
         "coreTaste": "咸香微甜、热乎下饭",
         "likelyIngredients": ["鸡腿肉", "土豆", "香菇", "青椒"],
         "optionalIngredients": ["姜", "蒜", "米饭"],
-        "requiredTools": ["炒锅", "锅盖"],
+        "requiredTools": ["带盖炒锅"],
         "estimatedTime": "35-45 分钟",
         "difficulty": "中等",
         "visualEvidence": ["鸡肉块浸在棕褐色焖汁中", "可见土豆块、整朵香菇和青椒", "黑色砂锅盛装的下饭焖菜形态"],
@@ -28,11 +70,34 @@
       "id": "dish-huiguorou",
       "fileName": "回锅肉.jpeg",
       "fileNames": ["huiguorou.jpeg", "回锅肉.jpg"],
+      "cacheKeys": ["sample-dish-huiguorou"],
       "sourcePath": "assets/菜/回锅肉.jpeg",
       "cachedAt": "2026-05-23",
       "targetVision": {
         "dishName": "回锅肉",
         "dishNameCandidates": ["川味五花肉小炒"],
+        "dishOptions": [
+          {
+            "id": "vision-huiguorou",
+            "name": "回锅肉",
+            "likelyIngredients": ["五花肉", "青椒", "蒜苗", "豆瓣酱"],
+            "estimatedTime": "35-45 分钟",
+            "difficulty": "中等偏难",
+            "requiredTools": ["炒锅", "煮锅"],
+            "warnings": ["回锅肉通常需要先煮肉再回锅炒。"],
+            "provenance": "vision"
+          },
+          {
+            "id": "vision-sichuan-pork-stirfry",
+            "name": "川味五花肉小炒",
+            "likelyIngredients": ["五花肉", "青椒", "豆瓣酱", "蒜"],
+            "estimatedTime": "25-35 分钟",
+            "difficulty": "中等",
+            "requiredTools": ["炒锅"],
+            "warnings": ["图片无法确认肉片是否经过预煮。"],
+            "provenance": "vision"
+          }
+        ],
         "confidence": 0.9,
         "dishType": "川味小炒",
         "coreTaste": "咸香微辣、下饭",

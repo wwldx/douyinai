@@ -53,10 +53,29 @@ export const fridgeVisionSchema = {
 export const targetDishVisionSchema = {
   type: "object",
   additionalProperties: false,
-  required: ["dishName", "dishNameCandidates", "confidence", "dishType", "coreTaste", "likelyIngredients", "optionalIngredients", "requiredTools", "estimatedTime", "difficulty", "visualEvidence", "warnings"],
+  required: ["dishName", "dishNameCandidates", "dishOptions", "confidence", "dishType", "coreTaste", "likelyIngredients", "optionalIngredients", "requiredTools", "estimatedTime", "difficulty", "visualEvidence", "warnings"],
   properties: {
     dishName: { type: "string" },
     dishNameCandidates: { type: "array", maxItems: 3, items: { type: "string" } },
+    dishOptions: {
+      type: "array",
+      maxItems: 4,
+      items: {
+        type: "object",
+        additionalProperties: false,
+        required: ["id", "name", "likelyIngredients", "estimatedTime", "difficulty", "requiredTools", "warnings", "provenance"],
+        properties: {
+          id: { type: "string" },
+          name: { type: "string" },
+          likelyIngredients: { type: "array", maxItems: 10, items: { type: "string" } },
+          estimatedTime: { type: "string" },
+          difficulty: { type: "string" },
+          requiredTools: { type: "array", maxItems: 5, items: { type: "string" } },
+          warnings: { type: "array", maxItems: 5, items: { type: "string" } },
+          provenance: { type: "string", enum: ["vision"] },
+        },
+      },
+    },
     confidence: { type: "number", minimum: 0, maximum: 1 },
     dishType: { type: "string" },
     coreTaste: { type: "string" },
@@ -215,8 +234,17 @@ export const dinnerPlanSchema = {
 export const targetDishPlanSchema = {
   type: "object",
   additionalProperties: false,
-  required: ["targetDish", "targetAssessment", "verdict", "inventoryMatch", "shoppingPlan", "executionPlan", "userFit", "commerceCards", "talkTrack"],
+  required: ["planContext", "targetDish", "targetAssessment", "verdict", "standardIngredients", "inventoryMatch", "shoppingPlan", "executionPlan", "userFit", "commerceCards", "talkTrack"],
   properties: {
+    planContext: {
+      type: "object",
+      additionalProperties: false,
+      required: ["planningMode", "inventoryStatus"],
+      properties: {
+        planningMode: { type: "string", enum: ["standard_recipe", "inventory_adapted"] },
+        inventoryStatus: { type: "string", enum: ["not_checked", "confirmed_empty", "confirmed"] },
+      },
+    },
     targetDish: {
       type: "object",
       additionalProperties: false,
@@ -256,9 +284,15 @@ export const targetDishPlanSchema = {
             "delivery_or_ready_meal",
             "clarify_target",
             "choose_inventory_meal",
+            "follow_standard_recipe",
           ],
         },
       },
+    },
+    standardIngredients: {
+      type: "array",
+      maxItems: 16,
+      items: { type: "string" },
     },
     inventoryMatch: {
       type: "object",

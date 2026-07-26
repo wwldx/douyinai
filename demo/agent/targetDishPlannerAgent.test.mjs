@@ -1,6 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { sanitizeTargetDishPlan } from "./targetDishPlannerAgent.mjs";
+import { targetDishPlanSchema } from "./schemas.mjs";
+import {
+  normalizeTargetDishPlanningRequest,
+  planTargetDish,
+  sanitizeTargetDishPlan,
+} from "./targetDishPlannerAgent.mjs";
 
 function executableFoodPlan(name = "番茄炒蛋") {
   return {
@@ -280,4 +285,222 @@ test("confirmed food marked non-executable cannot retain a cook-now action or st
   assert.equal(plan.executionPlan.dishName, "");
   assert.equal(plan.executionPlan.blockReason, "not_cooking");
   assert.deepEqual(plan.executionPlan.steps, []);
+});
+
+test("target dish plan schema exposes explicit planning context and standard ingredients", () => {
+  assert.ok(targetDishPlanSchema.required.includes("planContext"));
+  assert.ok(targetDishPlanSchema.required.includes("standardIngredients"));
+  assert.deepEqual(
+    targetDishPlanSchema.properties.planContext.properties.planningMode.enum,
+    ["standard_recipe", "inventory_adapted"],
+  );
+  assert.deepEqual(
+    targetDishPlanSchema.properties.planContext.properties.inventoryStatus.enum,
+    ["not_checked", "confirmed_empty", "confirmed"],
+  );
+  assert.ok(
+    targetDishPlanSchema.properties.verdict.properties.primaryAction.enum.includes("follow_standard_recipe"),
+  );
+});
+
+test("planning request normalizer accepts standard null inventory and legacy arrays", () => {
+  assert.deepEqual(normalizeTargetDishPlanningRequest({
+    planningMode: "standard_recipe",
+    inventoryStatus: "not_checked",
+    inventory: null,
+  }), {
+    planningMode: "standard_recipe",
+    inventoryStatus: "not_checked",
+    inventory: null,
+  });
+
+  const inventory = [{ name: "鸡蛋" }];
+  assert.deepEqual(normalizeTargetDishPlanningRequest({ inventory }), {
+    planningMode: "inventory_adapted",
+    inventoryStatus: "confirmed",
+    inventory,
+  });
+  assert.deepEqual(normalizeTargetDishPlanningRequest({ inventory: [] }), {
+    planningMode: "inventory_adapted",
+    inventoryStatus: "confirmed_empty",
+    inventory: [],
+  });
+});
+
+test("planning request normalizer rejects illegal mode and inventory combinations", () => {
+  const invalidInputs = [
+    { planningMode: "standard_recipe", inventoryStatus: "not_checked", inventory: [] },
+    { planningMode: "standard_recipe", inventoryStatus: "confirmed", inventory: null },
+    { planningMode: "inventory_adapted", inventoryStatus: "not_checked", inventory: [] },
+    { planningMode: "inventory_adapted", inventoryStatus: "confirmed", inventory: [] },
+    { planningMode: "inventory_adapted", inventoryStatus: "confirmed_empty", inventory: [{ name: "鸡蛋" }] },
+    { planningMode: "standard_recipe", inventory: null },
+    { inventoryStatus: "not_checked", inventory: null },
+  ];
+
+  for (const input of invalidInputs) {
+    assert.throws(
+      () => normalizeTargetDishPlanningRequest(input),
+      (error) => error?.status === 400 && error?.code === "INVALID_PLANNING_CONTEXT",
+    );
+  }
+});
+
+test("standard recipe sanitizer clears inventory reasoning but keeps concrete food steps", () => {
+  const plan = executableFoodPlan("回锅肉");
+  plan.planContext = { planningMode: "inventory_adapted", inventoryStatus: "confirmed" };
+  plan.standardIngredients = ["五花肉 300 克", "蒜苗", "豆瓣酱", "五花肉 300 克"];
+  plan.inventoryMatch.missingCritical = ["五花肉"];
+  plan.inventoryMatch.missingOptional = ["甜面酱"];
+  plan.inventoryMatch.substitutions = [{ from: "蒜苗", to: "青椒", result: "改版" }];
+  plan.shoppingPlan.mustBuy = [{ item: "五花肉", reason: "主料" }];
+  plan.shoppingPlan.confirmAtHome = ["盐"];
+  plan.shoppingPlan.optionalUpgrades = ["甜面酱"];
+  plan.commerceCards = [{ type: "douyin_mall", title: "补材料", item: "五花肉", reason: "主料", cta: "加入" }];
+
+  sanitizeTargetDishPlan(plan, {
+    planningMode: "standard_recipe",
+    inventoryStatus: "not_checked",
+    inventory: null,
+  });
+
+  assert.deepEqual(plan.planContext, {
+    planningMode: "standard_recipe",
+    inventoryStatus: "not_checked",
+  });
+  assert.deepEqual(plan.standardIngredients, ["五花肉 300 克", "蒜苗", "豆瓣酱"]);
+  assert.deepEqual(plan.inventoryMatch, {
+    availableItems: [],
+    missingCritical: [],
+    missingOptional: [],
+    substitutions: [],
+  });
+  assert.deepEqual(plan.shoppingPlan, {
+    mustBuy: [],
+    confirmAtHome: [],
+    optionalUpgrades: [],
+  });
+  assert.deepEqual(plan.commerceCards, []);
+  assert.equal(plan.targetAssessment.status, "confirmed_food");
+  assert.equal(plan.verdict.title, "按标准做法准备「回锅肉」");
+  assert.match(plan.verdict.summary, /尚未核对你家冰箱/);
+  assert.equal(plan.verdict.primaryAction, "follow_standard_recipe");
+  assert.equal(plan.executionPlan.isExecutableNow, false);
+  assert.equal(plan.executionPlan.blockReason, "needs_confirmation");
+  assert.equal(plan.executionPlan.dishName, "回锅肉");
+  assert.equal(plan.executionPlan.steps.length, 3);
+});
+
+test("standard recipe keeps semantic hard gate for non-food targets", () => {
+  const plan = executableFoodPlan("鸡屎");
+  plan.standardIngredients = ["错误材料"];
+  plan.targetAssessment = {
+    status: "non_food",
+    reason: "这不是食物。",
+    clarificationPrompt: "",
+  };
+
+  sanitizeTargetDishPlan(plan, {
+    planningMode: "standard_recipe",
+    inventoryStatus: "not_checked",
+    inventory: null,
+  });
+
+  assert.deepEqual(plan.planContext, {
+    planningMode: "standard_recipe",
+    inventoryStatus: "not_checked",
+  });
+  assert.deepEqual(plan.standardIngredients, []);
+  assertBlockedTarget(plan, {
+    status: "non_food",
+    primaryAction: "choose_inventory_meal",
+    blockReason: "non_food_target",
+  });
+});
+
+test("standard recipe rejects a confirmed-food model result without full execution context", () => {
+  const plan = executableFoodPlan("回锅肉");
+  plan.standardIngredients = [];
+
+  assert.throws(
+    () => sanitizeTargetDishPlan(plan, {
+      planningMode: "standard_recipe",
+      inventoryStatus: "not_checked",
+      inventory: null,
+    }),
+    (error) => error?.status === 502 && error?.code === "MODEL_RESPONSE_INVALID",
+  );
+});
+
+test("standard recipe never promotes a missing semantic assessment to confirmed food", () => {
+  const plan = executableFoodPlan("回锅肉");
+  plan.standardIngredients = ["五花肉", "蒜苗", "豆瓣酱"];
+  delete plan.targetAssessment;
+
+  assert.throws(
+    () => sanitizeTargetDishPlan(plan, {
+      planningMode: "standard_recipe",
+      inventoryStatus: "not_checked",
+      inventory: null,
+    }),
+    (error) => error?.status === 502 && error?.code === "MODEL_RESPONSE_INVALID",
+  );
+});
+
+test("planTargetDish sends null inventory for standard mode and overwrites model context", async () => {
+  const returned = executableFoodPlan("回锅肉");
+  returned.planContext = { planningMode: "inventory_adapted", inventoryStatus: "confirmed" };
+  returned.standardIngredients = ["五花肉", "蒜苗", "豆瓣酱"];
+  returned.inventoryMatch.missingCritical = ["五花肉"];
+  returned.shoppingPlan.mustBuy = [{ item: "五花肉", reason: "主料" }];
+  let modelRequest;
+  const modelClient = {
+    async createJsonResponse(request) {
+      modelRequest = request;
+      return returned;
+    },
+  };
+
+  const plan = await planTargetDish({
+    planningMode: "standard_recipe",
+    inventoryStatus: "not_checked",
+    inventory: null,
+    targetDish: { text: "回锅肉", intentTime: "tonight", imageAnalysis: null },
+    userContext: { context: { availableCookingTime: "15 分钟" } },
+  }, modelClient);
+
+  const payload = JSON.parse(modelRequest.responsesInput[0].content[0].text);
+  assert.deepEqual(payload.planContext, {
+    planningMode: "standard_recipe",
+    inventoryStatus: "not_checked",
+  });
+  assert.equal(payload.inventory, null);
+  assert.deepEqual(payload.commerceCatalog, []);
+  assert.deepEqual(plan.planContext, payload.planContext);
+  assert.deepEqual(plan.inventoryMatch.missingCritical, []);
+  assert.deepEqual(plan.shoppingPlan.mustBuy, []);
+  assert.equal(plan.executionPlan.dishName, "回锅肉");
+  assert.equal(plan.executionPlan.steps.length, 3);
+  assert.equal(plan.executionPlan.isExecutableNow, false);
+  assert.equal(plan.executionPlan.blockReason, "needs_confirmation");
+});
+
+test("legacy array call remains inventory adapted and discards standard ingredients", async () => {
+  const returned = executableFoodPlan("番茄炒蛋");
+  returned.planContext = { planningMode: "standard_recipe", inventoryStatus: "not_checked" };
+  returned.standardIngredients = ["不应保留"];
+  const modelClient = { createJsonResponse: async () => returned };
+
+  const plan = await planTargetDish({
+    inventory: [{ name: "番茄" }, { name: "鸡蛋" }],
+    targetDish: { text: "番茄炒蛋", intentTime: "tonight", imageAnalysis: null },
+    userContext: {},
+  }, modelClient);
+
+  assert.deepEqual(plan.planContext, {
+    planningMode: "inventory_adapted",
+    inventoryStatus: "confirmed",
+  });
+  assert.deepEqual(plan.standardIngredients, []);
+  assert.equal(plan.executionPlan.isExecutableNow, true);
 });

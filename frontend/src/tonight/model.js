@@ -1,11 +1,26 @@
 // 阶段 1 状态模型：常量、来源语义、文案、兜底方案与持久化
 
-export const SAMPLE_DISH = {
-  url: "/demo-assets/菜/黄焖鸡-示例.png",
-  fileName: "黄焖鸡-示例.png",
-  demoKey: "sample-dish-huangmenji",
-  post: { author: "@阿强的深夜灶台", caption: "汤汁拌饭能吃三碗的黄焖鸡，砂锅一上桌全屋都香了", likes: "12.4w" },
-};
+export const SAMPLE_DISHES = [
+  {
+    url: "/demo-assets/菜/黄焖鸡-示例.png",
+    fileName: "黄焖鸡-示例.png",
+    demoKey: "sample-dish-huangmenji",
+    post: { author: "@阿强的深夜灶台", caption: "汤汁拌饭能吃三碗的黄焖鸡，砂锅一上桌全屋都香了", likes: "12.4w" },
+  },
+  {
+    url: "/demo-assets/菜/回锅肉.jpeg",
+    fileName: "回锅肉.jpeg",
+    demoKey: "sample-dish-huiguorou",
+    post: { author: "@川味家常菜", caption: "肉片煸香再回锅，青椒一炒就是熟悉的下饭味", likes: "8.7w" },
+  },
+];
+
+export const SAMPLE_DISH = SAMPLE_DISHES[0];
+
+export function nextSampleDish(currentDemoKey = "") {
+  const currentIndex = SAMPLE_DISHES.findIndex((item) => item.demoKey === currentDemoKey);
+  return SAMPLE_DISHES[(currentIndex + 1 + SAMPLE_DISHES.length) % SAMPLE_DISHES.length];
+}
 
 export const SAMPLE_FRIDGE = {
   url: "/demo-assets/fridge-images/f63de1c0794c76a412b9f06f0d919044.png",
@@ -122,6 +137,29 @@ export function sessionSourceBadge(sources) {
 // 只有明确使用固定示例预分析时才向用户说明
 export function isFixedDemoResult(computeSource, materialSource) {
   return materialSource === "sample" && typeof computeSource === "string" && computeSource.includes("cache");
+}
+
+export function classifyDishVisionError(error) {
+  const code = String(error?.code || "").trim();
+  const status = Number(error?.status || 0);
+  let kind = "invalid_response";
+  if (["MODEL_TIMEOUT", "CLIENT_TIMEOUT"].includes(code) || status === 504) {
+    kind = "timeout";
+  } else if (["MODEL_RESPONSE_INVALID", "INVALID_RESPONSE", "MODEL_REQUEST_ERROR", "HTTP_ERROR"].includes(code)) {
+    kind = "invalid_response";
+  } else if (
+    ["NETWORK_ERROR", "MODEL_CONNECT_ERROR", "MODEL_SERVICE_UNAVAILABLE"].includes(code)
+    || error?.name === "TypeError"
+    || status === 502
+    || status === 503
+  ) {
+    kind = "network";
+  }
+  return {
+    kind,
+    code: code || "UNKNOWN_RESPONSE_ERROR",
+    requestId: String(error?.requestId || "").trim().slice(0, 80),
+  };
 }
 
 // ---------- 名称匹配 ----------
@@ -397,6 +435,8 @@ export function normalizeDinnerPlan(plan) {
 }
 
 const targetDefaults = {
+  planContext: { planningMode: "inventory_adapted", inventoryStatus: "confirmed" },
+  standardIngredients: [],
   targetDish: { name: "想吃的菜", intentTime: "tonight", coreTaste: "", estimatedTime: "", difficulty: "" },
   verdict: { title: "", summary: "", primaryAction: "" },
   targetAssessment: { status: "needs_clarification", reason: "", clarificationPrompt: "" },
@@ -443,6 +483,8 @@ export function normalizeTargetPlanData(plan) {
   return {
     ...targetDefaults,
     ...p,
+    planContext: { ...targetDefaults.planContext, ...p.planContext },
+    standardIngredients: nameList(p.standardIngredients),
     targetDish: { ...targetDefaults.targetDish, ...p.targetDish },
     verdict: { ...targetDefaults.verdict, ...p.verdict },
     targetAssessment: { ...targetDefaults.targetAssessment, ...p.targetAssessment },
@@ -552,6 +594,105 @@ export function clearSessionState() {
 }
 
 // ---------- 菜名工具 ----------
+
+const INVALID_DISH_OPTION_NAMES = new Set([
+  "unknown",
+  "未知",
+  "不确定",
+  "无法识别",
+  "无法判断",
+  "看不清",
+  "非食物",
+  "不是食物",
+  "未知菜品",
+  "目标菜",
+  "模型结果",
+  "待确认",
+]);
+
+function cleanDishOptionText(value) {
+  return String(value || "").trim();
+}
+
+function cleanDishOptionList(value) {
+  if (!Array.isArray(value)) return [];
+  return value.filter((item) => {
+    if (typeof item === "string") return Boolean(item.trim());
+    return Boolean(cleanDishOptionText(item?.name || item?.item));
+  });
+}
+
+function usableDishOptionName(value) {
+  const name = cleanDishOptionText(value);
+  return Boolean(name && name.length <= 40 && !INVALID_DISH_OPTION_NAMES.has(name.toLowerCase()));
+}
+
+function normalizeDishOption(option, index, requireCompleteDetails = true) {
+  if (!option || typeof option !== "object" || !usableDishOptionName(option.name)) return null;
+  const explicitProvenance = cleanDishOptionText(option.provenance);
+  // 第一检查点的受控 fixture 不得在 sessionStorage 恢复后继续冒充真实候选契约。
+  if (explicitProvenance && !["vision", "vision-legacy-primary"].includes(explicitProvenance)) return null;
+  const name = cleanDishOptionText(option.name);
+  const normalized = {
+    id: cleanDishOptionText(option.id) || `vision-${index}-${name.replace(/\s+/g, "-")}`,
+    name,
+    likelyIngredients: cleanDishOptionList(option.likelyIngredients),
+    estimatedTime: cleanDishOptionText(option.estimatedTime),
+    difficulty: cleanDishOptionText(option.difficulty),
+    requiredTools: cleanDishOptionList(option.requiredTools),
+    warnings: cleanDishOptionList(option.warnings),
+    provenance: explicitProvenance || "vision",
+  };
+  if (requireCompleteDetails && (
+    normalized.likelyIngredients.length === 0
+    || !normalized.estimatedTime
+    || !normalized.difficulty
+    || normalized.requiredTools.length === 0
+  )) return null;
+  return normalized;
+}
+
+// 新契约按完整对象绑定；旧响应只能安全兼容主候选，绝不拿主详情拼装 secondary names。
+export function dishOptionsFromAnalysis(analysis) {
+  const hasDishOptionsContract = Array.isArray(analysis?.dishOptions);
+  const rawOptions = hasDishOptionsContract ? analysis.dishOptions : [];
+  const options = rawOptions
+    .map((option, index) => normalizeDishOption(option, index, true))
+    .filter(Boolean)
+    .filter((option, index, list) => (
+      list.findIndex((candidate) => (
+        candidate.id === option.id
+        || candidate.name.toLowerCase() === option.name.toLowerCase()
+      )) === index
+    ))
+    .slice(0, 4);
+
+  if (hasDishOptionsContract) return options;
+
+  const legacyName = cleanDishOptionText(analysis?.dishName);
+  if (!usableDishOptionName(legacyName)) return [];
+  return [{
+    id: "legacy-primary",
+    name: legacyName,
+    likelyIngredients: cleanDishOptionList(analysis?.likelyIngredients),
+    estimatedTime: cleanDishOptionText(analysis?.estimatedTime),
+    difficulty: cleanDishOptionText(analysis?.difficulty),
+    requiredTools: cleanDishOptionList(analysis?.requiredTools),
+    warnings: cleanDishOptionList(analysis?.warnings),
+    provenance: "vision-legacy-primary",
+  }];
+}
+
+export function restoreDishOptionSelection(analysis, savedOption) {
+  if (!savedOption || typeof savedOption !== "object") return null;
+  const options = dishOptionsFromAnalysis(analysis);
+  const savedId = cleanDishOptionText(savedOption.id);
+  const savedName = cleanDishOptionText(savedOption.name).toLowerCase();
+  return options.find((option) => (
+    (savedId && option.id === savedId)
+    || (savedName && option.name.toLowerCase() === savedName)
+  )) || null;
+}
 
 // 文件名兜底：只有文件名本身可读时才预填
 export function readableDishNameFromFile(fileName) {

@@ -40,7 +40,7 @@ async function transcribeRecording(blob) {
   return String(payload.transcript || "").trim();
 }
 
-export default function SpeechInput({ disabled = false, onTranscript }) {
+export default function SpeechInput({ disabled = false, iconOnly = false, className = "", onTranscript }) {
   const [phase, setPhase] = useState("idle");
   const [status, setStatus] = useState("");
   const recognitionRef = useRef(null);
@@ -226,15 +226,17 @@ export default function SpeechInput({ disabled = false, onTranscript }) {
   const buttonLabel = phase === "transcribing" ? "转写中" : active ? "结束语音" : "语音输入";
 
   return (
-    <div className="speech-row">
+    <div className={`speech-row ${iconOnly ? "speech-row-icononly" : ""} ${className}`.trim()}>
       <button
         className={`speech-btn ${active ? "is-live" : ""}`}
         type="button"
         onClick={handleClick}
         disabled={disabled || phase === "transcribing"}
+        aria-label={buttonLabel}
+        title={buttonLabel}
       >
         <Icon name="mic" size={16} />
-        {buttonLabel}
+        {!iconOnly && buttonLabel}
         {active && <i className="speech-pulse" aria-hidden="true" />}
       </button>
       {status && <span className="speech-hint" aria-live="polite">{status}</span>}

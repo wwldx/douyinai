@@ -92,10 +92,13 @@ async function requestResponsesJsonAttempt(config, requestBody, signal) {
     if (!response.ok) {
       const error = new Error(extractErrorMessage(raw) || `OpenAI API 请求失败：${response.status}`);
       error.status = response.status;
+      error.code = response.status === 502 || response.status === 503
+        ? "MODEL_SERVICE_UNAVAILABLE"
+        : "MODEL_REQUEST_ERROR";
       throw error;
     }
     const { text, response: completedResponse } = extractSseResponse(raw);
-    if (!text) throw new Error("模型没有返回可解析文本。");
+    if (!text) throw invalidModelResponse("模型没有返回可解析文本。");
     return attachModelResponseMeta(parseJsonObjectFromText(text), {
       model: completedResponse?.model || config.model,
       usage: completedResponse?.usage || null,
@@ -107,11 +110,14 @@ async function requestResponsesJsonAttempt(config, requestBody, signal) {
     const message = payload.error?.message || payload.message || JSON.stringify(payload).slice(0, 500) || `OpenAI API 请求失败：${response.status}`;
     const error = new Error(message);
     error.status = response.status;
+    error.code = response.status === 502 || response.status === 503
+      ? "MODEL_SERVICE_UNAVAILABLE"
+      : "MODEL_REQUEST_ERROR";
     throw error;
   }
 
   const text = extractOutputText(payload);
-  if (!text) throw new Error("模型没有返回可解析文本。");
+  if (!text) throw invalidModelResponse("模型没有返回可解析文本。");
   return attachModelResponseMeta(parseJsonObjectFromText(text), {
     model: payload.model || config.model,
     usage: payload.usage || null,
@@ -119,7 +125,8 @@ async function requestResponsesJsonAttempt(config, requestBody, signal) {
 }
 
 function isRetryableModelError(error) {
-  return error?.status === 502 || error?.status === 503;
+  if (["MODEL_CONNECT_ERROR", "MODEL_SERVICE_UNAVAILABLE"].includes(error?.code)) return true;
+  return !error?.code && (error?.status === 502 || error?.status === 503);
 }
 
 function waitBeforeRetry(signal, delayMs) {
@@ -162,11 +169,14 @@ async function requestChatJsonResponse(config, { messages, name, timeoutMs }) {
       const message = payload.error?.message || payload.message || JSON.stringify(payload).slice(0, 500) || `Right Code chat 请求失败：${response.status}`;
       const error = new Error(message);
       error.status = response.status;
+      error.code = response.status === 502 || response.status === 503
+        ? "MODEL_SERVICE_UNAVAILABLE"
+        : "MODEL_REQUEST_ERROR";
       throw error;
     }
 
     const text = extractChatOutputText(payload);
-    if (!text) throw new Error(`${name} 没有返回可解析文本。`);
+    if (!text) throw invalidModelResponse(`${name} 没有返回可解析文本。`);
     return attachModelResponseMeta(parseJsonObjectFromText(text), {
       model: payload.model || config.model,
       usage: payload.usage || null,
@@ -286,9 +296,10 @@ async function parseResponseJson(response) {
   try {
     return JSON.parse(raw);
   } catch {
-    const error = new Error(`模型服务返回非 JSON 响应：${raw.slice(0, 300).replace(/\s+/g, " ")}`);
-    error.status = response.status;
-    throw error;
+    throw invalidModelResponse(
+      `模型服务返回非 JSON 响应：${raw.slice(0, 300).replace(/\s+/g, " ")}`,
+      response.status,
+    );
   }
 }
 
@@ -303,9 +314,20 @@ function parseJsonObjectFromText(text) {
     const start = candidate.indexOf("{");
     const end = candidate.lastIndexOf("}");
     if (start >= 0 && end > start) {
-      return JSON.parse(candidate.slice(start, end + 1));
+      try {
+        return JSON.parse(candidate.slice(start, end + 1));
+      } catch {
+        // 统一落到可安全分类的模型响应异常。
+      }
     }
     const preview = candidate.slice(0, 500).replace(/\s+/g, " ");
-    throw new Error(`模型返回不是 JSON：${preview}`);
+    throw invalidModelResponse(`模型返回不是 JSON：${preview}`);
   }
+}
+
+function invalidModelResponse(message, status = 502) {
+  const error = new Error(message);
+  error.status = status >= 400 ? status : 502;
+  error.code = "MODEL_RESPONSE_INVALID";
+  return error;
 }

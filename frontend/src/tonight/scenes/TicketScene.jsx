@@ -18,7 +18,8 @@ import {
 export default function TicketScene({
   plan, plans, onSelectPlan, timeBudget, gotIt, stepPosition, onMarkStep,
   onFeedback, onCartReplan, onGotIt, onPantryReplan, onAlternative, onAddTarget,
-  onUseInventoryPlan, onEditFridge, onRestart, onRescue, onLifeLog,
+  onUseInventoryPlan, onEditFridge, onEditConditions, onCompareFridge,
+  onRestart, onRescue, onLifeLog,
 }) {
   const [cartSel, setCartSel] = useState([]);
   const [gotSel, setGotSel] = useState([]);
@@ -27,6 +28,7 @@ export default function TicketScene({
   const [targetInputSource, setTargetInputSource] = useState("ticket_text");
   const [pantryDraft, setPantryDraft] = useState({});
   const [pantryError, setPantryError] = useState("");
+  const [pantryOpen, setPantryOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [bigStepsOpen, setBigStepsOpen] = useState(false);
 
@@ -35,20 +37,27 @@ export default function TicketScene({
     setGotSel([]);
     setPantryDraft({});
     setPantryError("");
+    setPantryOpen(false);
     setFeedbackOpen(false);
     setBigStepsOpen(false);
   }, [plan?.id]);
 
   if (!plan) return null;
   const isTarget = plan.mode === "target";
+  const planningMode = plan.requestSnapshot?.planningMode
+    || plan.plan?.planContext?.planningMode
+    || "inventory_adapted";
+  const isStandard = isTarget && planningMode === "standard_recipe";
   const isRules = plan.source === "rules-fallback";
   const provenance = plan.inputProvenance || {};
   const fixedDemo = isFixedDemoResult(provenance.dishAnalysisSource, provenance.dishImageSource)
     || isFixedDemoResult(provenance.fridgeAnalysisSource, provenance.fridgeImageSource);
-  const sessionBadge = sessionSourceBadge([
-    provenance.dishImageSource,
-    provenance.inventoryMode === "vision" ? provenance.fridgeImageSource : provenance.inventoryMode === "last" ? "last-inventory" : "manual",
-  ]);
+  const sessionBadge = sessionSourceBadge(isStandard
+    ? [provenance.dishImageSource]
+    : [
+      provenance.dishImageSource,
+      provenance.inventoryMode === "vision" ? provenance.fridgeImageSource : provenance.inventoryMode === "last" ? "last-inventory" : "manual",
+    ]);
 
   const requestedMealName = isTarget
     ? plan.requestSnapshot?.dishName || plan.plan?.targetDish?.name
@@ -66,18 +75,18 @@ export default function TicketScene({
   const altSourceSeq = alternativeFrom?.sourceSequence
     ?? (alternativeFrom?.sourcePlanId ? plans.find((p) => p.id === alternativeFrom.sourcePlanId)?.sequence : null);
 
-  const modelPantry = isTarget ? [...new Set(plan.plan?.shoppingPlan?.confirmAtHome || [])] : [];
+  const modelPantry = isTarget && !isStandard ? [...new Set(plan.plan?.shoppingPlan?.confirmAtHome || [])] : [];
   const pendingPantry = modelPantry.filter((name) => (
     !pantryAvailable.some((item) => pantryNamesMatch(item, name))
     && !pantryMissing.some((item) => pantryNamesMatch(item, name))
   ));
-  const missing = isTarget
+  const missing = isTarget && !isStandard
     ? [...new Set([
       ...(plan.plan?.inventoryMatch?.missingCritical || []),
       ...(plan.plan?.shoppingPlan?.mustBuy || []).map((item) => item.item),
     ])]
     : [];
-  const optionalMissing = isTarget ? [...new Set(plan.plan?.inventoryMatch?.missingOptional || [])] : [];
+  const optionalMissing = isTarget && !isStandard ? [...new Set(plan.plan?.inventoryMatch?.missingOptional || [])] : [];
   const materialNames = [...new Set([...missing, ...accepted, ...gotIt])];
   // 有效步骤与「全部缺料已拿到」判断统一来自共享模块，与大字视图、做饭救援同源
   const { steps: displaySteps, allRequiredAcquired } = getCookingContext(plan);
@@ -85,16 +94,22 @@ export default function TicketScene({
   const mealName = executionState.executionDishName || requestedMealName;
   const targetIntentAccepted = !isTarget || executionState.targetStatus === "confirmed_food";
   const targetNeedsCorrection = isTarget && !targetIntentAccepted;
-  const canEnterCooking = executionState.canEnterCooking;
-  const canShowCookingPreview = targetIntentAccepted && displaySteps.length > 0;
+  const canViewSteps = executionState.canViewSteps;
+  const canUseRescue = executionState.canUseRescue;
+  const canCreateLifeLog = executionState.canCreateLifeLog;
+  const canClaimReadyNow = executionState.canClaimReadyNow;
+  const canShowCookingPreview = targetIntentAccepted && canViewSteps && displaySteps.length > 0;
   const targetAssessment = isTarget ? plan.plan?.targetAssessment || {} : {};
   const mustBuyReasons = new Map((plan.plan?.shoppingPlan?.mustBuy || []).map((b) => [b.item, b.reason]));
-  const fridgeAvailable = (plan.plan?.inventoryMatch?.availableItems || []).filter(
+  const fridgeAvailable = (isStandard ? [] : plan.plan?.inventoryMatch?.availableItems || []).filter(
     (name) => !accepted.some((item) => ingredientNamesMatch(item, name))
       && !gotIt.some((item) => ingredientNamesMatch(item, name))
       && !pantryAvailable.some((item) => pantryNamesMatch(item, name)),
   );
   const pantryDraftCount = Object.values(pantryDraft).filter((status) => status === "available" || status === "missing").length;
+  const standardIngredients = isStandard ? (plan.plan?.standardIngredients || []) : [];
+  const selectedDishOption = isStandard ? plan.requestSnapshot?.selectedDishOption || null : null;
+  const standardTools = Array.isArray(selectedDishOption?.requiredTools) ? selectedDishOption.requiredTools : [];
 
   const cookTimeText = isTarget ? plan.plan?.targetDish?.estimatedTime : plan.plan?.baseMeal?.timeCost;
   const cleanCookTimeText = String(cookTimeText || "")
@@ -115,6 +130,30 @@ export default function TicketScene({
     .split(/[；;]/)
     .filter((part) => !(allRequiredAcquired && /补购|配送/.test(part)))
     .join("；");
+  const hasSimulatedMaterials = accepted.length > 0;
+  const adaptedTargetTitle = (() => {
+    if (!isTarget || isStandard || targetNeedsCorrection) return "";
+    if (canClaimReadyNow) return `材料条件已确认，可以按这版准备「${mealName || "目标菜"}」`;
+    if (hasSimulatedMaterials) return `模拟补齐后的做法已生成，材料还没有真实买到`;
+    if (pendingPantry.length > 0 && missing.length > 0) {
+      return `完整做法已保留；仍有 ${missing.length} 样缺料、${pendingPantry.length} 样家中常备可选确认`;
+    }
+    if (pendingPantry.length > 0) return `完整做法已保留；还有 ${pendingPantry.length} 样家中常备可选确认`;
+    if (missing.length > 0 || executionState.blockReason === "missing_materials") {
+      return `完整做法已保留；仍有材料未拿到`;
+    }
+    if (canViewSteps && !canClaimReadyNow) return `完整做法已保留；材料条件尚未完全确认`;
+    return plan.plan?.verdict?.title || "这版还需要补充条件";
+  })();
+  const headerVerdict = isStandard && targetIntentAccepted
+    ? plan.plan?.verdict?.title || `按标准做法准备「${mealName || requestedMealName}」`
+    : isTarget
+      ? targetNeedsCorrection
+        ? plan.plan?.verdict?.title || "先确认具体菜名"
+        : adaptedTargetTitle
+      : executionState.isSemanticallyExecutable && !canClaimReadyNow
+        ? "完整做法已保留；当前材料条件尚未完全具备"
+        : plan.plan?.summary;
 
   function toggle(list, setList, name) {
     setList((cur) => (cur.includes(name) ? cur.filter((n) => n !== name) : [...cur, name]));
@@ -177,7 +216,7 @@ export default function TicketScene({
   }
 
   async function handlePantryReplan() {
-    if (!onPantryReplan || pantryDraftCount !== pendingPantry.length) return;
+    if (!onPantryReplan || pantryDraftCount === 0) return;
     setPantryError("");
     setBusy(true);
     try {
@@ -245,11 +284,14 @@ export default function TicketScene({
       </header>
 
       {sessionBadge && <p className="tn-source-line">{sessionBadge}{fixedDemo ? " · 固定示例结果" : ""}</p>}
-      {plan.requestSnapshot && (
+      {plan.requestSnapshot && !isStandard && (
         <p className="tn-source-line">
           库存来源：{plan.requestSnapshot.inventoryMode === "last" ? "上次库存（已重新核对）" : plan.requestSnapshot.inventoryMode === "manual" ? "手动确认" : plan.requestSnapshot.inventoryMode === "empty" ? "用户确认空库存" : "本次图片确认"}
           {` · ${plan.requestSnapshot.inventoryCount ?? 0} 样`}
         </p>
+      )}
+      {isStandard && (
+        <p className="tn-source-line">尚未核对你家冰箱 · 本版按标准材料与完整做法规划</p>
       )}
       {eatFirst?.applied && eatFirst.plannerPriorities.length > 0 && (
         <p className="tn-source-line">规划时已优先考虑：{eatFirst.plannerPriorities.join("、")}（按你确认的状态；实际用到哪些以下方方案为准）</p>
@@ -266,35 +308,42 @@ export default function TicketScene({
 
       <article className="tn-ticket">
         <header className="tn-ticket-head">
-          <p className="tn-ticket-mode">{isTarget ? `想吃的 · ${requestedMealName || "目标菜"}` : "按你有的安排"}</p>
+          <p className="tn-ticket-mode">
+            {isStandard
+              ? `按标准做法 · ${requestedMealName || "目标菜"}`
+              : isTarget ? `想吃的 · ${requestedMealName || "目标菜"}` : "按你有的安排"}
+          </p>
           {alternativeFrom?.candidateName && (
             <p className="tn-ticket-lineage">
               换个思路 · 来自{altSourceSeq ? `第 ${altSourceSeq} 版` : "上一版"}的「{alternativeFrom.candidateName}」；按现实库存重定，不一定是同一道菜
             </p>
           )}
           <p className="tn-ticket-verdict">
-            {isTarget
-              ? targetNeedsCorrection
-                ? plan.plan?.verdict?.title || "先确认具体菜名"
-                : pendingPantry.length > 0
-                ? `还要确认 ${pendingPantry.length} 样家中常备，再定今晚怎么补`
-                : allRequiredAcquired ? `本次所缺材料已拿到，可以按这版准备「${mealName || "目标菜"}」` : plan.plan?.verdict?.title
-              : plan.plan?.summary}
+            {headerVerdict}
           </p>
-          {isTarget && targetIntentAccepted && allRequiredAcquired && <p className="tn-ticket-meta">材料状态已更新；做法沿用本版，没有再次调用模型。开火前仍请核对实物。</p>}
-          {isTarget && targetIntentAccepted && pendingPantry.length > 0 && (
+          {isTarget && !isStandard && targetIntentAccepted && allRequiredAcquired && <p className="tn-ticket-meta">材料状态已更新；做法沿用本版，没有再次调用模型。开火前仍请核对实物。</p>}
+          {isTarget && !isStandard && targetIntentAccepted && pendingPantry.length > 0 && (
             <p className="tn-ticket-pendingnote" role="note">
-              下面这些材料还没有成为“有”或“缺”的事实；确认后会生成新版本，这一版暂时只作条件参考。
+              这些常备材料还没有成为“有”或“缺”的事实；确认是可选的，不会阻挡你查看完整做法。
             </p>
           )}
-          {isTarget && pendingPantry.length === 0 && !allRequiredAcquired && plan.plan?.verdict?.summary && <p className="tn-ticket-meta">{plan.plan.verdict.summary}</p>}
+          {isTarget && isStandard && plan.plan?.verdict?.summary && <p className="tn-ticket-meta">{plan.plan.verdict.summary}</p>}
+          {isTarget && !isStandard && targetIntentAccepted && (
+            <p className="tn-ticket-meta">
+              {canClaimReadyNow
+                ? plan.plan?.verdict?.summary || "当前记录的材料条件已经满足；开火前仍请核对实物。"
+                : "完整做法已经保留；材料状态只影响能否声称现在就能做。"}
+            </p>
+          )}
           {!targetNeedsCorrection && <p className="tn-ticket-meta">
             {cookTimeLabel}
-            {isTarget && missing.length > 0 && !allRequiredAcquired ? " · 补购耗时另计" : ""}
+            {isTarget && !isStandard && missing.length > 0 && !allRequiredAcquired ? " · 补购耗时另计" : ""}
           </p>}
           {!targetNeedsCorrection && overBudget && (
             <p className="tn-ticket-timenote" role="note">
-              比你说的{timeBudget.label}多一些——开火前把后面的安排挪一挪，或者换个更简单的版本。
+              {isStandard
+                ? `你选的是${timeBudget.label}，但这道菜现实预计需要${cleanCookTimeText || "更久"}；不会把标准做法硬压进更短时间。`
+                : `比你说的${timeBudget.label}多一些——开火前把后面的安排挪一挪，或者换个更简单的版本。`}
             </p>
           )}
         </header>
@@ -319,14 +368,37 @@ export default function TicketScene({
               <button type="button" className="tn-btn tn-btn-primary" disabled={!targetInput.trim() || busy} onClick={handleAddTarget}>
                 按新菜名生成一版
               </button>
-              <button type="button" className="tn-btn tn-btn-quiet" disabled={busy} onClick={handleUseInventoryPlan}>
-                不指定菜，按库存决定
+              <button
+                type="button"
+                className="tn-btn tn-btn-quiet"
+                disabled={busy}
+                onClick={isStandard ? onCompareFridge : handleUseInventoryPlan}
+              >
+                {isStandard ? "去拍冰箱再调整" : "不指定菜，按库存决定"}
               </button>
             </div>
           </div>
         )}
 
-        {isTarget && targetIntentAccepted && (
+        {isStandard && targetIntentAccepted && (
+          <div className="tn-standard-plan" aria-label="标准做法准备清单">
+            <div className="tn-standard-plan-head">
+              <p className="tn-ticket-coltitle">标准做法要准备</p>
+              <p className="tn-ticket-meta">尚未核对你家现有材料；这里只列这道菜的完整准备清单。</p>
+            </div>
+            <ul className="tn-standard-ingredients">
+              {standardIngredients.map((name) => <li key={name}>{name}</li>)}
+            </ul>
+            <div className="tn-standard-facts">
+              <p><span>执行菜名</span><strong>{mealName || requestedMealName}</strong></p>
+              <p><span>现实预计</span><strong>{cleanCookTimeText || "以实际步骤为准"}</strong></p>
+              <p><span>难度</span><strong>{plan.plan?.targetDish?.difficulty || "按步骤操作"}</strong></p>
+              <p><span>所需工具</span><strong>{standardTools.join("、") || "常用厨房工具"}</strong></p>
+            </div>
+          </div>
+        )}
+
+        {isTarget && !isStandard && targetIntentAccepted && (
           <div className="tn-ticket-cols">
             <div className="tn-ticket-col">
               <p className="tn-ticket-coltitle is-have">冰箱原有</p>
@@ -356,55 +428,67 @@ export default function TicketScene({
               )}
               {pendingPantry.length > 0 && (
                 <div className="tn-pantry-confirm" aria-label="确认家中常备材料">
-                  <div className="tn-pantry-confirm-head">
-                    <div>
-                      <p className="tn-ticket-coltitle tn-ticket-confirmtitle">家里常备 · 待确认</p>
-                      <p className="tn-pantry-hint">逐项选“有”或“没有”，选完后只重新规划一次。</p>
-                    </div>
-                    <button type="button" className="tn-pantry-all" disabled={busy} onClick={markAllPantryAvailable}>
-                      {pantryDraftCount > 0 ? "其余都有" : "这些都有"}
-                    </button>
-                  </div>
-                  <ul className="tn-pantry-list">
-                    {pendingPantry.map((name) => (
-                      <li key={`home-${name}`} className="tn-pantry-item">
-                        <span className="tn-ticket-itemname">{name}</span>
-                        <div className="tn-pantry-choices" role="group" aria-label={`确认家里是否有${name}`}>
-                          <button
-                            type="button"
-                            className={`tn-pantry-choice ${pantryDraft[name] === "available" ? "is-have" : ""}`}
-                            aria-pressed={pantryDraft[name] === "available"}
-                            disabled={busy}
-                            onClick={() => choosePantry(name, "available")}
-                          >
-                            家里有
-                          </button>
-                          <button
-                            type="button"
-                            className={`tn-pantry-choice ${pantryDraft[name] === "missing" ? "is-missing" : ""}`}
-                            aria-pressed={pantryDraft[name] === "missing"}
-                            disabled={busy}
-                            onClick={() => choosePantry(name, "missing")}
-                          >
-                            家里没有
-                          </button>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
                   <button
                     type="button"
-                    className="tn-btn tn-btn-quiet tn-pantry-apply"
-                    disabled={busy || pantryDraftCount !== pendingPantry.length}
-                    onClick={handlePantryReplan}
+                    className="tn-pantry-toggle"
+                    aria-expanded={pantryOpen}
+                    onClick={() => setPantryOpen((value) => !value)}
                   >
-                    {busy ? "正在按确认结果更新…" : pantryDraftCount === pendingPantry.length
-                      ? pantryError ? `按原确认重试更新` : `按这 ${pantryDraftCount} 样确认更新方案`
-                      : `还需确认 ${pendingPantry.length - pantryDraftCount} 样`}
+                    <span>家里常备还有 {pendingPantry.length} 样未确认（可选）</span>
+                    <span>{pantryOpen ? "收起" : "按需确认，不影响看菜谱"}</span>
                   </button>
-                  {pantryError && <p className="tn-pantry-error" role="alert">{pantryError}</p>}
-                  {pantryDraftCount < pendingPantry.length && (
-                    <p className="tn-pantry-hint">全部选完后再统一更新一次，避免每确认一项都等待模型。</p>
+                  {pantryOpen && (
+                    <div className="tn-pantry-body">
+                      <div className="tn-pantry-confirm-head">
+                        <p className="tn-pantry-hint">只确认你愿意回答的项目；其余继续保持待确认。</p>
+                        <button type="button" className="tn-pantry-all" disabled={busy} onClick={markAllPantryAvailable}>
+                          {pantryDraftCount > 0 ? "其余都有" : "这些都有"}
+                        </button>
+                      </div>
+                      <ul className="tn-pantry-list">
+                        {pendingPantry.map((name) => (
+                          <li key={`home-${name}`} className="tn-pantry-item">
+                            <span className="tn-ticket-itemname">{name}</span>
+                            <div className="tn-pantry-choices" role="group" aria-label={`确认家里是否有${name}`}>
+                              <button
+                                type="button"
+                                className={`tn-pantry-choice ${pantryDraft[name] === "available" ? "is-have" : ""}`}
+                                aria-pressed={pantryDraft[name] === "available"}
+                                disabled={busy}
+                                onClick={() => choosePantry(name, "available")}
+                              >
+                                家里有
+                              </button>
+                              <button
+                                type="button"
+                                className={`tn-pantry-choice ${pantryDraft[name] === "missing" ? "is-missing" : ""}`}
+                                aria-pressed={pantryDraft[name] === "missing"}
+                                disabled={busy}
+                                onClick={() => choosePantry(name, "missing")}
+                              >
+                                家里没有
+                              </button>
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                      <button
+                        type="button"
+                        className="tn-btn tn-btn-quiet tn-pantry-apply"
+                        disabled={busy || pantryDraftCount === 0}
+                        onClick={handlePantryReplan}
+                      >
+                        {busy
+                          ? "正在按确认结果更新…"
+                          : pantryError
+                            ? "按原确认重试更新"
+                            : pantryDraftCount > 0
+                              ? `按已确认的 ${pantryDraftCount} 样更新方案`
+                              : "选择一项后再更新"}
+                      </button>
+                      {pantryError && <p className="tn-pantry-error" role="alert">{pantryError}</p>}
+                      <p className="tn-pantry-hint">未选择的项目继续保持待确认，不会阻挡当前菜谱和制作过程。</p>
+                    </div>
                   )}
                 </div>
               )}
@@ -455,7 +539,7 @@ export default function TicketScene({
           </div>
         )}
 
-        {isTarget && targetIntentAccepted && (cartSel.length > 0 || gotSel.length > 0) && (
+        {isTarget && !isStandard && targetIntentAccepted && (cartSel.length > 0 || gotSel.length > 0) && (
           <div className="tn-ticket-actions">
             {cartSel.length > 0 && (
               <button type="button" className="tn-btn tn-btn-primary" disabled={busy} onClick={handleCartReplan}>
@@ -469,7 +553,7 @@ export default function TicketScene({
             )}
           </div>
         )}
-        {targetIntentAccepted && accepted.length > 0 && (
+        {!isStandard && targetIntentAccepted && accepted.length > 0 && (
           <p className="tn-ticket-cartnote" role="status">
             模拟补购：{accepted.join("、")} —— 只是帮你算清「补齐后能不能做」，没有真实下单，也不会扣款。
           </p>
@@ -497,9 +581,16 @@ export default function TicketScene({
         )}
 
         {canShowCookingPreview && <div className="tn-ticket-steps">
+          {!isStandard && !canClaimReadyNow && (
+            <p className="tn-cooking-condition-note" role="note">
+              当前材料状态还没有完全确认；下面仍可查看完整做法，也可以在你确实已经开做或做完后主动使用救援和记录。
+            </p>
+          )}
           <div className="tn-ticket-stepshead">
-            <p className="tn-ticket-coltitle">{canEnterCooking ? "开火之后" : "条件确认后这样做"}</p>
-            {canEnterCooking && displaySteps.length > 0 && (
+            <p className="tn-ticket-coltitle">
+              {isStandard ? "按标准做法" : canClaimReadyNow ? "开火之后" : "完整做法"}
+            </p>
+            {canViewSteps && displaySteps.length > 0 && (
               <button type="button" className="tn-bigsteps-open" onClick={() => setBigStepsOpen(true)}>
                 大字看
               </button>
@@ -507,30 +598,20 @@ export default function TicketScene({
           </div>
           <ol>
             {displaySteps.map((step, i) => (
-              <li key={i} className={canEnterCooking && stepPosition === i ? "is-marked" : ""}>
+              <li key={i} className={canViewSteps && stepPosition === i ? "is-marked" : ""}>
                 {step}
-                {canEnterCooking && stepPosition === i && <span className="tn-step-tag">做到这一步</span>}
+                {canViewSteps && stepPosition === i && <span className="tn-step-tag">做到这一步</span>}
               </li>
             ))}
           </ol>
-          {canEnterCooking ? (
-            <>
-              <button type="button" className="tn-rescue-open" onClick={onRescue}>
-                <span className="tn-rescue-open-title">已经在做了，遇到问题？</span>
-                <span className="tn-rescue-open-sub">拍一下现场，AI 帮你救 · 最多两轮</span>
-              </button>
-              <button type="button" className="tn-lifelog-open" onClick={onLifeLog}>
-                <span className="tn-rescue-open-title">做完了，记录一下</span>
-                <span className="tn-rescue-open-sub">拍张成品，生成可编辑的生活记录草稿 · 不会发布</span>
-              </button>
-            </>
-          ) : (
-            <p className="tn-cooking-blocked" role="status">
-              {executionState.blockReason === "simulated_materials"
-                ? "模拟补购还不等于已经买到；确认本次材料已拿到后，才会开放做饭救援与饭后记录。"
-                : "菜名或材料条件还没有确认完成，这一版暂不开放做饭救援与饭后记录。"}
-            </p>
-          )}
+          {canUseRescue && <button type="button" className="tn-rescue-open" onClick={onRescue}>
+            <span className="tn-rescue-open-title">已经在做了，遇到问题？</span>
+            <span className="tn-rescue-open-sub">拍一下现场，AI 帮你救 · 最多两轮</span>
+          </button>}
+          {canCreateLifeLog && <button type="button" className="tn-lifelog-open" onClick={onLifeLog}>
+            <span className="tn-rescue-open-title">做完了，记录一下</span>
+            <span className="tn-rescue-open-sub">拍张成品，生成可编辑的生活记录草稿 · 不会发布</span>
+          </button>}
         </div>}
 
         {targetIntentAccepted && <div className="tn-ticket-tips">
@@ -573,7 +654,7 @@ export default function TicketScene({
         </button>
         {feedbackOpen && (
           <div className="tn-chips" role="group" aria-label="反馈这版方案">
-            {FEEDBACK_OPTIONS.map((option) => (
+            {FEEDBACK_OPTIONS.filter((option) => !isStandard || option.type !== "too_many_missing").map((option) => (
               <button key={option.type} type="button" className="tn-chip" disabled={busy} onClick={() => handleFeedback(option)}>
                 {option.label}
               </button>
@@ -584,11 +665,18 @@ export default function TicketScene({
       </div>}
 
       <footer className="tn-decision-actions">
-        <button type="button" className="tn-btn tn-btn-quiet" onClick={onEditFridge}>库存不对？回去改</button>
+        {isStandard ? (
+          <>
+            <button type="button" className="tn-btn tn-btn-quiet" onClick={onEditConditions}>回去改时间 / 要求</button>
+            <button type="button" className="tn-btn tn-btn-primary" onClick={onCompareFridge}>拍冰箱，再按家里现有的调整</button>
+          </>
+        ) : (
+          <button type="button" className="tn-btn tn-btn-quiet" onClick={onEditFridge}>库存不对？回去改</button>
+        )}
         <button type="button" className="tn-link" onClick={onRestart}>换一种开始</button>
       </footer>
 
-      {bigStepsOpen && canEnterCooking && displaySteps.length > 0 && (
+      {bigStepsOpen && canViewSteps && displaySteps.length > 0 && (
         <BigStepsView
           mealName={mealName}
           steps={displaySteps}
